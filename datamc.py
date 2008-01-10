@@ -555,9 +555,10 @@ def veryAwesome():
     """driver for awesome tree function"""
     dir = '/Users/kocolosk/data/run5/jetSkim/'
     files =  os.listdir(dir)
-    for f in files[395:]:
-        print f
-        awesomeTree(int(f[8:15]))
+    for f in files[360:]:
+       if f.endswith('.root'):
+          print f
+          awesomeTree(int(f[8:15]))
 
 
 def measureReadSpeed():
@@ -748,7 +749,7 @@ def makeEventLists(fname='~/work/charged-pion-event-2/chargedPions_6119063.tree.
     #f = ROOT.TFile(fname, 'update')
     #ch = f.tree
     ch = ROOT.TChain('tree')
-    ch.Add('~/work/charged-pion-event-2/chargedPions_6*')
+    ch.Add('~/data/run5/tree/chargedPions_*.tree.root')
     
     elists = []
     
@@ -768,7 +769,10 @@ def makeEventLists(fname='~/work/charged-pion-event-2/chargedPions_6119063.tree.
     elists.append( ROOT.gDirectory.Get('has_vertex') )
     
     print 'generating bbc_789 list'
-    ch.Draw('>>bbc_789','mBbcTimeBin%32==0 && mBbcTimeBin/32>6 && mBbcTimeBin/32<9')
+    #ch.Draw('>>bbc_789','mBbcTimeBin%32==0 && mBbcTimeBin/32>6 && mBbcTimeBin/32<9')
+    ## dropping the discrete timebin cut -- APK 2008-01-09
+    ## also fix a BUG!!! 9 vs. 10
+    ch.Draw('>>bbc_789','mBbcTimeBin%32==0 && mBbcTimeBin/32>6 && mBbcTimeBin/32<10')
     elists.append( ROOT.gDirectory.Get('bbc_789') )
     
     print 'generating spinDbOk list'
