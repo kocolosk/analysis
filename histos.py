@@ -20,11 +20,15 @@ class EventCuts:
       self.vertex = event.nVertices() > 0
       
       timeDiff = event.bbcTimeBin()
-      if timeDiff % 32 != 0:
-         self.bbc = False
-      else:
-         bin = timeDiff / 32
-         self.bbc = bin in (7,8,9) or (event.runId() > 7000000 and bin == 6)
+      #if timeDiff % 32 != 0:
+      #   self.bbc = False
+      #else:
+      #   bin = timeDiff / 32
+      #   self.bbc = bin in (7,8,9) or (event.runId() > 7000000 and bin == 6)
+      
+      ## dropping the discrete timebin cut -- APK 2008-01-09
+      bin = timeDiff / 32
+      self.bbc = bin in (7,8,9) or (event.runId() > 7000000 and bin == 6)
       
       self.all = self.vertex and self.bbc
    
@@ -50,19 +54,46 @@ class TrackCuts:
 
 
 class JetCuts:
-   def __init__(self, jet=None):
+   triggerThresholds = { 96201:13, 96211:17, 96221:66, 96233:83 }
+   minPhi2005 = 40
+   maxPhi2005 = 320
+   patchPhi2005 = [90., 30., -30., -90., -150., 150.]
+   
+   def __init__(self, jet=None, event=None):
       if jet is None:
          self.eta = False
          self.rt  = False
+         self.trig = []
       else:
-         self.set(jet)
+         self.set(jet, event)
    
    
-   def set(self, jet):
+   def set(self, jet, event):
       ## TODO -- needs to be extended for 2006
-      #self.eta = 0.2 < jet.detectorEta() < 0.8
-      self.eta = False
+      self.eta = 0.2 < jet.detectorEta() < 0.8
       self.rt  = 0.1 < (jet.tpcEtSum() / jet.Et()) < 0.9
+      
+      self.trig = []
+      
+      ## HT geometric trigger condition
+      for particle in jet.particles():
+         if particle.detectorId() == ROOT.kBarrelEmcTowerId:
+            adc = event.highTowerAdc(particle.index())
+            if adc > self.triggerThresholds[96211]:
+               self.trig.append(96201)
+               self.trig.append(96211)
+            elif adc > self.triggerThresholds[96201]:
+               self.trig.append(96201)
+      
+      ## JP geometric trigger condition
+      for patchId in range(6):
+         adc = event.jetPatchAdc(patchId)
+         if adc > self.triggerThresholds[96221]:
+            dPhi = math.fabs( math.degrees(jet.Phi()) - self.patchPhi2005[patchId] )
+            if dPhi < self.minPhi2005 or dPhi > self.maxPhi2005:
+               self.trig.append(96221)
+               if adc > self.triggerThresholds[96233]:
+                  self.trig.append(96233)
    
 
 
@@ -100,6 +131,9 @@ class TrackHistogramCollection(dict):
          ar = array('d',z_xbins)
          self['z'] = ROOT.TH2D('%s_z' % (name,), '', len(z_xbins)-1, ar, 50, 0., 1.)
          self['z_away'] = ROOT.TH2D('%s_z_away' % (name,), '', len(z_xbins)-1, ar, 50, 0., 1.)
+         
+         self['pt_away'] = ROOT.TH1D('%s_pt_away' % (name,), '', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+         self['pt_near'] = ROOT.TH1D('%s_pt_near' % (name,), '', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
    
    
    def fillTrack(self, track, tcuts):
@@ -145,8 +179,10 @@ class TrackHistogramCollection(dict):
          z = track.Pt() / jet.Pt()
          if dR < 0.4: 
             self['z'].Fill(track.Pt(), z)
+            self['pt_near'].Fill(track.Pt())
          elif dR > 1.5:
             self['z_away'].Fill(track.Pt(), z)
+            self['pt_away'].Fill(track.Pt())
    
    
    def Add(self, other):
@@ -268,7 +304,7 @@ class HistogramManager(dict):
       ## track-wise histograms
       if not ecuts.all: return
       tcuts = TrackCuts()
-      jcuts = [JetCuts(jet) for jet in event.jets()]
+      jcuts = [JetCuts(jet, event) for jet in event.jets()]
       for track in event.tracks():
          tcuts.set(track)
          for trig in self.trigSetups:
@@ -348,7 +384,7 @@ class HistogramManager(dict):
 def writeHistograms(treeDir='~/data/run5/tree', globber='*'):
    chain = ROOT.TChain('tree')
    chain.Add(treeDir + '/chargedPions_' + globber + '.tree.root')
-   chain.SetBranchStatus('mJets.mParticles*',0)
+   #chain.SetBranchStatus('mJets.mParticles*',0)
    
    if globber == '*':
       elistFile = ROOT.TFile(treeDir + '/../eventLists.root')
