@@ -129,6 +129,8 @@ class MiniMcHistos(dict):
     eventPartonBins = [1400, 0, 70]
     xbins       = [100, 0, 1]
     
+    ggRescaleFactor = 1.15
+    
     def __init__(self,trigIdString,subProcess='',tfile=None):
         self.trigIdString = trigIdString
         #self.subProcess = subProcess
@@ -138,6 +140,7 @@ class MiniMcHistos(dict):
             self.processId = 0
         
         self['pt'] = ROOT.TH1D('_%s_pt_%s' % (trigIdString,subProcess), '', self.ptBins[0], self.ptBins[1], self.ptBins[2])
+        self['ptRescaled'] = ROOT.TH1D('_%s_ptRescaled_%s' % (trigIdString,subProcess), '', self.ptBins[0], self.ptBins[1], self.ptBins[2])
         self['eta'] = ROOT.TH1D('_%s_eta_%s' % (trigIdString,subProcess), '', self.etaBins[0], self.etaBins[1], self.etaBins[2])
         self['phi'] = ROOT.TH1D('_%s_phi_%s' % (trigIdString,subProcess), '', self.phiBins[0], self.phiBins[1], self.phiBins[2])
         self['vz'] = ROOT.TH1D('_%s_vz_%s' % (trigIdString,subProcess), '', self.vzBins[0], self.vzBins[1], self.vzBins[2])
@@ -256,6 +259,10 @@ class MiniMcHistos(dict):
         
         if pidCut and etaCut and dcaCut and hitCut and vzCut:
             self['pt'].Fill(track.ptPr())
+            if self.processId == 68:
+               self['ptRescaled'].Fill(track.ptPr() ** self.ggRescaleFactor)
+            else:
+               self['ptRescaled'].Fill(track.ptPr())
         
         if ptCut  and pidCut and dcaCut and hitCut and vzCut:
             self['eta'].Fill(track.etaPr())
