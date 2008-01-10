@@ -144,9 +144,32 @@ def asymmetries_for_publication_run5():
    
    polarizations = analysis.Polarizations.Final
    
-   theory = analysis.asym.theoryCurves()
-   plusGraphs = [ theory.getGraph('plus',key) for key in ('std','zero','max','min') ]
-   minusGraphs = [ theory.getGraph('minus',key) for key in ('std','zero','max','min') ]
+   #theory = analysis.asym.theoryCurves()
+   #plusGraphs = [ theory.getGraph('plus',key) for key in ('std','zero','max','min') ]
+   #minusGraphs = [ theory.getGraph('minus',key) for key in ('std','zero','max','min') ]
+   from analysis.asym import theoryCurves
+   plusGraphs = [
+   theoryCurves(analysis.asym.werner_plus_dss_cteqm5_std, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
+   theoryCurves(analysis.asym.werner_plus_dss_cteqm5_zero, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
+   theoryCurves(analysis.asym.werner_plus_dss_cteqm5_max, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
+   theoryCurves(analysis.asym.werner_plus_dss_cteqm5_min, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),   
+   ]
+   minusGraphs = [
+   theoryCurves(analysis.asym.werner_minus_dss_cteqm5_std, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),
+   theoryCurves(analysis.asym.werner_minus_dss_cteqm5_zero, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),
+   theoryCurves(analysis.asym.werner_minus_dss_cteqm5_max, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),
+   theoryCurves(analysis.asym.werner_minus_dss_cteqm5_min, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),   
+   ]
+   
+   for grList in (plusGraphs, minusGraphs):
+      grList[1].SetLineStyle(3)
+      grList[1].SetLineColor(ROOT.kBlue)
+      grList[2].SetLineStyle(4)
+      grList[2].SetLineColor(ROOT.kRed)
+      grList[3].SetLineStyle(2)
+      grList[3].SetLineColor(ROOT.kGreen)
+      for gr in grList:
+         gr.SetLineWidth(3)
    
    ## systematic uncertainties
    baseline = -0.1
@@ -187,8 +210,10 @@ def asymmetries_for_publication_run5():
             print bin7.fill, 'has no final polarization values'
             continue
          
-         asym_plus.FillFromHistogramManager(mgr, 'jetpatch', 1, uu, ud, du, dd, pol.py, pol.pb)
-         asym_minus.FillFromHistogramManager(mgr, 'jetpatch', -1, uu, ud, du, dd, pol.py, pol.pb)
+         asym_plus.FillFromHistogramManager(mgr, 'alltrigs', 1, uu, ud, du, dd, pol.py, pol.pb)
+         asym_minus.FillFromHistogramManager(mgr, 'alltrigs', -1, uu, ud, du, dd, pol.py, pol.pb)
+         #asym_plus.FillFromHistogramManager(mgr, 'jetpatch', 1, uu, ud, du, dd, pol.py, pol.pb)
+         #asym_minus.FillFromHistogramManager(mgr, 'jetpatch', -1, uu, ud, du, dd, pol.py, pol.pb)
          tfile.Close()
          
    ## fun with graphics
@@ -207,13 +232,13 @@ def asymmetries_for_publication_run5():
    
    latex = ROOT.TLatex()
    
-   leg = ROOT.TLegend(0.13, 0.65, 0.35, 0.88)
+   leg = ROOT.TLegend(0.13, 0.67, 0.40, 0.89)
    leg.SetFillStyle(0)
    leg.SetBorderSize(0)
-   leg.AddEntry(plusGraphs[0],' GRSV-STD', 'l')
-   leg.AddEntry(plusGraphs[1],' #Delta G =  0', 'l')
-   leg.AddEntry(plusGraphs[2],' #Delta G =  G', 'l')
-   leg.AddEntry(plusGraphs[3],' #Delta G = -G', 'l')
+   leg.AddEntry(plusGraphs[0],' GRSV-std', 'l')
+   leg.AddEntry(plusGraphs[2],' GRSV #Delta g =  g input', 'l')
+   leg.AddEntry(plusGraphs[1],' GRSV #Delta g =  0 input', 'l')
+   leg.AddEntry(plusGraphs[3],' GRSV #Delta g = -g input', 'l')
    
    bg = ROOT.TH1D(h1)
    bg.Reset()
@@ -222,129 +247,111 @@ def asymmetries_for_publication_run5():
    
    ## pi-plus
    c1 = ROOT.TCanvas('c1','A_{LL} for #pi^{+}')
-   bg.SetXTitle('#pi^{+} P_{T} (GeV/c)')
+   bg.SetXTitle('#pi^{+} P_{T} [GeV/c]')
    bg.DrawCopy()
    g1.SetMarkerSize(0.9);
    g1.SetMarkerStyle(21)
    g1.Draw('p')
    [ g.Draw('l') for g in plusGraphs ]
    systGraph['plus'].SetLineColor(1)
-   systGraph['plus'].SetFillColor(15)
+   systGraph['plus'].SetFillColor(12)
    systGraph['plus'].Draw('fl')
    line.Draw('same')
    leg.Draw('p')
-   latex.DrawLatex(2.3,0.12," #vec{p} + #vec{p} #rightarrow #pi^{+} + X at #sqrt{s}=200 GeV \
-                  -1< #eta^{#pi}< 1 ")
+   latex.DrawLatex(2.2,0.12,"STAR #vec{p} + #vec{p} #rightarrow #pi^{+} + X at #sqrt{s}=200 GeV \
+            -1< #eta^{#pi}< 1 ")
    
    ## pi-minus
    c2 = ROOT.TCanvas('c2','A_{LL} for #pi^{-}')
-   bg.SetXTitle('#pi^{-} P_{T} (GeV/c)')
+   bg.SetXTitle('#pi^{-} P_{T} [GeV/c]')
    bg.DrawCopy()
    g2.SetMarkerSize(0.9);
    g2.SetMarkerStyle(20)
    g2.Draw('p')
    [ g.Draw('l') for g in minusGraphs ]
    systGraph['minus'].SetLineColor(1)
-   systGraph['minus'].SetFillColor(15)
+   systGraph['minus'].SetFillColor(12)
    systGraph['minus'].Draw('fl')
    line.Draw('same')
    leg.Draw('p')
-   latex.DrawLatex(2.3,0.12," #vec{p} + #vec{p} #rightarrow #pi^{-} + X at #sqrt{s}=200 GeV \
-                  -1< #eta^{#pi}< 1 ")
+   latex.DrawLatex(2.2,0.12,"STAR #vec{p} + #vec{p} #rightarrow #pi^{-} + X at #sqrt{s}=200 GeV \
+            -1< #eta^{#pi}< 1 ")
    
    raw_input('wait here:')
 
 
-def eta_phi_jet_correlation_run5():
-   """3-D deta-dphi plot -- possible paper plot at one time"""
-   """this is broken -- need to add deta-dphi correlations to mgr"""
-   style = ROOT.TStyle()
+def jet_correlations_run5():
+   """3-D deta-dphi plot -- possible paper plot at one time. \
+   Also plots the uncorrected pion momentum fraction for near-side
+   and away-side
+   """
+   style = ROOT.TStyle(ROOT.gStyle)
    style.SetOptStat(0)    
    style.SetLabelOffset(-0.01,'xy')
    style.SetLabelSize(0.035,'xy')
    style.SetTitleOffset(1.2,'y')
    style.cd()
    
-   fig3 = ROOT.TH2D('figure3','',50,-1.5*math.pi,0.5*math.pi,50,-2.0,0.4)
-   fig3.SetYTitle('#eta pion - #eta jet')
-   fig3.SetXTitle('#phi pion - #phi jet')
+   #fig3 = ROOT.TH2D('figure3','',50,-1.5*math.pi,0.5*math.pi,50,-2.0,0.4)
+   #fig3.SetYTitle('#eta pion - #eta jet')
+   #fig3.SetXTitle('#phi pion - #phi jet')
    
-   fig3b = ROOT.TH2D('figure3b','',50,-math.pi,math.pi,50,-1.5,1.5)
+   #fig3b = ROOT.TH2D('figure3b','',50,-math.pi,math.pi,50,-1.5,1.5)
+   
+   #xbins = [2.0, 3.0, 4.0, 5.5, 7.0, 10.0]
+   #ar = array('d',xbins)
+   #fig3c = ROOT.TH2D('figure3c','Uncorrected Pion Momentum Fraction',len(xbins)-1,ar,50,0.,1.)
+   #fig3c_away = ROOT.TH2D('figure3c_away','',len(xbins)-1,ar,50,0.,1.)
+   
+   runlist = None
+   
+   h1 = None
+   h2 = None
+   h3 = None
+   
+   ## silly hack
+   keepMeOpen = []
+   
+   allFiles = glob(run5_hist_dir + '/chargedPions_*.hist.root')
+   for fname in allFiles[:10]:
+      run = analysis.getRun(fname)
+      if runlist is None or run in runlist:
+         print fname, run
+         tfile = ROOT.TFile(fname)
+         mgr = analysis.HistogramManager(tfile,['dphi_deta', 'z', 'z_away'])
+         
+         if h1 is None:
+            h1 = mgr['anyspin']['jetpatch'].tracks_sum['dphi_deta'].Clone()
+            h2 = mgr['anyspin']['jetpatch'].tracks_sum['z'].Clone()
+            h3 = mgr['anyspin']['jetpatch'].tracks_sum['z_away'].Clone()
+            keepMeOpen.append(tfile)
+         else:
+            h1.Add(mgr['anyspin']['jetpatch'].tracks_sum['dphi_deta'])
+            h2.Add(mgr['anyspin']['jetpatch'].tracks_sum['z'])
+            h3.Add(mgr['anyspin']['jetpatch'].tracks_sum['z_away'])
+   
+   c1 = ROOT.TCanvas('c1')
+   c1.SetLogz()
+   h1.SetXTitle('#phi pion - #phi jet')
+   h1.SetYTitle('#eta pion - #eta jet')
+   h1.DrawCopy('lego2')
    
    #reset some styles
    style.SetLabelOffset(0.005,'xy')
-   #ROOT.gStyle.SetLabelSize(0.04,'xy')
+   style.SetLabelSize(0.04,'xy')
    style.SetTitleOffset(1,'y')
    
-   xbins = [2.0, 3.0, 4.0, 5.5, 7.0, 10.0]
-   ar = array('d',xbins)
-   fig3c = ROOT.TH2D('figure3c','Uncorrected Pion Momentum Fraction',len(xbins)-1,ar,50,0.,1.)
-   fig3c_away = ROOT.TH2D('figure3c_away','',len(xbins)-1,ar,50,0.,1.)
-   
-   pions = 0
-   
-   timer = ROOT.TStopwatch()
-   for i in xrange(reader.GetEntries()):
-       if i == 0:
-           timer.Stop()
-           print 'generated a TEventList after %f CPU seconds and %f real seconds' % (timer.CpuTime(),timer.RealTime())
-           timer.Start(True)
-       
-       if i % 200000 == 0: print 'processed %d of %d entries' % (i,reader.GetEntries())
-       reader.GetEntry(i)
-       
-       t1 = reader.event().trigger(96221)
-       t2 = reader.event().trigger(96233)
-       if (t1 is not None and t1.didFire()) or (t2 is not None and t2.didFire()):
-           for j in range(reader.nJets()):
-               for k in range(reader.nChargedPions()):
-                   deta = -1*(reader.jet(j).Eta() - reader.chargedPion(k).Eta())
-                   dphi = -1*(reader.jet(j).Phi() - reader.chargedPion(k).Phi())
-           
-                   #normalize dphi
-                   if dphi < -1.5*math.pi:
-                       dphi = dphi + 2*math.pi
-                   if dphi > 0.5*math.pi:
-                       dphi = dphi - 2*math.pi
-           
-                   fig3.Fill(dphi,deta)
-           
-                   #renormalize
-                   if dphi < -math.pi:
-                       dphi = dphi + 2*math.pi
-                   if dphi > math.pi:
-                       dphi = dphi - 2*math.pi
-               
-                   if j == 0: pions = pions + 1
-           
-                   fig3b.Fill(dphi,deta)
-                   #figure3.Fill(reader.chargedPion(k).Phi(),reader.chargedPion(k).Eta())
-                   
-                   dR = math.sqrt(deta*deta + dphi*dphi)
-                   if dR < 0.4: fig3c.Fill(reader.chargedPion(k).Pt(),(reader.chargedPion(k).Pt()/reader.jet(j).Pt()))
-                   elif dR > 1.5: fig3c_away.Fill(reader.chargedPion(k).Pt(),(reader.chargedPion(k).Pt()/reader.jet(j).Pt()))
-   
-   print 'processed the events after %f CPU seconds and %f real seconds' % (timer.CpuTime(),timer.RealTime())
-   
-   print 'counted %d pions' % (pions,)
-   
    c2 = ROOT.TCanvas('c2')
-   c2.SetLogz()
-   fig3.Draw('lego2')
-   
-   c3 = ROOT.TCanvas('c3')
-   #c3.SetLogz()
-   fig3c.Draw('col')
-   fig3c.FitSlicesY()
-   fig3c_mean = ROOT.gDirectory.Get('figure3c_1')
-   fig3c_mean.SetTitle(fig3c.GetTitle())
+   h2.FitSlicesY()
+   fig3c_mean = ROOT.gDirectory.Get('%s_1' % (h2.GetName(),))
+   fig3c_mean.SetTitle('Uncorrected pion momentum fraction')
    fig3c_mean.SetXTitle('#pi p_{T}')
    fig3c_mean.SetYTitle('< p_{T,#pi} / p_{T,jet} >')
    fig3c_mean.SetAxisRange(0,1,'y')
    fig3c_mean.SetMarkerStyle(21)
    
-   fig3c_away.FitSlicesY()
-   fig3c_away_mean = ROOT.gDirectory.Get('figure3c_away_1')
+   h3.FitSlicesY()
+   fig3c_away_mean = ROOT.gDirectory.Get('%s_1' % (h3.GetName(),))
    fig3c_away_mean.SetMarkerStyle(25)
    fig3c_away_mean.SetMarkerColor(ROOT.kRed)
    fig3c_away_mean.SetLineColor(ROOT.kRed)
@@ -353,11 +360,38 @@ def eta_phi_jet_correlation_run5():
    leg.AddEntry(fig3c_mean,'dR < 0.4','p')
    leg.AddEntry(fig3c_away_mean,'dR > 1.5','p')
    
-   c4 = ROOT.TCanvas('c4')
-   #reset some styles
    fig3c_mean.Draw()
    fig3c_away_mean.Draw('same')
+   leg.Draw('same')
    
-   leg.Draw('same')    
+   c3 = ROOT.TCanvas('c3')
+   h3.Draw()
    
-   raw_input('press enter to continue: ')
+   raw_input('wait here:')
+
+
+def spinInfoForFrank():
+   """not actually a plot"""
+   chain = ROOT.TChain('tree')
+   chain.Add('~/data/run5/tree/chargedPions_*')
+   
+   ## only adding these while the other ones spin
+   chain.Add('~/data/run5/tree/backup-2008-01-08-trigger-prescales/chargedPions_*')
+   
+   chain.SetBranchStatus('*',0)
+   chain.SetBranchStatus('mRunId',1)
+   chain.SetBranchStatus('mEventId',1)
+   chain.SetBranchStatus('mSpinBit',1)
+   chain.SetBranchStatus('mBx7',1)
+   chain.SetBranchStatus('mSpinQA',1)
+   
+   f = ROOT.TFile('spin_info.root','recreate')
+   nt = ROOT.TNtuple('nt','spin info','run:event:spinbit:bx7:qa')
+      
+   for entry in chain:
+      ev = entry.event
+      nt.Fill(ev.runId(), ev.eventId(), ev.spinBit(), ev.bx7(), ev.isSpinValid())
+   
+   nt.Write()
+   f.Close()
+
