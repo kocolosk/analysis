@@ -247,7 +247,13 @@ class MiniMcHistos(dict):
         
         if self.processId != 0 and self.processId != self.pythiaEvent.processId(): return
         
-        ptCut  = track.ptPr() > 2.0
+        if self.pythiaEvent.processId() == 68:
+           mypt = track.ptPr() ** self.ggRescaleFactor
+        else:
+           mypt = track.ptPr()
+        
+        
+        ptCut  = mypt > 2.0
         pidCut = ( track.geantId() == 8 ) or ( track.geantId() == 9 )
         etaCut = math.fabs( track.etaPr() ) < 1.0
         dcaCut = math.fabs( track.dcaGl() ) < 1.0
@@ -259,10 +265,7 @@ class MiniMcHistos(dict):
         
         if pidCut and etaCut and dcaCut and hitCut and vzCut:
             self['pt'].Fill(track.ptPr())
-            if self.processId == 68:
-               self['ptRescaled'].Fill(track.ptPr() ** self.ggRescaleFactor)
-            else:
-               self['ptRescaled'].Fill(track.ptPr())
+            self['ptRescaled'].Fill(mypt)
         
         if ptCut  and pidCut and dcaCut and hitCut and vzCut:
             self['eta'].Fill(track.etaPr())
@@ -277,28 +280,28 @@ class MiniMcHistos(dict):
             self['dcaG'].Fill(track.dcaGl())
         
         if ptCut  and pidCut and etaCut and dcaCut and hitCut and vzCut:
-            self['partonicPt'].Fill(track.ptPr(), self.partonicPt)
-            self['partonProf'].Fill(track.ptPr(), self.partonicPt)
+            self['partonicPt'].Fill(mypt, self.partonicPt)
+            self['partonProf'].Fill(mypt, self.partonicPt)
             
-            self['ptMc_ptPr'].Fill(track.ptMc(),track.ptPr())
+            self['ptMc_ptPr'].Fill(track.ptMc(),mypt)
             
-            self['lo'].Fill(track.ptPr(),self.lo)
-            self['nlo'].Fill(track.ptPr(),self.nlo)
-            self['max'].Fill(track.ptPr(),self.max)
-            self['min'].Fill(track.ptPr(),self.min)
-            self['zero'].Fill(track.ptPr(),self.zero)
-            self['m015'].Fill(track.ptPr(),self.m015)
-            self['m030'].Fill(track.ptPr(),self.m030)
-            self['m045'].Fill(track.ptPr(),self.m045)
-            self['m060'].Fill(track.ptPr(),self.m060)
-            self['m075'].Fill(track.ptPr(),self.m075)
-            self['m090'].Fill(track.ptPr(),self.m090)
-            self['m105'].Fill(track.ptPr(),self.m105)
-            self['p030'].Fill(track.ptPr(),self.p030)
-            self['p045'].Fill(track.ptPr(),self.p045)
-            self['p060'].Fill(track.ptPr(),self.p060)
-            self['p070'].Fill(track.ptPr(),self.p070)
-            self['denom'].Fill(track.ptPr())
+            self['lo'].Fill(mypt,self.lo)
+            self['nlo'].Fill(mypt,self.nlo)
+            self['max'].Fill(mypt,self.max)
+            self['min'].Fill(mypt,self.min)
+            self['zero'].Fill(mypt,self.zero)
+            self['m015'].Fill(mypt,self.m015)
+            self['m030'].Fill(mypt,self.m030)
+            self['m045'].Fill(mypt,self.m045)
+            self['m060'].Fill(mypt,self.m060)
+            self['m075'].Fill(mypt,self.m075)
+            self['m090'].Fill(mypt,self.m090)
+            self['m105'].Fill(mypt,self.m105)
+            self['p030'].Fill(mypt,self.p030)
+            self['p045'].Fill(mypt,self.p045)
+            self['p060'].Fill(mypt,self.p060)
+            self['p070'].Fill(mypt,self.p070)
+            self['denom'].Fill(mypt)
     
     
     def add(self, other, weight, nevents, minCounts):
@@ -807,7 +810,7 @@ def combine(outFilePath, inputFileList, useWeights=False):
     """combines histograms in arg2 into a file named arg1"""
     minCounts = 5.5 ## don't take gg events with 1 real count
     
-    subProcessWeights={'gg':3.0, 'qg':1.0, 'qq':1.0}
+    subProcessWeights={'gg':1.0, 'qg':1.0, 'qq':1.0}
     
     outFile = ROOT.TFile(outFilePath,'recreate')
     
@@ -819,7 +822,7 @@ def combine(outFilePath, inputFileList, useWeights=False):
         #keep all files open to do the asymmetry calculation
         tfile = [ ROOT.TFile(path,'read') for path in inputFileList ]
         nevents = [ f.Get('eventCounter').GetBinContent(1) for f in tfile ]
-        xsec_weight = [ xsec[path.split('.')[0]] for path in inputFileList ]
+        xsec_weight = [ xsec[os.path.basename(path).split('.')[0]] for path in inputFileList ]
         
         sampleHists = [] 
         
