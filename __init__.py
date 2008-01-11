@@ -26,6 +26,7 @@ ROOT.gStyle.SetOptDate(1)
 import asym
 import minimc
 import histos
+import tree
 import datamc2 as datamc
 
 ## classes
@@ -36,5 +37,7 @@ from minimc import MiniMcHistos
 ## utility methods
 from util   import getRun
 
+## runlists
+from asym   import golden_runlist_c, minbias_runs
 
 __all__ = ['asym','datamc2','histos','minimc']
