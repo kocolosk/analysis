@@ -108,7 +108,7 @@ class TrackHistogramCollection(dict):
    mcDcaGBins      = minimc.MiniMcHistos.dcaGBins
    
    allKeys = ['pt', 'eta', 'phi', 'nHitsFit', 'dEdx', 'dcaG', 'nSigmaPion',
-      'dphi_deta', 'z', 'z_away']
+      'dphi_deta', 'z', 'z_away', 'pt_near', 'pt_away']
    
    def __init__(self, name, tfile=None, keys=None):
       if tfile is not None:
@@ -157,7 +157,7 @@ class TrackHistogramCollection(dict):
    
    def fillTrackJetPair(self, track, tcuts, jet, jcuts):
       """all jet-pion correlation studies go here"""
-      if tcuts.eta and tcuts.dca and tcuts.fit and tcuts.pid and jcuts.rt:
+      if tcuts.eta and tcuts.dca and tcuts.fit and tcuts.pid and jcuts.rt and jcuts.eta:
          deta = track.Eta() - jet.Eta()
          dphi = track.Phi() - jet.Phi()
          
@@ -386,12 +386,13 @@ def writeHistograms(treeDir='~/data/run5/tree', globber='*'):
    chain.Add(treeDir + '/chargedPions_' + globber + '.tree.root')
    #chain.SetBranchStatus('mJets.mParticles*',0)
    
-   if globber == '*':
-      elistFile = ROOT.TFile(treeDir + '/../eventLists.root')
-      elist = elistFile.Get('has_trigger')
-      entries = elist.GetN()
-   else:
-      entries = chain.GetEntries()
+   #if globber == '*':
+   #   elistFile = ROOT.TFile(treeDir + '/../eventLists.root')
+   #   elist = elistFile.Get('has_trigger')
+   #   entries = elist.GetN()
+   #else:
+   #   entries = chain.GetEntries()
+   entries = chain.GetEntries()
    
    chain.GetEntry(0)
    fname = chain.GetCurrentFile().GetName()
@@ -400,10 +401,11 @@ def writeHistograms(treeDir='~/data/run5/tree', globber='*'):
    h = HistogramManager()
    
    for i in xrange(entries):
-      if globber == '*':
-         if(chain.GetEntry(elist.GetEntry(i)) == 0): break
-      else:
-         chain.GetEntry(i)
+      #if globber == '*':
+      #   if(chain.GetEntry(elist.GetEntry(i)) == 0): break
+      #else:
+      #   chain.GetEntry(i)
+      chain.GetEntry(i)
       
       ## found a new runnumber
       if fname != chain.GetCurrentFile().GetName():
