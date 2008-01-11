@@ -132,12 +132,10 @@ def spin2006_asymmetries():
    raw_input('wait here:')
 
 
-def asymmetries_for_publication_run5():
+def asymmetries_for_publication_run5(runlist=None):
    """final results for inclusive asymmetries from Run 5"""
-   asym_plus = analysis.AsymmetryGenerator('asym_plus')
-   asym_minus = analysis.AsymmetryGenerator('asym_minus')
-   
-   runlist = None
+   asym_plus = analysis.AsymmetryGenerator('asym_plus', key='pt')
+   asym_minus = analysis.AsymmetryGenerator('asym_minus', key='pt')
    
    scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run5.txt'
    scalars = analysis.ScalarCounts(scalar_path)
@@ -190,7 +188,7 @@ def asymmetries_for_publication_run5():
       if runlist is None or run in runlist:
          print fname, run
          tfile = ROOT.TFile(fname)
-         mgr = analysis.HistogramManager(tfile,['pt'])
+         mgr = analysis.HistogramManager(tfile,['pt', 'pt_near', 'pt_away'])
          
          try:
             bin7 = scalars[str(run) + '-5-7']
@@ -368,6 +366,111 @@ def jet_correlations_run5():
    h3.Draw()
    
    raw_input('wait here:')
+
+
+def trigger_bias_using_away_side(runlist=None, trgname='alltrigs'):
+   """plot asym vs. pt for near + away, fit with pol0 and compare"""
+   generator = { 
+   'near_plus'  : analysis.AsymmetryGenerator('near_plus', key='pt_near'), 
+   'near_minus' : analysis.AsymmetryGenerator('near_minus', key='pt_near'),
+   'away_plus'  : analysis.AsymmetryGenerator('away_plus', key='pt_away'), 
+   'away_minus' : analysis.AsymmetryGenerator('away_minus', key='pt_away') 
+   }
+   
+   scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run5.txt'
+   scalars = analysis.ScalarCounts(scalar_path)
+   
+   polarizations = analysis.Polarizations.Final
+   
+   ## generate the asymmetries
+   allFiles = glob(run5_hist_dir + '/chargedPions_*.hist.root')
+   for fname in allFiles:
+      run = analysis.getRun(fname)
+      if runlist is None or run in runlist:
+         print fname, run
+         tfile = ROOT.TFile(fname)
+         mgr = analysis.HistogramManager(tfile,['pt_near', 'pt_away'])
+         
+         try:
+            bin7 = scalars[str(run) + '-5-7']
+            bin8 = scalars[str(run) + '-5-8']
+            bin9 = scalars[str(run) + '-5-9']
+         except KeyError:
+            print run, 'is not in the scalars database'
+            continue
+         uu = bin7.uu + bin8.uu + bin9.uu
+         ud = bin7.ud + bin8.ud + bin9.ud
+         du = bin7.du + bin8.du + bin9.du
+         dd = bin7.dd + bin8.dd + bin9.dd
+         
+         try:
+            pol = polarizations[bin7.fill]
+         except KeyError:
+            print bin7.fill, 'has no final polarization values'
+            continue
+         
+         generator['near_plus'].FillFromHistogramManager(mgr, trgname, 1, uu, ud, du, dd, pol.py, pol.pb)
+         generator['near_minus'].FillFromHistogramManager(mgr, trgname, -1, uu, ud, du, dd, pol.py, pol.pb)
+         generator['away_plus'].FillFromHistogramManager(mgr, trgname, 1, uu, ud, du, dd, pol.py, pol.pb)
+         generator['away_minus'].FillFromHistogramManager(mgr, trgname, -1, uu, ud, du, dd, pol.py, pol.pb)
+         tfile.Close()
+   
+   #ROOT.gStyle.SetOptStat('n')
+   #ROOT.gStyle.SetOptFit(111)
+   fit = {
+   'near_plus' : ROOT.TF1('near_plus', 'pol0'),
+   'near_minus' : ROOT.TF1('near_minus', 'pol0'),
+   'away_plus' : ROOT.TF1('away_plus', 'pol0'),
+   'away_minus' : ROOT.TF1('away_minus', 'pol0'),
+   }
+   fit['away_plus'].SetLineColor(ROOT.kRed)
+   fit['away_minus'].SetLineColor(ROOT.kRed)
+   
+   c1 = ROOT.TCanvas('plus','Comparison of near and away side for #pi^{+}')
+   h1_near = generator['near_plus'].GetAsymmetry('ll')
+   h1_near.GetYaxis().SetRangeUser(-0.11, 0.11)
+   h1_away = generator['away_plus'].GetAsymmetry('ll')
+   h1_away.SetLineColor(ROOT.kRed)
+   h1_near.Draw()
+   h1_near.Fit(fit['near_plus'],'','same')
+   h1_away.Draw('same')
+   h1_away.Fit(fit['away_plus'],'','same')
+   
+   leg1 = ROOT.TLegend(0.13,0.7,0.43,0.89)
+   leg1.AddEntry(fit['near_plus'],'%f +/- %f' % 
+      (fit['near_plus'].GetParameter(0), fit['near_plus'].GetParError(0)),'l')
+   leg1.AddEntry(fit['away_plus'],'%f +/- %f' % 
+      (fit['away_plus'].GetParameter(0), fit['away_plus'].GetParError(0)),'l')
+   leg1.Draw()
+   
+   c2 = ROOT.TCanvas('minus','Comparison of near and away side for #pi^{-}')
+   h2_near = generator['near_minus'].GetAsymmetry('ll')
+   h2_near.GetYaxis().SetRangeUser(-0.11, 0.11)
+   h2_away = generator['away_minus'].GetAsymmetry('ll')
+   h2_away.SetLineColor(ROOT.kRed)
+   h2_near.Draw()
+   h2_near.Fit(fit['near_minus'],'','same')
+   h2_away.Draw('same')
+   h2_away.Fit(fit['away_minus'],'','same')
+   
+   leg2 = ROOT.TLegend(0.13,0.7,0.43,0.89)
+   leg2.AddEntry(fit['near_minus'],'%f +/- %f' % 
+      (fit['near_minus'].GetParameter(0), fit['near_minus'].GetParError(0)),'l')
+   leg2.AddEntry(fit['away_minus'],'%f +/- %f' % 
+      (fit['away_minus'].GetParameter(0), fit['away_minus'].GetParError(0)),'l')
+   leg2.Draw()
+   
+   print 'Size of systematic assigned if we take the difference btw the fits with errors:'
+   val = math.fabs( fit['near_plus'].GetParameter(0) - fit['away_plus'].GetParameter(0) )
+   err = math.sqrt(fit['near_plus'].GetParError(0) ** 2 + fit['away_plus'].GetParError(0) ** 2)
+   print 'plus  : %f' % (val+err,)
+   val = math.fabs( fit['near_minus'].GetParameter(0) - fit['away_minus'].GetParameter(0) )
+   err = math.sqrt(fit['near_minus'].GetParError(0) ** 2 + fit['away_minus'].GetParError(0) ** 2)
+   print 'minus : %f' % (val+err,)
+   
+   
+   raw_input('press enter:')
+
 
 
 def spinInfoForFrank():
