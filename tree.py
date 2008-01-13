@@ -19,6 +19,8 @@ def fromJetSkim(runnumber):
     
     jetFile = ROOT.TFile('%s/jets_%d.tree.root' % (jetDir, runnumber))
     try:
+        jetFile.jet.SetBranchStatus('ConeJets5*', 0)
+        jetFile.jet.SetBranchStatus('ConeJetsEMC*', 0)
         jetFile.jet.BuildIndex('mRunId','mEventId')
     except AttributeError:
         print 'problem with jet tree in', runnumber
@@ -34,6 +36,7 @@ def fromJetSkim(runnumber):
     
     outFile = ROOT.TFile('chargedPions_%d.tree.root' % (runnumber,), 'recreate')
     outTree = ROOT.TTree('tree', 'created %s' % (str(datetime.now()),))
+    outTree.SetAutoSave(100000000)
     ev = ROOT.StChargedPionEvent()
     outTree.Branch('event','StChargedPionEvent',ev)
      
@@ -44,7 +47,12 @@ def fromJetSkim(runnumber):
         
         # charged pion info
         trackFile.chargedPionTree.GetEntryWithIndex(sk.runId(), sk.eventId())
-        assert(trackFile.chargedPionTree.event == ev.eventId())
+        try:
+            assert(trackFile.chargedPionTree.event == ev.eventId())
+        except AssertionError:
+            print runnumber, 'is missing some data from', sk.mudstFileName()
+            return
+        
         for track in trackFile.chargedPionTree.primaries:
            ev.addTrack(track)
             
