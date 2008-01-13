@@ -283,12 +283,17 @@ class HistogramManager(dict):
          try: spin = self.spinKeys[event.spinBit()]
          except KeyError: pass
       
-      ## trigger selection
+      ## trigger selection -- convert transverse trigger IDs to longitudinal
       triggerOk = {}
       if event.runId() < 7000000:
-         for trigId in (96011, 96201, 96211, 96221, 96233):
-            triggerOk[str(trigId)] = event.isTrigger(trigId) and event.isSimuTrigger(trigId)
-            triggerOk['%d_hw' % (trigId,)] = event.isTrigger(trigId)
+         if event.isPolLong():
+            for trigId in (96011, 96201, 96211, 96221, 96233):
+               triggerOk[str(trigId)] = event.isTrigger(trigId) and event.isSimuTrigger(trigId)
+               triggerOk['%d_hw' % (trigId,)] = event.isTrigger(trigId)
+         elif event.isPolTrans():
+            for trigId in (106011, 106201, 106211, 106221, 106233):
+               triggerOk[str(trigId-10000)] = event.isTrigger(trigId) and event.isSimuTrigger(trigId)
+               triggerOk['%d_hw' % (trigId-10000,)] = event.isTrigger(trigId)
          triggerOk['hightower'] = triggerOk['96011'] or triggerOk['96201'] or triggerOk['96211']
          triggerOk['jetpatch']  = triggerOk['96011'] or triggerOk['96221'] or triggerOk['96233']
          triggerOk['alltrigs']  = triggerOk['96011'] or triggerOk['96201'] or triggerOk['96211'] or triggerOk['96221'] or triggerOk['96233']
