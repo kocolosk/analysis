@@ -4,8 +4,8 @@ libs_to_load = [ 'libPhysics', 'libTable', 'StarRoot', 'StarClassLibrary', 'St_b
 'StChain', 'St_Tables', 'StUtilities', 'StTreeMaker', 'StIOMaker', 'StTriggerDataMaker', 
 'StBichsel', 'StEvent', 'StEventUtilities', 'StDbLib', 'StEmcUtil', 'StTofUtil', 'StPmdUtil', 
 'StStrangeMuDstMaker', 'StMuDSTMaker', 'StDaqLib', 'StDetectorDbMaker', 'StEmcTriggerMaker', 
-'StMCAsymMaker', 'StSpinDbMaker', 'StJetFinder', 'StJetMaker', 'StChargedPionAnalysisMaker',
-'StSpinTree', 'StTamuRelLum']
+'StMCAsymMaker', 'StSpinDbMaker', 'St_db_Maker', 'StTriggerUtilities', 'StJetFinder', 'StJetMaker', 
+'StChargedPionAnalysisMaker', 'StSpinTree', 'StTamuRelLum', 'StMiniMcEvent']
 
 print 'analysis : loading shared libraries ...'
 libs_already_loaded = ROOT.gSystem.GetLibraries()
@@ -31,11 +31,11 @@ import datamc2 as datamc
 
 ## classes
 from asym   import AsymmetryGenerator, ScalarCounts, Polarizations
-from histos import HistogramManager, HistogramCollection, TrackHistogramCollection
+from histos import HistogramManager
 from minimc import MiniMcHistos
 
 ## utility methods
-from util   import getRun
+from util   import getRun, getFill, getAllFills
 
 ## runlists
 from asym   import golden_runlist_c, minbias_runs

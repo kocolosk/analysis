@@ -3,8 +3,8 @@ import minimc
 import histos
 
 def driver(trigId):
-   dFile = ROOT.TFile('~/work/charged-pion-event-2/chargedPions_allruns.hist.root')
-   mFile = ROOT.TFile('~/data/run5/minimc/backup/combined.plus.hist.root')
+   dFile = ROOT.TFile('~/data/run5/allruns.hist.root')
+   mFile = ROOT.TFile('~/data/run5/minimc/combined.plus.hist.root')
    
    mcTrigId = str(trigId)
    if trigId == 96011: mcTrigId = 'minbias'
@@ -73,28 +73,28 @@ def compare(data, mc, charge = 1):
          dataBin1 = h.FindBin(2.01)
          dataBin2 = h.FindBin(8.01)
          
-         mcBin1   = mc['pt'].FindBin(2.01)
-         mcBin2   = mc['pt'].FindBin(8.01)
+         mcBin1   = mc['ptRescaled'].FindBin(2.01)
+         mcBin2   = mc['ptRescaled'].FindBin(8.01)
          
          dataIntegral = h.Integral(dataBin1, dataBin2)
-         mcIntegral   = mc['pt'].Integral(mcBin1, mcBin2)
+         mcIntegral   = mc['ptRescaled'].Integral(mcBin1, mcBin2)
          h.Scale(1.0/dataIntegral)
-         mc['pt'].Scale(1.0/mcIntegral)
+         mc['ptRescaled'].Scale(1.0/mcIntegral)
          
          h.Draw()
-         mc['pt'].Draw('same')
+         mc['ptRescaled'].Draw('same')
          
          pad = ratioc.cd(counter+2)
          #ratio.Scale(mcIntegral / (30*dataIntegral))
          ratio = h.Clone()
-         ratio.Divide(mc['pt'])
+         ratio.Divide(mc['ptRescaled'])
          ratio.GetYaxis().SetRangeUser(0.,3.0)
          ratio.Draw()
          
          c2.cd(1)
          ROOT.gPad.SetLogy()
          h.Draw()
-         mc['pt'].Draw('same')
+         mc['ptRescaled'].Draw('same')
          c2.cd(2)
          ratio.Draw()
          

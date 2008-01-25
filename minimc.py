@@ -739,6 +739,218 @@ def fill2(sample, fileLimit = None, useXrootd = False, listFile=None):
     outFileSum.Close()
 
 
+def fill3(minimcList):
+    """fill histograms using StJetSkimTree/StPythiaEvent and minimc files as inputs"""
+    #pathToMinimc  = '/Volumes/data01/reco/pp200/pythia6_205/%sgev/cdf_a/y2004y/gheisha_on/p05ih' % (sample,)
+    #pathToJetSkim = '/Volumes/data01/sim/staszak/2005jets/2005jets_15grids'
+    pathToJetSkim = '/star/data04/sim/staszak/2005jets/2005jets_15grids'
+    
+    libs_to_load = [ 'libPhysics', 'libTable', 'StarRoot', 'StarClassLibrary', 'St_base', 
+    'StChain', 'St_Tables', 'StUtilities', 'StTreeMaker', 'StIOMaker', 'StTriggerDataMaker', 
+    'StBichsel', 'StEvent', 'StEventUtilities', 'StDbLib', 'StEmcUtil', 'StTofUtil', 'StPmdUtil', 
+    'StStrangeMuDstMaker', 'StMuDSTMaker', 'StDaqLib', 'StDetectorDbMaker', 'StEmcTriggerMaker', 
+    'StMCAsymMaker', 'StSpinDbMaker', 'StJetFinder', 'StJetMaker', 'StChargedPionAnalysisMaker']
+
+    print 'minimc : loading shared libraries ...'
+    libs_already_loaded = ROOT.gSystem.GetLibraries()
+    for library in libs_to_load:
+       if library not in libs_already_loaded:
+          ROOT.gSystem.Load(library)
+          #print 'analysis : loaded', library
+    print 'minimc : loading complete'
+    
+    #ROOT.gSystem.Load('StJetMaker')
+    #ROOT.gSystem.Load('StMiniMcEvent')
+    
+    fileCounter = 0
+    
+    skimEvent = ROOT.StJetSkimEvent()
+    miniEvent = ROOT.StMiniMcEvent()
+    pythiaEvent = ROOT.StPythiaEvent()
+    
+    outFilePlus         = ROOT.TFile('%s.plus.hist.root' % (sample,),'recreate')
+    miniHistsPlus       = [ MiniMcHistos(key,'') for key in miniKeys ]
+    miniHistsPlus_gg    = [ MiniMcHistos(key,'gg') for key in miniKeys ]
+    miniHistsPlus_qg    = [ MiniMcHistos(key,'qg') for key in miniKeys ]
+    miniHistsPlus_qq    = [ MiniMcHistos(key,'qq') for key in miniKeys ]
+    
+    outFileMinus        = ROOT.TFile('%s.minus.hist.root' % (sample,),'recreate')
+    miniHistsMinus      = [ MiniMcHistos(key,'') for key in miniKeys ]
+    miniHistsMinus_gg   = [ MiniMcHistos(key,'gg') for key in miniKeys ]
+    miniHistsMinus_qg   = [ MiniMcHistos(key,'qg') for key in miniKeys ]
+    miniHistsMinus_qq   = [ MiniMcHistos(key,'qq') for key in miniKeys ]
+    
+    outFileSum          = ROOT.TFile('%s.sum.hist.root' % (sample,),'recreate')
+    miniHistsSum        = [ MiniMcHistos(key,'') for key in miniKeys ]
+    miniHistsSum_gg     = [ MiniMcHistos(key,'gg') for key in miniKeys ]
+    miniHistsSum_qg     = [ MiniMcHistos(key,'qg') for key in miniKeys ]
+    miniHistsSum_qq     = [ MiniMcHistos(key,'qq') for key in miniKeys ]
+    
+    miniHistLists = [
+        miniHistsPlus, miniHistsPlus_gg, miniHistsPlus_qg, miniHistsPlus_qq,
+        miniHistsMinus, miniHistsMinus_gg, miniHistsMinus_qg, miniHistsMinus_qq,
+        miniHistsSum, miniHistsSum_gg, miniHistsSum_qg, miniHistsSum_qq,
+    ]
+    
+    eventCounter    = ROOT.TH1I('eventCounter','event counter',1,-0.5,0.5)
+    
+    #if listFile is not None:
+    #    f = open(listFile)
+    #    minimcPaths = [ line.strip() for line in f]
+    #else:
+    #    minimcPaths = os.listdir(pathToMinimc)
+    f = open(minimcList)
+    minimcPaths = [ line.strip() for line in f ]
+        
+    for fileName in minimcPaths:
+        baseName = os.path.basename(fileName)
+        if not fileName.endswith('.root'): continue
+        fileCounter += 1
+        if fileLimit is not None and fileCounter > fileLimit: break
+        
+        print '%03d : %s' % (fileCounter, baseName)
+        fileIndex = baseName.split('_')[-2]
+        
+        skimPath = os.path.join( pathToJetSkim, 'skim_%s_%s.root' % (daveName[sample], fileIndex) )
+        if not os.path.isfile(skimPath) and not useXrootd: 
+            print 'missing file = ', skimPath
+            continue
+        #if useXrootd: skimPath = 'root://deltag5.lns.mit.edu/' + skimPath
+        print skimPath
+        skimFile = ROOT.TFile.Open( skimPath )
+        skimTree = skimFile.Get('jetSkimTree')
+        skimTree.SetBranchAddress('skimEventBranch', skimEvent)
+        
+        #if useXrootd:
+        #    miniFile = ROOT.TFile.Open( 'root://deltag5.lns.mit.edu/' + os.path.join( pathToMinimc, fileName ) )
+        #else:
+        #if useXrootd:
+        #    miniFile = ROOT.TFile.Open( fileName )
+        #else:
+        #miniFile = ROOT.TFile.Open( os.path.join( pathToMinimc, fileName ) )
+        miniFile = ROOT.TFile.Open( fileName )
+        miniTree = miniFile.Get('StMiniMcTree')
+        miniTree.SetBranchAddress('StMiniMcEvent', miniEvent)
+        
+        
+        print 'skim entries = ', skimTree.GetEntries()
+        print 'mini entries = ', miniTree.GetEntries()
+        
+        [ eventCounter.Fill(0.) for i in range(skimTree.GetEntries()) ]
+        
+        # set pythia event now so we don't delete it every event
+        skimTree.GetEntry(1)
+        pythiaEvent = skimEvent.mcEvent()
+        pythiaEvent.ResetBit( pythiaEvent.kMustCleanup ) # if we don't it will be deleted on GetEntry
+        
+        #assert(miniTree.GetEntries() == skimTree.GetEntries())
+        skimTree.BuildIndex('mRunId', 'mEventId')
+        
+        for i in range(miniTree.GetEntries()):
+            miniTree.GetEntry(i)
+            skimTree.GetEntryWithIndex(miniEvent.runId(), miniEvent.eventId())
+            
+            assert(miniEvent.eventId() == skimEvent.eventId())
+            
+            for li in miniHistLists:
+                [m.clear() for m in li]
+                li[5].fillEvent(miniEvent, pythiaEvent)
+            
+            triggers = [ skimEvent.trigger(96201), 
+                         skimEvent.trigger(96211), 
+                         skimEvent.trigger(96221), 
+                         skimEvent.trigger(96233) ]
+            
+            trigDidFire = [ skimEvent.eBbc() > 0 and skimEvent.wBbc() > 0 ]
+            trigDidFire.extend( [ trig is not None and trig.shouldFire() > 0 for trig in triggers ] )
+            
+            for li in miniHistLists:
+                if trigDidFire[0]:
+                    li[0].fillEvent(miniEvent, pythiaEvent)
+                    for i in range(4):
+                        if trigDidFire[i+1]: 
+                            li[i+1].fillEvent(miniEvent, pythiaEvent)
+            
+            tracks = miniEvent.tracks(Category['MATCHED'])
+            for track in tracks:
+                if track.charge() == 1:  
+                    miniHistsPlus[5].fillTrack(track)                
+                    miniHistsPlus_gg[5].fillTrack(track)                
+                    miniHistsPlus_qg[5].fillTrack(track)                
+                    miniHistsPlus_qq[5].fillTrack(track)                
+                if track.charge() == -1: 
+                    miniHistsMinus[5].fillTrack(track)                
+                    miniHistsMinus_gg[5].fillTrack(track)                
+                    miniHistsMinus_qg[5].fillTrack(track)                
+                    miniHistsMinus_qq[5].fillTrack(track)                
+                miniHistsSum[5].fillTrack(track)
+                miniHistsSum_gg[5].fillTrack(track)
+                miniHistsSum_qg[5].fillTrack(track)
+                miniHistsSum_qq[5].fillTrack(track)
+                
+                if trigDidFire[0]: 
+                    if track.charge() == 1:  
+                        miniHistsPlus[0].fillTrack(track)                
+                        miniHistsPlus_gg[0].fillTrack(track)                
+                        miniHistsPlus_qg[0].fillTrack(track)                
+                        miniHistsPlus_qq[0].fillTrack(track)                
+                    if track.charge() == -1: 
+                        miniHistsMinus[0].fillTrack(track)                
+                        miniHistsMinus_gg[0].fillTrack(track)                
+                        miniHistsMinus_qg[0].fillTrack(track)                
+                        miniHistsMinus_qq[0].fillTrack(track)                
+                    miniHistsSum[0].fillTrack(track)
+                    miniHistsSum_gg[0].fillTrack(track)
+                    miniHistsSum_qg[0].fillTrack(track)
+                    miniHistsSum_qq[0].fillTrack(track)
+                    for i in range(4):
+                        if trigDidFire[i+1]: 
+                            if track.charge() == 1:  
+                                miniHistsPlus[i+1].fillTrack(track)
+                                miniHistsPlus_gg[i+1].fillTrack(track)
+                                miniHistsPlus_qg[i+1].fillTrack(track)
+                                miniHistsPlus_qq[i+1].fillTrack(track)
+                            if track.charge() == -1: 
+                                miniHistsMinus[i+1].fillTrack(track)
+                                miniHistsMinus_gg[i+1].fillTrack(track)
+                                miniHistsMinus_qg[i+1].fillTrack(track)
+                                miniHistsMinus_qq[i+1].fillTrack(track)
+                            miniHistsSum[i+1].fillTrack(track)
+                            miniHistsSum_gg[i+1].fillTrack(track)
+                            miniHistsSum_qg[i+1].fillTrack(track)
+                            miniHistsSum_qq[i+1].fillTrack(track)
+            
+        skimFile.Close()
+        miniFile.Close()
+    
+    #miniHists[0].draw()
+    #miniHists[-1].draw()
+    
+    outFilePlus.cd()
+    eventCounter.Write()
+    for m in miniHistsPlus: [h.Write() for h in m.values()]
+    for m in miniHistsPlus_gg: [h.Write() for h in m.values()]
+    for m in miniHistsPlus_qg: [h.Write() for h in m.values()]
+    for m in miniHistsPlus_qq: [h.Write() for h in m.values()]
+    outFilePlus.Close()
+    
+    outFileMinus.cd()
+    eventCounter.Write()
+    for m in miniHistsMinus: [h.Write() for h in m.values()]
+    for m in miniHistsMinus_gg: [h.Write() for h in m.values()]
+    for m in miniHistsMinus_qg: [h.Write() for h in m.values()]
+    for m in miniHistsMinus_qq: [h.Write() for h in m.values()]
+    outFileMinus.Close()
+    
+    outFileSum.cd()
+    eventCounter.Write()
+    for m in miniHistsSum: [h.Write() for h in m.values()]
+    for m in miniHistsSum_gg: [h.Write() for h in m.values()]
+    for m in miniHistsSum_qg: [h.Write() for h in m.values()]
+    for m in miniHistsSum_qq: [h.Write() for h in m.values()]
+    outFileSum.Close()
+
+
 def calculateALL(num, denom, nevents, sample_weights):
     #error calculations in this function follow the recipe derived by Jim Sowinski
     
@@ -1737,7 +1949,7 @@ def main(argv=None):
             if option == '--fill':              
                 #loadLibs()
                 #fill2(value,None,True,os.environ['FILELIST'])
-                fill2(value)
+                fill3(value)
             if option == '--combine':
                 #loadLibs()
                 ROOT.gSystem.Load('StJetMaker')

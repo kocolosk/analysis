@@ -1,11 +1,14 @@
-import datetime, time, calendar, ROOT, MySQLdb, math
+import os, datetime, time, calendar, ROOT, MySQLdb, math
+
+dataDir = '/Users/kocolosk/data/run6/laser'
 
 ROOT.gStyle.SetCanvasColor(10)
 ROOT.gStyle.SetFillColor(10)
 ROOT.gStyle.SetStatColor(0)
 ROOT.gStyle.SetPalette(1)
 ROOT.gStyle.SetCanvasBorderMode(0)
-ROOT.gStyle.SetOptDate(1)ROOT.gStyle.SetOptFit(111)
+ROOT.gStyle.SetOptDate(1)
+ROOT.gStyle.SetOptFit(111)
 ROOT.gStyle.SetPadLeftMargin(0.12)
 #ROOT.gStyle.SetPadRightMargin(0.08)
 #ROOT.gStyle.SetLabelOffset(0.005,'y')
@@ -46,21 +49,25 @@ class laserDV:
             self.events = nt.events
             self.run    = nt.run
             self.day    = nt.day
-        
+    
+    
     def setDeactive(self, unixTime):
         """store deactive given in unixTime as datetime object"""
         if unixTime > 0:
             self.deactive = datetime.datetime( time.gmtime(unixTime)[0:6] )
         else:
             self.deactive = None
-            
+    
+    
     def getBeginTime(self):
         """returns beginTime as string"""
         return self.beginTime.isoformat(' ')
     
+    
     def getEntryTime(self):
         """returns entryTime as string"""
         return self.entryTime.isoformat(' ')
+    
     
     def getDeactive(self):
         """returns deactivation time as string"""
@@ -68,11 +75,13 @@ class laserDV:
             return self.deactive.isoformat(' ')
         return '0'
     
+    
     def dateTimeFromTimeStamp(self, s):
         """convert string == yyyy-mm-dd hh:mm:ss to datetime.datetime UTC"""
         d = datetime.datetime(int(s[0:4]),int(s[5:7]),int(s[8:10]), int(s[11:13]),int(s[14:16]),int(s[17:19]))
         #print s, d
         return d
+    
 
 
 class ShiftedExponential:
@@ -97,7 +106,8 @@ class ShiftedExponential:
         return result
         
         #return self.constant * math.exp( -1.0 * self.slope * (x[0]-self.xoffset) / 10000 ) - self.yoffset
-        
+    
+    
 
 
 #some important dates
@@ -126,14 +136,14 @@ lastBad  = runBeginTime(7143001)
 
 #load the DB measurements
 db = []
-f = open('/Users/kocolosk/Desktop/laser/tables.txt')
+f = open( os.path.join(dataDir, 'tables.txt') )
 lines = f.readlines()
 for line in lines[3:-1]:
     db.append( laserDV(line) )
     
 # load the new measurements from Yuri's ntuple
 local = []
-f = ROOT.TFile.Open('/Users/kocolosk/Desktop/laser/LaserPlots.root')
+f = ROOT.TFile.Open( os.path.join(dataDir, 'LaserPlots.root') )
 nt = f.Get("RunNT")
 for i in range(nt.GetEntries()):
     nt.GetEntry(i)
@@ -143,7 +153,7 @@ for i in range(nt.GetEntries()):
 #    obj = key.ReadObj()
 #    if obj.InheritsFrom("TH1"):
 #        obj.Draw()
-#        c.Print('/Users/kocolosk/Desktop/laser/yuri/%s.gif' % obj.GetName())
+#        c.Print( os.path.join(dataDir, 'yuri', '%s.gif' % obj.GetName()) )
 
 dbGraphEast = ROOT.TGraph(len(db))
 dbGraphWest = ROOT.TGraph(len(db))
