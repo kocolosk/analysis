@@ -116,6 +116,24 @@ def measureReadSpeed():
     print 'Goodbye'
 
 
+def integratedLuminosity(tree, minbiasId=96011):
+    """returns recorded integrated luminosity seen by minbias trigger in nb^-1"""
+    bbcXsec = 26.1 * 1e6 ## in nanobarns
+    
+    tree.SetBranchStatus('*', 0)
+    tree.SetBranchStatus('mTriggerBits', 1)
+    
+    tree.SetBranchStatus('mTriggerPrescales', 1)
+    tree.GetEntry(0)
+    prescale = tree.event.prescale(minbiasId)
+    tree.SetBranchStatus('mTriggerPrescales', 0)
+    
+    mbEventCounter = 0
+    for entry in tree:
+        if entry.event.isTrigger(minbiasId): mbEventCounter += 1
+    return (mbEventCounter * prescale) / bbcXsec
+
+
 def makeEventLists(fname='~/work/charged-pion-event-2/chargedPions_6119063.tree.root'):
     #ROOT.StChargedPionJetParticle.Class().IgnoreTObjectStreamer()
     #f = ROOT.TFile(fname, 'update')
