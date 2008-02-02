@@ -6,6 +6,84 @@ from array import array
 import ROOT
 import minimc
 
+pidCalibration = {
+6988 : ( 0.066608, 0.889596),
+6990 : ( 0.028513, 0.872612),
+6992 : ( 0.016085, 0.856032),
+6994 : ( 0.076727, 0.867838),
+6995 : ( 0.167452, 0.855377),
+6997 : ( 0.206903, 0.882462),
+6998 : (-0.018938, 0.844754),
+7001 : (-0.006526, 0.863949),
+7002 : ( 0.014921, 0.865907),
+7032 : (-0.059741, 0.856267),
+7034 : (-0.064317, 0.870471),
+7035 : (-0.090822, 0.871124),
+7048 : (-0.387454, 0.866186),
+7049 : (-0.393791, 0.865776),
+7055 : (-0.420703, 0.858151),
+7064 : (-0.283141, 0.878024),
+7067 : (-0.087372, 0.873845),
+7068 : (-0.077816, 0.840146),
+7070 : (-0.054644, 0.879342),
+7072 : (-0.022931, 0.863193),
+7075 : (-0.065000, 0.814292),
+7079 : (-0.261988, 0.896589),
+7085 : (-0.207958, 0.879845),
+7088 : (-0.184964, 0.869739),
+7092 : (-0.095016, 0.879631),
+7102 : (-0.161471, 0.899666),
+7103 : (-0.180760, 0.900305),
+7110 : (-0.194342, 0.894236),
+7112 : (-0.116899, 0.878893),
+7114 : (-0.140619, 0.871448),
+7118 : (-0.206615, 0.883038),
+7120 : (-0.096027, 0.884061),
+7122 : (-0.187495, 0.903031),
+7123 : (-0.172261, 0.885190),
+7124 : (-0.175057, 0.906155),
+7125 : (-0.134531, 0.887071),
+7127 : (-0.149092, 0.897838),
+7131 : (-0.197370, 0.889249),
+7133 : (-0.207133, 0.888365),
+7134 : (-0.130486, 0.893232),
+7151 : ( 0.033011, 0.851425),
+7153 : (-0.094305, 0.892003),
+7154 : ( 0.010605, 0.824362),
+7161 : (-0.167815, 0.894401),
+7162 : (-0.152793, 0.906894),
+7164 : (-0.125891, 0.894419),
+7165 : (-0.162527, 0.870979),
+7166 : (-0.133315, 0.884772),
+7172 : (-0.207923, 0.894637),
+7237 : (-0.269559, 0.916554),
+7238 : (-0.259372, 0.891293),
+7249 : (-0.247810, 0.894708),
+7253 : (-0.271044, 0.845922),
+7255 : (-0.249242, 0.857201),
+7265 : (-0.190056, 0.865755),
+7266 : (-0.243196, 0.869884),
+7269 : (-0.242802, 0.892759),
+7270 : (-0.314700, 0.886310),
+7272 : (-0.194932, 0.883244),
+7274 : (-0.344731, 0.903323),
+7276 : (-0.198418, 0.897573),
+7278 : (-0.273830, 0.875383),
+7279 : (-0.219441, 0.895625),
+7300 : (-0.283700, 0.876021),
+7301 : (-0.325708, 0.891317),
+7302 : (-0.333164, 0.890520),
+7303 : (-0.274641, 0.894173),
+7304 : (-0.306279, 0.890682),
+7305 : ( 0.726845, 0.934432),
+7308 : (-0.297895, 0.913868),
+7311 : (-0.232436, 0.905442),
+7317 : (-0.301910, 0.886113),
+7320 : (-0.229533, 0.893824),
+7325 : (-0.251390, 0.898416),
+7327 : (-0.251943, 0.895118),
+}
+
 class EventCuts:
     def __init__(self, event=None):
         if event is None:
@@ -36,19 +114,25 @@ class EventCuts:
 
 
 class TrackCuts:
-    def __init__(self):
+    def __init__(self, fill):
          self.eta = False
          self.dca = False
          self.fit = False
          self.pid = False
          self.all = False
+         
+         pidFit = pidCalibration[fill]
+         self.pidMin = pidFit[0] - 1.0*pidFit[1]
+         self.pidMax = pidFit[0] + 2.0*pidFit[1]
     
     
     def set(self, track):
         self.eta = math.fabs( track.eta() ) < 1.0
         self.dca = math.fabs( track.globalDca().mag() ) < 1.0
-        self.pid = track.nSigmaPion() > -1.0 and track.nSigmaPion() < 2.0
         self.fit = track.nHitsFit() > 25
+        
+        self.pid = self.pidMin < track.nSigmaPion() < self.pidMax
+        
         self.all = self.eta and self.dca and self.pid and self.fit
         
 
@@ -285,6 +369,8 @@ class HistogramManager(dict):
         if tfile is not None:
             self.name = os.path.basename(tfile.GetName())
         
+        self.fill = 0
+        
         self.allHistos = []
         
         for spin in ('uu','ud','du','dd','other','anyspin'):
@@ -334,7 +420,7 @@ class HistogramManager(dict):
         
         ## track-wise histograms
         if not ecuts.all: return
-        tcuts = TrackCuts()
+        tcuts = TrackCuts(self.fill)
         jcuts = [JetCuts(jet, event) for jet in event.jets()]
         for track in event.tracks():
             tcuts.set(track)
@@ -390,7 +476,6 @@ class HistogramManager(dict):
         self['anyspin']['96011'].tracks_sum['pt'].Draw()
         
         
-        #text = [ write(0.1, 0.1, 'Hello Hillary') ]
         #c.Draw()
         raw_input('wait here')
         return c
@@ -418,6 +503,7 @@ class HistogramManager(dict):
 
 
 def writeHistograms(treeDir='~/data/run5/tree', globber='*'):
+    import analysis
     chain = ROOT.TChain('tree')
     chain.Add(treeDir + '/chargedPions_' + globber + '.tree.root')
     #chain.SetBranchStatus('mJets.mParticles*',0)
@@ -435,6 +521,7 @@ def writeHistograms(treeDir='~/data/run5/tree', globber='*'):
     outname = fname.replace('.tree.','.hist.')
     outFile = ROOT.TFile(outname, 'recreate')
     h = HistogramManager()
+    h.fill = analysis.getFill(analysis.getRun(fname))
     
     for i in xrange(entries):
         #if globber == '*':
@@ -453,6 +540,7 @@ def writeHistograms(treeDir='~/data/run5/tree', globber='*'):
             outname = fname.replace('.tree.','.hist.')
             outFile = ROOT.TFile(outname, 'recreate')
             h = HistogramManager()
+            h.fill = analysis.getFill(analysis.getRun(fname))
             
         h.processEvent(chain.event)
     
@@ -482,3 +570,6 @@ def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist'):
                 cmd += '%s/chargedPions_%d.hist.root ' % (histDir,run)
           os.system(cmd)
 
+
+if __name__ == '__main__':
+    writeHistograms()
