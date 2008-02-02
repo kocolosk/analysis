@@ -812,14 +812,13 @@ def qa_pid():
         except KeyError:
             fill_runlists[fill] = [run]    
     
-    nSigmaRun = ROOT.TH1D('nSigmaRun', 'blerg', len(allFiles), 0.5, len(allFiles)+0.5)
+    nSigmaRun = ROOT.TH1D('nSigmaRun', 'Mean nSigmaPion per run', len(allFiles), 0.5, len(allFiles)+0.5)
     nSigmaFill = ROOT.TH1D('nSigmaFill', 'blerg2', len(fill_runlists), 0.5, len(fill_runlists)+0.5)
     
     ps = ROOT.TPostScript('blerg.ps')
     c = ROOT.TCanvas('c','',100,100,600,800)
     
     pad = 1
-    #hlist = []
     ROOT.gStyle.SetOptStat('m')
     for row,fname in enumerate(allFiles):
         if row % 15 == 0:
@@ -828,18 +827,18 @@ def qa_pid():
             c.Clear()
             c.Divide(3,5)
             pad = 1 
-            #hlist = []
         c.cd(pad)    
         print fname
         tfile = ROOT.TFile(fname)
-        ROOT.gStyle.SetOptStat('m')
         mgr = analysis.HistogramManager(tfile,['nSigmaPion'])
         h = mgr.anyspin['alltrigs'].tracks_sum['nSigmaPion']
-        h.SetTitle('%3d - %d' % (row+1, analysis.getRun(fname)))
-        #hlist.append(h.Clone())
-        ROOT.gStyle.SetOptStat('m')
+        run = analysis.getRun(fname)
+        h.SetTitle('%3d - %d - %d' % (row+1, run, reverse_dict[run]))
+        h.SetStats(True)
+        if h.GetMean() > 0: 
+            h.SetLineColor(ROOT.kRed)
+            print 'bad = fill, run'
         h.DrawCopy()
-        ROOT.gStyle.SetOptStat('m')
         nSigmaRun.SetBinContent(row+1, h.GetMean())
         nSigmaRun.SetBinError(row+1, h.GetMeanError())
         pad += 1
@@ -863,6 +862,100 @@ def jetpatch_phi_correlation(tree, patchNumber):
     raw_input('press enter:')
 
 
+def pid_calibration(h):
+    """takes an nSigmaPion histo and does the triple-Gaussian fit"""
+    h.SetStats(True)
+    #h.SetTitle('n#sigma(#pi) calibration for F7305')
+    h.SetXTitle('n#sigma(#pi)')
+    ROOT.gStyle.SetOptFit(111)
+    
+    fit = ROOT.TF1('fit','gaus(0)+gaus(3)+gaus(6)', -6.0, 6.0)
+    fit.SetParameter(0, h.GetMaximum() * 0.9)
+    fit.SetParameter(1, 0.0)
+    fit.SetParameter(2, 1.0)
+    fit.SetParameter(3, h.GetMaximum() * 0.5)
+    fit.SetParameter(4, -1.0)
+    fit.SetParameter(5, 1.0)
+    fit.SetParameter(6, h.GetMaximum() * 0.05)
+    fit.SetParameter(7, 2.)
+    fit.SetParameter(8, 1.0)
+    
+    fit.SetParName(0, '#pi magnitude')
+    fit.SetParName(1, '#pi mean')
+    fit.SetParName(2, '#pi width')
+    fit.SetParName(3, 'p/K magnitude')
+    fit.SetParName(4, 'p/K mean')
+    fit.SetParName(5, 'p/K width')
+    fit.SetParName(6, 'ele magnitude')
+    fit.SetParName(7, 'ele mean')
+    fit.SetParName(8, 'ele width')
+    
+    h.Fit(fit, 'rq')
+    h.DrawCopy()
+    
+    pifit = ROOT.TF1('pifit', 'gaus', -6.0, 6.0)
+    pifit.FixParameter(0, fit.GetParameter(0))
+    pifit.FixParameter(1, fit.GetParameter(1))
+    pifit.FixParameter(2, fit.GetParameter(2))
+    pifit.SetLineColor(ROOT.kRed)
+    
+    pkfit = ROOT.TF1('pkfit', 'gaus', -6.0, 6.0)
+    pkfit.FixParameter(0, fit.GetParameter(3))
+    pkfit.FixParameter(1, fit.GetParameter(4))
+    pkfit.FixParameter(2, fit.GetParameter(5))
+    pkfit.SetLineColor(ROOT.kGreen)
+    
+    elefit = ROOT.TF1('elefit', 'gaus', -6.0, 6.0)
+    elefit.FixParameter(0, fit.GetParameter(6))
+    elefit.FixParameter(1, fit.GetParameter(7))
+    elefit.FixParameter(2, fit.GetParameter(8))
+    elefit.SetLineColor(ROOT.kBlue)
+    
+    pifit.DrawCopy('same')
+    pkfit.DrawCopy('same')
+    elefit.DrawCopy('same')
+    
+    #print h.GetTitle()[-4:], pifit.GetParameter(1)
+    #raw_input('press enter to continue:')
+    return (fit.GetParameter(1), fit.GetParError(1), fit.GetParameter(2))
+
+
+def pid_calibration_allfills(mydir='/Users/kocolosk/data/run5/hist-by-fill'):
+    """generates a PDF of triple-Gaussian fits for all fills, plus a histogram of pion means"""
+    allFiles = os.listdir(mydir)
+    hfill = ROOT.TH1D('hfill','mean of pion Gaussian by RHIC Fill', len(allFiles), 0.5, len(allFiles)+0.5)
+    ps = ROOT.TPostScript('pid.ps')
+    c = ROOT.TCanvas('c','',100,100,600,800)
+    pad = 1
+    myrecords = []
+    for row,fname in enumerate(allFiles):
+        if row % 15 == 0:
+            c.Update()
+            ps.NewPage()
+            c.Clear()
+            c.Divide(3,5)
+            pad = 1 
+        c.cd(pad)    
+        print fname
+        tfile = ROOT.TFile(os.path.join(mydir, fname))
+        mgr = analysis.HistogramManager(tfile, ['nSigmaPion'])
+        h = mgr.anyspin['alltrigs'].tracks_sum['nSigmaPion']
+        h.SetTitle('n#sigma(#pi) calibration for F%s' % (fname[-14:-10],))
+        mean, error, sigma = pid_calibration(h)
+        hfill.SetBinContent(row+1, mean)
+        hfill.SetBinError(row+1, error)
+        myrecords.append((fname, mean, sigma))
+        pad += 1
+    ps.Close()
+    c = ROOT.TCanvas()
+    hfill.GetYaxis().SetRangeUser(-0.5, 0.8)
+    hfill.SetXTitle('fill index')
+    hfill.Draw('e')
+    
+    for r in myrecords:
+       print '%d : (% 1.6f, %1.6f),' % (int(r[0][13:17]), r[1], r[2])
+    raw_input('press enter:')
+    
 
 def runlist_luminosity(runlist):
     """prints integrated luminosity seen by minbias trigger in runs of this list"""
