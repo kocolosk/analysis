@@ -21,15 +21,18 @@ pidCalibration = {
 7035 : (-0.090822, 0.871124),
 7048 : (-0.387454, 0.866186),
 7049 : (-0.393791, 0.865776),
+7051 : (-0.137894, 0.792171),
 7055 : (-0.420703, 0.858151),
 7064 : (-0.283141, 0.878024),
 7067 : (-0.087372, 0.873845),
 7068 : (-0.077816, 0.840146),
+7069 : ( 0.010756, 0.861486),
 7070 : (-0.054644, 0.879342),
 7072 : (-0.022931, 0.863193),
 7075 : (-0.065000, 0.814292),
 7079 : (-0.261988, 0.896589),
 7085 : (-0.207958, 0.879845),
+7087 : (-0.062486, 0.818310),
 7088 : (-0.184964, 0.869739),
 7092 : (-0.095016, 0.879631),
 7102 : (-0.161471, 0.899666),
@@ -56,15 +59,18 @@ pidCalibration = {
 7165 : (-0.162527, 0.870979),
 7166 : (-0.133315, 0.884772),
 7172 : (-0.207923, 0.894637),
+7232 : (-0.110842, 0.864740),
 7237 : (-0.269559, 0.916554),
 7238 : (-0.259372, 0.891293),
 7249 : (-0.247810, 0.894708),
+7250 : (-0.316081, 0.909442),
 7253 : (-0.271044, 0.845922),
 7255 : (-0.249242, 0.857201),
 7265 : (-0.190056, 0.865755),
 7266 : (-0.243196, 0.869884),
 7269 : (-0.242802, 0.892759),
 7270 : (-0.314700, 0.886310),
+7271 : (-0.389984, 0.910892),
 7272 : (-0.194932, 0.883244),
 7274 : (-0.344731, 0.903323),
 7276 : (-0.198418, 0.897573),
@@ -81,7 +87,7 @@ pidCalibration = {
 7317 : (-0.301910, 0.886113),
 7320 : (-0.229533, 0.893824),
 7325 : (-0.251390, 0.898416),
-7327 : (-0.251943, 0.895118),
+7327 : (-0.251943, 0.895118)
 }
 
 class EventCuts:
@@ -551,24 +557,33 @@ def writeHistograms(treeDir='~/data/run5/tree', globber='*'):
 
 
 def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist'):
-     """uses hadd to make histogram files for each fill instead of each run"""
-     import analysis
-     allFiles = os.listdir(histDir)
-     fill_runlists = {}
-     for fname in allFiles:
-          if not fname.endswith('.root'): continue
-          run = analysis.getRun(fname)
-          fill = analysis.getFill(run)
-          try:
-                fill_runlists[fill].append(run)
-          except KeyError:
-                fill_runlists[fill] = [run]
-     
-     for fill, runlist in fill_runlists.items():
-          cmd = 'hadd chargedPions_%d.hist.root ' % (fill,)
-          for run in runlist:
-                cmd += '%s/chargedPions_%d.hist.root ' % (histDir,run)
-          os.system(cmd)
+    """uses hadd to make histogram files for each fill instead of each run"""
+    import analysis
+    allFiles = os.listdir(histDir)
+    fill_runlists = {}
+    runlist = []
+    for fname in allFiles:
+        if not fname.endswith('.root'): continue
+        run = analysis.getRun(fname)
+        runlist.append(run)
+    
+    tuples = analysis.getAllFills(runlist)
+    for run, fill in tuples:
+        if run not in runlist: continue
+        try:
+             fill_runlists[fill].append(run)
+        except KeyError:
+             fill_runlists[fill] = [run]
+    
+    for fill, runlist in fill_runlists.items():
+        cmd = 'hadd chargedPions_%d.hist.root ' % (fill,)
+        if len(runlist) == 1:
+            print 'no need for hadd here!', fill, run
+            os.system('cp %s/chargedPions_%d.hist.root chargedPions_%d.hist.root' %
+                (histDir, run, fill))
+        for run in runlist:
+             cmd += '%s/chargedPions_%d.hist.root ' % (histDir,run)
+        #os.system(cmd)
 
 
 if __name__ == '__main__':
