@@ -101,10 +101,10 @@ class AsymmetryGenerator:
       Rus = float(ud)/du
       
       if spinbit == 5: ## yb == uu
-         self.top['ly'].Fill(val, (Py) )
+         self.top['ly'].Fill(val, (-1.*Py) )
          self.bot['ly'].Fill(val, (Py*Py) )
          
-         self.top['lb'].Fill(val, (Pb) )
+         self.top['lb'].Fill(val, (-1.*Pb) )
          self.bot['lb'].Fill(val, (Pb*Pb) )
          
          self.top['ll'].Fill(val, (Py*Pb) )
@@ -113,10 +113,10 @@ class AsymmetryGenerator:
          self.top['ls'].Fill(val, (Py*Pb) )
          self.bot['ls'].Fill(val, (Py*Py*Pb*Pb) )
       elif spinbit == 9: ## yb == ud
-         self.top['ly'].Fill(val, (Py) )
+         self.top['ly'].Fill(val, (-1.*Py) )
          self.bot['ly'].Fill(val, (Py*Py) )
          
-         self.top['lb'].Fill(val, (-1.*R2*Pb) )
+         self.top['lb'].Fill(val, (R2*Pb) )
          self.bot['lb'].Fill(val, (R2*Pb*Pb) )
          
          self.top['ll'].Fill(val, (-1.*R3*Py*Pb) )
@@ -125,10 +125,10 @@ class AsymmetryGenerator:
          self.top['us'].Fill(val, (Py*Pb) )
          self.bot['us'].Fill(val, (Py*Py*Pb*Pb) )
       elif spinbit == 6: ## yb == du
-         self.top['ly'].Fill(val, (-1.*R1*Py) )
+         self.top['ly'].Fill(val, (R1*Py) )
          self.bot['ly'].Fill(val, (R1*Py*Py) )
          
-         self.top['lb'].Fill(val, (Pb) )
+         self.top['lb'].Fill(val, (-1.*Pb) )
          self.bot['lb'].Fill(val, (Pb*Pb) )
          
          self.top['ll'].Fill(val, (-1.*R3*Py*Pb) )
@@ -137,10 +137,10 @@ class AsymmetryGenerator:
          self.top['us'].Fill(val, (-1.*Rus*Py*Pb) )
          self.bot['us'].Fill(val, (Rus*Py*Py*Pb*Pb) )
       elif spinbit == 10: ## yb == dd
-         self.top['ly'].Fill(val, (-1.*R1*Py) )
+         self.top['ly'].Fill(val, (R1*Py) )
          self.bot['ly'].Fill(val, (R1*Py*Py) )
          
-         self.top['lb'].Fill(val, (-1.*R2*Pb) )
+         self.top['lb'].Fill(val, (R2*Pb) )
          self.bot['lb'].Fill(val, (R2*Pb*Pb) )
          
          self.top['ll'].Fill(val, (Py*Pb) )
@@ -1235,9 +1235,9 @@ golden_runlist_c = [
 minbias_runs = [
 6120044,
 6120054,
-6130069,
-6130070,
-6130071,
+#6130069, ## polarizations
+#6130070,
+#6130071,
 6135014,
 6138019,
 6138020,
@@ -2428,6 +2428,8 @@ final_runlist_run5_no_minbias = [
  #6175020
 ]
 
+final_runlist_run5 = final_runlist_run5_no_minbias + minbias_runs
+final_runlist_run5.sort()
 
 class theoryCurves:
    ##   pt           std          max         zero          min
