@@ -46,10 +46,14 @@ pidCalibration = {
 7123 : (-0.172261, 0.885190),
 7124 : (-0.175057, 0.906155),
 7125 : (-0.134531, 0.887071),
-7127 : (-0.149092, 0.897838),
+#7127 : (-0.149092, 0.897838),
+7128 : (-0.149092, 0.897838),
 7131 : (-0.197370, 0.889249),
 7133 : (-0.207133, 0.888365),
-7134 : (-0.130486, 0.893232),
+#7134 : (-0.130486, 0.893232),
+7134 : (-0.119566, 0.901472),
+7136 : (-0.026902, 0.621362),
+7138 : (-0.150951, 0.892991),
 7151 : ( 0.033011, 0.851425),
 7153 : (-0.094305, 0.892003),
 7154 : ( 0.010605, 0.824362),
@@ -76,6 +80,9 @@ pidCalibration = {
 7276 : (-0.198418, 0.897573),
 7278 : (-0.273830, 0.875383),
 7279 : (-0.219441, 0.895625),
+7293 : (-0.346773, 0.803589), ## transverse
+7295 : (-0.268542, 0.859643), ## transverse
+7296 : (-0.328538, 0.901968), ## transverse
 7300 : (-0.283700, 0.876021),
 7301 : (-0.325708, 0.891317),
 7302 : (-0.333164, 0.890520),
@@ -87,7 +94,13 @@ pidCalibration = {
 7317 : (-0.301910, 0.886113),
 7320 : (-0.229533, 0.893824),
 7325 : (-0.251390, 0.898416),
-7327 : (-0.251943, 0.895118)
+7327 : (-0.251943, 0.895118),
+7722 : (-0.059290, 0.867884), ## transverse
+7724 : (-0.098639, 0.876645), ## transverse
+7725 : (-0.076397, 0.857092), ## transverse
+7729 : (-0.174965, 0.901068), ## transverse
+7740 : (-0.075899, 0.890939), ## transverse
+
 }
 
 class EventCuts:
@@ -121,15 +134,25 @@ class EventCuts:
 
 class TrackCuts:
     def __init__(self, fill):
-         self.eta = False
-         self.dca = False
-         self.fit = False
-         self.pid = False
-         self.all = False
-         
-         pidFit = pidCalibration[fill]
-         self.pidMin = pidFit[0] - 1.0*pidFit[1]
-         self.pidMax = pidFit[0] + 2.0*pidFit[1]
+        self.eta = False
+        self.dca = False
+        self.fit = False
+        self.pid = False
+        self.all = False
+        
+        ## need this try..except to bootstrap PID calibration
+        #try:
+        #    pidFit = pidCalibration[fill]
+        #except KeyError:
+        #    pidFit = (0.0, 1.0)
+        pidFit = pidCalibration[fill]
+        self.pidMin = pidFit[0] - 1.0*pidFit[1]
+        self.pidMax = pidFit[0] + 2.0*pidFit[1]
+        
+        ## try a "cleaner" bg sample at least 2 sigma from pion mean
+        self.pid_bg = False
+        self.pidBgMin = pidFit[0] - 2.0*pidFit[1]
+        self.pidBgMax = self.pidMax
     
     
     def set(self, track):
@@ -138,6 +161,8 @@ class TrackCuts:
         self.fit = track.nHitsFit() > 25
         
         self.pid = self.pidMin < track.nSigmaPion() < self.pidMax
+        self.pid_bg = (track.nSigmaPion() < self.pidBgMin) or \
+                      (track.nSigmaPion() > self.pidBgMax)
         
         self.all = self.eta and self.dca and self.pid and self.fit
         
@@ -216,7 +241,7 @@ class TrackHistogramCollection(dict):
     mcDcaGBins       = minimc.MiniMcHistos.dcaGBins
     
     allKeys = ['pt', 'eta', 'phi', 'nHitsFit', 'dEdx', 'dcaG', 'nSigmaPion',
-        'dphi_deta', 'z', 'z_away', 'pt_near', 'pt_away']
+        'dphi_deta', 'z', 'z_away', 'pt_near', 'pt_away', 'pt_bg']
     
     def __init__(self, name, tfile=None, keys=None):
         if tfile is not None:
@@ -242,23 +267,28 @@ class TrackHistogramCollection(dict):
             
             self['pt_away'] = ROOT.TH1D('%s_pt_away' % (name,), '', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
             self['pt_near'] = ROOT.TH1D('%s_pt_near' % (name,), '', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+            
+            self['pt_bg'] = ROOT.TH1D('%s_pt_bg' % name, '', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
     
     
     def fillTrack(self, track, tcuts):
         if tcuts.eta and tcuts.dca and tcuts.fit and tcuts.pid:
-             self['pt'].Fill(track.pt())
-             self['phi'].Fill(track.phi())
-             self['dEdx'].Fill(track.dEdx() * 1e7)
+            self['pt'].Fill(track.pt())
+            self['phi'].Fill(track.phi())
+            self['dEdx'].Fill(track.dEdx() * 1e7)
         
-        if tcuts.dca and tcuts.fit and tcuts.pid:                 
-             self['eta'].Fill(track.eta())
+        if tcuts.eta and tcuts.dca and tcuts.fit and tcuts.pid_bg:
+            self['pt_bg'].Fill(track.pt())
+        
+        if tcuts.dca and tcuts.fit and tcuts.pid:
+            self['eta'].Fill(track.eta())
         
         if tcuts.eta and tcuts.fit and tcuts.pid:
-             self['dcaG'].Fill(track.globalDca().mag())
+            self['dcaG'].Fill(track.globalDca().mag())
         
         if tcuts.eta and tcuts.dca and tcuts.pid:
-             self['nHitsFit'].Fill(track.nHitsFit())
-             
+            self['nHitsFit'].Fill(track.nHitsFit())
+            
         if tcuts.eta and tcuts.dca and tcuts.fit:
             self['nSigmaPion'].Fill(track.nSigmaPion())
     
@@ -411,10 +441,15 @@ class HistogramManager(dict):
             triggerOk['alltrigs']  = triggerOk['96011'] or triggerOk['96201'] or triggerOk['96211'] or triggerOk['96221'] or triggerOk['96233']
             activeTriggers = ('96011','96201','96211','96221','96233','hightower','jetpatch', 'alltrigs')
         else:
-            triggerOk['137611'] = event.isTrigger(137611)
-            triggerOk['137622'] = event.isTrigger(137622)
-            triggerOk['jetpatch'] = (event.isTrigger(137221) and event.isSimuTrigger(137221)) or \
-                                    (event.isTrigger(137222) and event.isSimuTrigger(137222))
+            if event.isPolLong():
+                triggerOk['137611'] = event.isTrigger(137611) and event.isSimuTrigger(137611)
+                triggerOk['137622'] = event.isTrigger(137622) and event.isSimuTrigger(137622)
+                triggerOk['jetpatch'] = (event.isTrigger(137221) and event.isSimuTrigger(137221)) or \
+                                        (event.isTrigger(137222) and event.isSimuTrigger(137222))
+            elif event.isPolTrans():
+                triggerOk['137611'] = event.isTrigger(127611) and event.isSimuTrigger(127611)
+                triggerOk['137622'] = event.isTrigger(127622) and event.isSimuTrigger(127622)
+                triggerOk['jetpatch'] = event.isTrigger(127221) and event.isSimuTrigger(127221)
             triggerOk['alltrigs'] = triggerOk['jetpatch'] or triggerOk['137611'] or triggerOk['137622']
             activeTriggers = ('137611', '137622', 'jetpatch', 'alltrigs')
           
@@ -512,28 +547,17 @@ def writeHistograms(treeDir='~/data/run5/tree', globber='*'):
     import analysis
     chain = ROOT.TChain('tree')
     chain.Add(treeDir + '/chargedPions_' + globber + '.tree.root')
-    #chain.SetBranchStatus('mJets.mParticles*',0)
     
-    #if globber == '*':
-    #    elistFile = ROOT.TFile(treeDir + '/../eventLists.root')
-    #    elist = elistFile.Get('has_trigger')
-    #    entries = elist.GetN()
-    #else:
-    #    entries = chain.GetEntries()
     entries = chain.GetEntries()
     
     chain.GetEntry(0)
     fname = chain.GetCurrentFile().GetName()
-    outname = fname.replace('.tree.','.hist.')
+    outname = os.path.basename(fname).replace('.tree.','.hist.')
     outFile = ROOT.TFile(outname, 'recreate')
     h = HistogramManager()
     h.fill = analysis.getFill(analysis.getRun(fname))
     
     for i in xrange(entries):
-        #if globber == '*':
-        #    if(chain.GetEntry(elist.GetEntry(i)) == 0): break
-        #else:
-        #    chain.GetEntry(i)
         chain.GetEntry(i)
         
         ## found a new runnumber
@@ -543,7 +567,7 @@ def writeHistograms(treeDir='~/data/run5/tree', globber='*'):
             h.Write()
             outFile.Close()
             fname = chain.GetCurrentFile().GetName()
-            outname = fname.replace('.tree.','.hist.')
+            outname = os.path.basename(fname).replace('.tree.','.hist.')
             outFile = ROOT.TFile(outname, 'recreate')
             h = HistogramManager()
             h.fill = analysis.getFill(analysis.getRun(fname))
@@ -570,20 +594,29 @@ def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist'):
     tuples = analysis.getAllFills(runlist)
     for run, fill in tuples:
         if run not in runlist: continue
+        ## temporary hacks
+        ## http://www.star.bnl.gov/HyperNews-star/protected/get/starspin/3324.html
+        if 6144002 <= run <= 6144029: fill = 7128
+        if 6144041 <= run <= 6144042: fill = 7129        
+        if 6145067 <= run <= 6145068: fill = 7136
+        if 6146001 <= run <= 6146026: fill = 7138
         try:
              fill_runlists[fill].append(run)
         except KeyError:
              fill_runlists[fill] = [run]
     
     for fill, runlist in fill_runlists.items():
+        #if fill in (7048, 7055, 7327): continue  ## no final polarizations
+        #if fill not in (7127, 7128, 7129, 7134, 7136, 7138): continue
         cmd = 'hadd chargedPions_%d.hist.root ' % (fill,)
         if len(runlist) == 1:
-            print 'no need for hadd here!', fill, run
+            print 'no need for hadd here!', fill, runlist[0]
             os.system('cp %s/chargedPions_%d.hist.root chargedPions_%d.hist.root' %
-                (histDir, run, fill))
-        for run in runlist:
-             cmd += '%s/chargedPions_%d.hist.root ' % (histDir,run)
-        #os.system(cmd)
+                (histDir, runlist[0], fill))
+        else:
+            for run in runlist:
+                cmd += '%s/chargedPions_%d.hist.root ' % (histDir,run)
+            os.system(cmd)
 
 
 if __name__ == '__main__':
