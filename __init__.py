@@ -5,7 +5,7 @@ libs_to_load = [ 'libPhysics', 'libTable', 'StarRoot', 'StarClassLibrary', 'St_b
 'StBichsel', 'StEvent', 'StEventUtilities', 'StDbLib', 'StEmcUtil', 'StTofUtil', 'StPmdUtil', 
 'StStrangeMuDstMaker', 'StMuDSTMaker', 'StDaqLib', 'StDetectorDbMaker', 'StEmcTriggerMaker', 
 'StMCAsymMaker', 'StSpinDbMaker', 'St_db_Maker', 'StTriggerUtilities', 'StJetFinder', 'StJetMaker', 
-'StChargedPionAnalysisMaker', 'StSpinTree', 'StTamuRelLum', 'StMiniMcEvent']
+'StChargedPionAnalysisMaker', 'StSpinTree', 'StMiniMcEvent']
 
 print 'analysis : loading shared libraries ...'
 libs_already_loaded = ROOT.gSystem.GetLibraries()
@@ -35,9 +35,10 @@ from histos import HistogramManager
 from minimc import MiniMcHistos
 
 ## utility methods
-from util   import getRun, getFill, getAllFills
+from util   import *
 
 ## runlists
-from asym   import golden_runlist_c, minbias_runs
+from asym   import golden_runlist_c, minbias_runs, final_runlist_run5
+from runlists import *
 
 __all__ = ['asym','datamc2','histos','minimc']
