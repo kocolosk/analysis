@@ -1,6 +1,6 @@
 import math
 import os
-import uuid
+##import uuid 
 from array import array
 
 import ROOT
@@ -46,11 +46,11 @@ pidCalibration = {
 7123 : (-0.172261, 0.885190),
 7124 : (-0.175057, 0.906155),
 7125 : (-0.134531, 0.887071),
-#7127 : (-0.149092, 0.897838),
+#7127 : (-0.149092, 0.897838), ## RunLog_onl problem
 7128 : (-0.149092, 0.897838),
 7131 : (-0.197370, 0.889249),
 7133 : (-0.207133, 0.888365),
-#7134 : (-0.130486, 0.893232),
+#7134 : (-0.130486, 0.893232), ## RunLog_onl problem
 7134 : (-0.119566, 0.901472),
 7136 : (-0.026902, 0.621362),
 7138 : (-0.150951, 0.892991),
@@ -100,7 +100,45 @@ pidCalibration = {
 7725 : (-0.076397, 0.857092), ## transverse
 7729 : (-0.174965, 0.901068), ## transverse
 7740 : (-0.075899, 0.890939), ## transverse
-
+7847 : (-0.027059, 0.874814),
+7850 : (-0.123179, 0.900492),
+7851 : (-0.036289, 0.889293),
+7852 : (-0.045743, 0.892851),
+7853 : (-0.119185, 0.898291),
+7855 : (-0.134342, 0.908262),
+7856 : (-0.089265, 0.895362),
+7858 : (-0.090076, 0.891528),
+7863 : (-0.081548, 0.911351),
+7864 : (-0.113995, 0.904617),
+7865 : ( 0.009516, 0.813364),
+7871 : (-0.109983, 0.906486),
+7872 : (-0.138412, 0.882469),
+7883 : (-0.177649, 0.882449),
+7886 : (-0.192267, 0.887891),
+7887 : (-0.155607, 0.886540),
+7889 : (-0.100630, 0.863594),
+7890 : (-0.058332, 0.922629),
+7891 : (-0.121694, 0.876814),
+7892 : (-0.075144, 0.882934),
+7893 : (-0.123162, 0.907638),
+7896 : (-0.094806, 0.894019),
+7898 : (-0.062404, 0.900528),
+7901 : (-0.014140, 0.865671),
+7908 : (-0.040456, 0.883598),
+7909 : (-0.076574, 0.879197),
+7911 : (-0.048150, 0.861430),
+7913 : (-0.076331, 0.897395),
+7916 : (-0.078441, 0.894539),
+7918 : ( 0.043434, 0.888361),
+7921 : (-0.010669, 0.876733),
+7922 : ( 0.037783, 0.904650),
+7926 : (-0.033154, 0.886284),
+7944 : (-0.068744, 0.905098),
+7949 : (-0.039570, 0.876990),
+7951 : ( 0.056927, 0.936951),
+7952 : ( 0.025446, 0.885525),
+7954 : ( 0.178511, 0.875005),
+7957 : ( 0.014065, 0.899964)
 }
 
 class EventCuts:
@@ -141,11 +179,11 @@ class TrackCuts:
         self.all = False
         
         ## need this try..except to bootstrap PID calibration
-        #try:
-        #    pidFit = pidCalibration[fill]
-        #except KeyError:
-        #    pidFit = (0.0, 1.0)
-        pidFit = pidCalibration[fill]
+        try:
+            pidFit = pidCalibration[fill]
+        except KeyError:
+            pidFit = (0.0, 1.0)
+        #pidFit = pidCalibration[fill]
         self.pidMin = pidFit[0] - 1.0*pidFit[1]
         self.pidMax = pidFit[0] + 2.0*pidFit[1]
         
@@ -507,7 +545,8 @@ class HistogramManager(dict):
         #write['text'](0.2,0.2,'my text')
         t = ROOT.TText()
         t.DrawText(0.1,0.1,'this is so stupid')
-        pads.append( ROOT.TPad(str(uuid.uuid1()),'', margin, 0.74, 1.0-margin, 0.84) )
+        #pads.append( ROOT.TPad(str(uuid.uuid1()),'', margin, 0.74, 1.0-margin, 0.84) )
+        pads.append( ROOT.TPad('some_random_name','', margin, 0.74, 1.0-margin, 0.84) )
         pad = pads[-1]
         pad.SetFillColor(2)
         pad.Divide(5,1)
@@ -617,6 +656,19 @@ def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist'):
             for run in runlist:
                 cmd += '%s/chargedPions_%d.hist.root ' % (histDir,run)
             os.system(cmd)
+
+def bsub(treeDir):
+    import analysis
+    """submits a single writeHistograms job to LSF for each tree.root file in treeDir"""
+    ## bsub -q star_cas_short -o stdout -e stderr blah.sh
+    ## if using /star/dataXX also add -R "rusage[sdXX=??,sdYY=??]"
+    allfiles = os.listdir(treeDir)
+    for fname in allfiles:
+        if not fname.endswith('tree.root'): continue
+        run = analysis.getRun(fname)
+        os.system('bsub -q star_cas_short -e err/%d.err -o out/%d.out python -c \
+            "import analysis; analysis.histos.writeHistograms(\'%s\',globber=\'*%d*\')"' \
+            % (run, run, treeDir, run))
 
 
 if __name__ == '__main__':
