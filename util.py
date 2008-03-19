@@ -60,3 +60,17 @@ def uniqify(seq, idfun=None):
         seen[marker] = 1 
         result.append(item) 
     return result
+
+def daqEventCount(run, trigId):
+    """queries RunLog Browser to get event count for this (run,trigId) pair"""
+    """basically the world's stupidest HTML parser"""
+    import urllib2
+    sock = urllib2.urlopen('http://online.star.bnl.gov/RunLogRun6/Summary.php?run=%d' % run)
+    for line in sock:
+        items = line.split()
+        for row,item in enumerate(items):
+            if item.find(str(trigId)) > 0:
+                eventCountItem = items[row+4]
+                return int(eventCountItem.lstrip('align="right">').rstrip('</TD>R'))
+    
+    
