@@ -888,7 +888,7 @@ def pid_calibration(h, useElectrons=True):
         fit.SetParameter(6, h.GetMaximum() * 0.05)
         #fit.SetParLimits(6, 0.0, h.GetMaximum() * 0.1)
         fit.SetParameter(7, 3.)
-        #fit.SetParLimits(7, 1.5, 5.0)  ## this one drops b/g by 10% !
+        fit.SetParLimits(7, 1.5, 5.0)  ## this one drops b/g by 10% !
         fit.SetParameter(8, 1.0)
     
     fit.SetParName(0, '#pi magnitude')
@@ -1346,7 +1346,7 @@ def pid_background_asymmetry(runlist=analysis.final_runlist_run5):
         #h.SetMarkerColor(marker_color[asym_key])
         h.SetXTitle('p_{T}')
        # if asym_key in ('ly', 'lb'):
-        h.GetYaxis().SetRangeUser(-0.05, 0.05)
+        h.GetYaxis().SetRangeUser(-0.1, 0.1)
         #else:
         #    h.GetYaxis().SetRangeUser(-0.1, 0.1)
     
