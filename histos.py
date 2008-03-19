@@ -1,6 +1,7 @@
 import math
 import os
 ##import uuid 
+import time
 from array import array
 
 import ROOT
@@ -103,41 +104,41 @@ pidCalibration = {
 7847 : (-0.027059, 0.874814),
 7850 : (-0.123179, 0.900492),
 7851 : (-0.036289, 0.889293),
-7852 : (-0.045743, 0.892851),
+7852 : (-0.045614, 0.891709),
 7853 : (-0.119185, 0.898291),
-7855 : (-0.134342, 0.908262),
+7855 : (-0.134738, 0.908692),
 7856 : (-0.089265, 0.895362),
-7858 : (-0.090076, 0.891528),
-7863 : (-0.081548, 0.911351),
+7858 : (-0.102251, 0.897319),
+7863 : (-0.083709, 0.911717),
 7864 : (-0.113995, 0.904617),
 7865 : ( 0.009516, 0.813364),
 7871 : (-0.109983, 0.906486),
 7872 : (-0.138412, 0.882469),
-7883 : (-0.177649, 0.882449),
-7886 : (-0.192267, 0.887891),
+7883 : (-0.182051, 0.885964),
+7886 : (-0.185474, 0.889406),
 7887 : (-0.155607, 0.886540),
 7889 : (-0.100630, 0.863594),
-7890 : (-0.058332, 0.922629),
-7891 : (-0.121694, 0.876814),
-7892 : (-0.075144, 0.882934),
+7890 : (-0.053211, 0.921421),
+7891 : (-0.099581, 0.861152),
+7892 : (-0.077996, 0.892110),
 7893 : (-0.123162, 0.907638),
 7896 : (-0.094806, 0.894019),
-7898 : (-0.062404, 0.900528),
+7898 : (-0.057477, 0.896248),
 7901 : (-0.014140, 0.865671),
 7908 : (-0.040456, 0.883598),
-7909 : (-0.076574, 0.879197),
+7909 : (-0.077470, 0.880354),
 7911 : (-0.048150, 0.861430),
-7913 : (-0.076331, 0.897395),
+7913 : (-0.076636, 0.896822),
 7916 : (-0.078441, 0.894539),
 7918 : ( 0.043434, 0.888361),
 7921 : (-0.010669, 0.876733),
-7922 : ( 0.037783, 0.904650),
+7922 : ( 0.022409, 0.907525),
 7926 : (-0.033154, 0.886284),
 7944 : (-0.068744, 0.905098),
 7949 : (-0.039570, 0.876990),
 7951 : ( 0.056927, 0.936951),
 7952 : ( 0.025446, 0.885525),
-7954 : ( 0.178511, 0.875005),
+7954 : ( 0.205871, 0.864685),
 7957 : ( 0.014065, 0.899964)
 }
 
@@ -619,7 +620,7 @@ def writeHistograms(treeDir='~/data/run5/tree', globber='*'):
     outFile.Close()
 
 
-def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist'):
+def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist',useLSF=False,fillList=None):
     """uses hadd to make histogram files for each fill instead of each run"""
     import analysis
     allFiles = os.listdir(histDir)
@@ -647,29 +648,34 @@ def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist'):
     for fill, runlist in fill_runlists.items():
         #if fill in (7048, 7055, 7327): continue  ## no final polarizations
         #if fill not in (7127, 7128, 7129, 7134, 7136, 7138): continue
-        cmd = 'hadd chargedPions_%d.hist.root ' % (fill,)
-        if len(runlist) == 1:
-            print 'no need for hadd here!', fill, runlist[0]
-            os.system('cp %s/chargedPions_%d.hist.root chargedPions_%d.hist.root' %
-                (histDir, runlist[0], fill))
-        else:
-            for run in runlist:
-                cmd += '%s/chargedPions_%d.hist.root ' % (histDir,run)
-            os.system(cmd)
+        if fillList is None or fill in fillList:
+            cmd = 'hadd chargedPions_%d.hist.root ' % (fill,)
+            if len(runlist) == 1:
+                print 'no need for hadd here!', fill, runlist[0]
+                os.system('cp %s/chargedPions_%d.hist.root chargedPions_%d.hist.root' %
+                    (histDir, runlist[0], fill))
+            else:
+                for run in runlist:
+                    cmd += '%s/chargedPions_%d.hist.root ' % (histDir,run)
+                if useLSF:
+                    cmd = 'bsub -q star_cas_short -e err/%d.err -o out/%d.out ' % (fill,fill) + cmd
+                os.system(cmd)
 
-def bsub(treeDir):
+def bsub(treeDir, runlist=None):
     import analysis
     """submits a single writeHistograms job to LSF for each tree.root file in treeDir"""
-    ## bsub -q star_cas_short -o stdout -e stderr blah.sh
-    ## if using /star/dataXX also add -R "rusage[sdXX=??,sdYY=??]"
     allfiles = os.listdir(treeDir)
     for fname in allfiles:
         if not fname.endswith('tree.root'): continue
         run = analysis.getRun(fname)
-        os.system('bsub -q star_cas_short -e err/%d.err -o out/%d.out python -c \
-            "import analysis; analysis.histos.writeHistograms(\'%s\',globber=\'*%d*\')"' \
-            % (run, run, treeDir, run))
+        if runlist is None or run in runlist:
+            os.system('bsub -q star_cas_short -e err/%d.err -o out/%d.out python -c \
+                "import analysis; analysis.histos.writeHistograms(\'%s\',globber=\'*%d*\')"' \
+                % (run, run, treeDir, run))
+            time.sleep(0.2)
 
 
 if __name__ == '__main__':
-    writeHistograms()
+    directory = sys.argv[1]
+    run = sys.argv[2]
+    writeHistograms(directory, run)
