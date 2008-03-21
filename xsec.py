@@ -18,6 +18,23 @@ class datapoint:
         self.stat       = stat
         self.sys        = sys
         
+    def add(self, other):
+        """add values from other into self"""
+        assert(self.x == other.x)
+        assert(self.xlow == other.xlow)
+        assert(self.binwidth == other.binwidth)
+        err2 = 1.0/(self.stat**2 + self.sys**2) + 1.0/(other.stat**2 + other.sys**2)
+        mean = (self.y/(self.stat**2 + self.sys**2) + other.y/(other.stat**2+other.sys**2))/err2
+        self.y = mean
+        try:
+            self.stat = 1.0/math.sqrt(1.0/(self.stat**2) + 1.0/(other.stat**2))
+        except ZeroDivisionError:
+            pass
+        try:
+            self.sys = 1.0/math.sqrt(1.0/(self.sys**2) + 1.0/(other.sys**2))
+        except ZeroDivisionError:
+            pass
+        
 # 1/Nevent d2 N / (2π pT dpT dy) [c2/GeV2]
 mbPlusYield = [
 datapoint( x=3.50e-01, xlow=3.00e-01, binwidth=1.00e-01, y=9.71e-01, stat=1.21e-02, sys=7.76e-02 ),
