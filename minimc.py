@@ -750,7 +750,7 @@ def fill3(minimcList):
     'StBichsel', 'StEvent', 'StEventUtilities', 'StDbLib', 'StEmcUtil', 'StTofUtil', 'StPmdUtil', 
     'StStrangeMuDstMaker', 'StMuDSTMaker', 'StDaqLib', 'StDetectorDbMaker', 'StEmcTriggerMaker', 
     'StMCAsymMaker', 'StSpinDbMaker', 'StJetFinder', 'StJetMaker', 'StChargedPionAnalysisMaker']
-
+    
     print 'minimc : loading shared libraries ...'
     libs_already_loaded = ROOT.gSystem.GetLibraries()
     for library in libs_to_load:
@@ -1128,7 +1128,7 @@ def partonicCrossSection(sample='2_3', nevents=1000, sqrts=200):
     return pythia.GetPARI(1)
 
 
-#the rest of the functions just make plots
+## the rest of the functions just make plots
 
 def ptResolution(histFile='./combined.sum.hist.root', trigKey='notrig', subProcess=''):
     #import mystyle; mystyle.use(1)
@@ -1143,6 +1143,7 @@ def ptResolution(histFile='./combined.sum.hist.root', trigKey='notrig', subProce
     
     raw_input('beli')
     return(f,m,c)
+
 
 def triggerBias(histFile='./combined.plus.hist.root', trigKey='96233', scenario='nlo'):
     tfile = ROOT.TFile(histFile)
@@ -1245,7 +1246,7 @@ def subProcessSpectra(histFile='./combined.sum.hist.root', trigKey='notrig'):
         h_gg.SetMarkerStyle(20)
         h_gg.SetMarkerColor(ROOT.kRed)
         h_gg.DrawCopy()
-
+        
         h_qg = m_qg['partonicPt'].ProjectionX('%d_gg_px' % (i,), bins[i]+1, bins[i+1]+1)
         h_gg.SetMarkerStyle(25)
         h_gg.SetMarkerColor(ROOT.kBlue)
@@ -1259,6 +1260,7 @@ def subProcessSpectra(histFile='./combined.sum.hist.root', trigKey='notrig'):
     c.Update()
     raw_input('pause')
     ps.Close()
+
 
 def subProcessPionMultiplicity(histFile='./combined.sum.hist.root', trigKey='notrig'):
     proj_gg = whatDoICallThis(histFile, trigKey, 'gg')
@@ -1920,6 +1922,7 @@ def validateAsymmetries(histFile='combined.plus.hist.root', subprocess=''):
 class Usage(Exception):
     def __init__(self, msg):
         self.msg = msg
+    
 
 
 def main(argv=None):
