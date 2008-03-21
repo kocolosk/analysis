@@ -33,6 +33,7 @@ import datamc2 as datamc
 from asym   import AsymmetryGenerator, ScalarCounts, Polarizations
 from histos import HistogramManager
 from minimc import MiniMcHistos
+from xsec   import datapoint as DataPoint
 
 ## utility methods
 from util   import *
@@ -41,4 +42,4 @@ from util   import *
 from asym   import golden_runlist_c, minbias_runs, final_runlist_run5
 from runlists import *
 
-__all__ = ['asym','datamc2','histos','minimc']
+__all__ = ['asym','datamc2','histos','minimc', 'runlists']
