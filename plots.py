@@ -156,13 +156,15 @@ def asymmetries_for_publication_run5(runlist=None):
     theoryCurves(analysis.asym.werner_plus_dss_cteqm5_std, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
     theoryCurves(analysis.asym.werner_plus_dss_cteqm5_zero, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
     theoryCurves(analysis.asym.werner_plus_dss_cteqm5_max, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
-    theoryCurves(analysis.asym.werner_plus_dss_cteqm5_min, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),   
+    theoryCurves(analysis.asym.werner_plus_dss_cteqm5_min, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_plus_dss_cteqm5_gsc, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph()
     ]
     minusGraphs = [
     theoryCurves(analysis.asym.werner_minus_dss_cteqm5_std, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),
     theoryCurves(analysis.asym.werner_minus_dss_cteqm5_zero, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),
     theoryCurves(analysis.asym.werner_minus_dss_cteqm5_max, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),
     theoryCurves(analysis.asym.werner_minus_dss_cteqm5_min, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),    
+    theoryCurves(analysis.asym.werner_minus_dss_cteqm5_gsc, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph()
     ]
     
     for grList in (plusGraphs, minusGraphs):
@@ -172,13 +174,21 @@ def asymmetries_for_publication_run5(runlist=None):
         grList[2].SetLineColor(ROOT.kRed)
         grList[3].SetLineStyle(2)
         grList[3].SetLineColor(ROOT.kGreen)
+        grList[4].SetLineStyle(5)
+        grList[4].SetLineColor(ROOT.kYellow)
         for gr in grList:
             gr.SetLineWidth(3)
     
     ## systematic uncertainties
     baseline = -0.1
     syst_x = [3.0, 5.0, 7.0, 9.0]
-    syst = {'plus': [7.3, 8.4, 7.5, 5.1], 'minus': [5.7, 6.0, 5.7, 7.1] }
+    
+    ## preliminary result
+    #syst = {'plus': [7.3, 8.4, 7.5, 5.1], 'minus': [5.7, 6.0, 5.7, 7.1] }
+    
+    ## assuming pT dependence in PID background
+    syst = {'plus': [2.26, 2.99, 4.59, 10.26], 'minus': [1.05, 1.66, 7.07, 12.41] }
+    
     systGraph = {'plus': ROOT.TGraph(len(syst_x)+3), 'minus': ROOT.TGraph(len(syst_x)+3) }
     for charge in ('plus','minus'):
         systGraph[charge].SetPoint(0, 3.0, baseline)
@@ -214,10 +224,10 @@ def asymmetries_for_publication_run5(runlist=None):
                 print bin7.fill, 'has no final polarization values'
                 continue
             
-            asym_plus.FillFromHistogramManager(mgr, 'alltrigs', 1, uu, ud, du, dd, pol.py, pol.pb)
-            asym_minus.FillFromHistogramManager(mgr, 'alltrigs', -1, uu, ud, du, dd, pol.py, pol.pb)
-            #asym_plus.FillFromHistogramManager(mgr, 'jetpatch', 1, uu, ud, du, dd, pol.py, pol.pb)
-            #asym_minus.FillFromHistogramManager(mgr, 'jetpatch', -1, uu, ud, du, dd, pol.py, pol.pb)
+            #asym_plus.FillFromHistogramManager(mgr, 'alltrigs', 1, uu, ud, du, dd, pol.py, pol.pb)
+            #asym_minus.FillFromHistogramManager(mgr, 'alltrigs', -1, uu, ud, du, dd, pol.py, pol.pb)
+            asym_plus.FillFromHistogramManager(mgr, 'jetpatch', 1, uu, ud, du, dd, pol.py, pol.pb)
+            asym_minus.FillFromHistogramManager(mgr, 'jetpatch', -1, uu, ud, du, dd, pol.py, pol.pb)
             tfile.Close()
             
     ## fun with graphics
@@ -236,13 +246,14 @@ def asymmetries_for_publication_run5(runlist=None):
     
     latex = ROOT.TLatex()
     
-    leg = ROOT.TLegend(0.13, 0.67, 0.40, 0.89)
+    leg = ROOT.TLegend(0.13, 0.62, 0.40, 0.89)
     leg.SetFillStyle(0)
     leg.SetBorderSize(0)
     leg.AddEntry(plusGraphs[0],' GRSV-std', 'l')
     leg.AddEntry(plusGraphs[2],' GRSV #Delta g =     g input', 'l')
     leg.AddEntry(plusGraphs[1],' GRSV #Delta g =     0 input', 'l')
     leg.AddEntry(plusGraphs[3],' GRSV #Delta g = -g input', 'l')
+    leg.AddEntry(plusGraphs[4],' GS Set C', 'l')
     
     bg = ROOT.TH1D(h1)
     bg.Reset()
@@ -301,13 +312,14 @@ def asymmetries_for_publication_run5(runlist=None):
         pad.SetBorderMode(0)
         pad.SetFillStyle(4000) ## make it transparent
         
-    leg2 = ROOT.TLegend(0.16, 0.67, 0.54, 0.90)
+    leg2 = ROOT.TLegend(0.16, 0.62, 0.54, 0.90)
     leg2.SetFillStyle(0)
     leg2.SetBorderSize(0)
     leg2.AddEntry(plusGraphs[0],' GRSV-std', 'l')
     leg2.AddEntry(plusGraphs[2],' GRSV #Deltag =  g input', 'l')
     leg2.AddEntry(plusGraphs[1],' GRSV #Deltag =  0 input', 'l')
     leg2.AddEntry(plusGraphs[3],' GRSV #Deltag = -g input', 'l')
+    leg2.AddEntry(plusGraphs[4],' GS Set C', 'l')
     
     titlepad.cd()
     latex.SetTextSize(0.7)
@@ -353,6 +365,10 @@ def asymmetries_for_publication_run5(runlist=None):
     'pi-minus fit to pol0'
     h2.Fit('pol0', 'N', '', 2.0, 10.0)
     
+    for h in (h1,h2):
+        print h.GetName()
+        for i in range(h.GetNbinsX()):
+            print 'y=% .2e, stat=%.2e' % (h.GetBinContent(i+1), h.GetBinError(i+1))
     raw_input('wait here:')
 
 
@@ -1294,10 +1310,12 @@ def pid_background_asymmetry(runlist=analysis.final_runlist_run5):
     """plots A_{LL} for charged tracks outside PID window and fits with a pol0"""
     asym_plus = analysis.AsymmetryGenerator('asym_plus', key='pt_bg')
     asym_minus = analysis.AsymmetryGenerator('asym_minus', key='pt_bg')
-    scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run5.txt'
+    #scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run5.txt'
+    scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run6.txt'
     scalars = analysis.ScalarCounts(scalar_path)
     polarizations = analysis.Polarizations.Final
     allFiles = glob(run5_hist_dir + '/chargedPions_*.hist.root')
+    allFiles += glob(run6_hist_dir + '/chargedPions_*.hist.root')
     for fname in allFiles:
         run = analysis.getRun(fname)
         if runlist is None or run in runlist:
@@ -1306,16 +1324,29 @@ def pid_background_asymmetry(runlist=analysis.final_runlist_run5):
             mgr = analysis.HistogramManager(tfile,('pt_bg',))
             
             try:
+                bin6 = scalars[str(run) + '-5-6']
                 bin7 = scalars[str(run) + '-5-7']
                 bin8 = scalars[str(run) + '-5-8']
                 bin9 = scalars[str(run) + '-5-9']
             except KeyError:
-                print run, 'is not in the scalars database'
+                try:
+                    bin6 = scalars[str(run) + '-6-6']
+                    bin7 = scalars[str(run) + '-6-7']
+                    bin8 = scalars[str(run) + '-6-8']
+                    bin9 = scalars[str(run) + '-6-9']
+                except KeyError:
+                    print run, 'is not in the scalars database'
                 continue
-            uu = bin7.uu + bin8.uu + bin9.uu
-            ud = bin7.ud + bin8.ud + bin9.ud
-            du = bin7.du + bin8.du + bin9.du
-            dd = bin7.dd + bin8.dd + bin9.dd
+            if run > 7000000:
+                uu = bin6.uu + bin7.uu + bin8.uu + bin9.uu
+                ud = bin6.ud + bin7.ud + bin8.ud + bin9.ud
+                du = bin6.du + bin7.du + bin8.du + bin9.du
+                dd = bin6.dd + bin7.dd + bin8.dd + bin9.dd
+            else:
+                uu = bin7.uu + bin8.uu + bin9.uu
+                ud = bin7.ud + bin8.ud + bin9.ud
+                du = bin7.du + bin8.du + bin9.du
+                dd = bin7.dd + bin8.dd + bin9.dd
             
             try:
                 pol = polarizations[bin7.fill]
@@ -1335,11 +1366,11 @@ def pid_background_asymmetry(runlist=analysis.final_runlist_run5):
     ROOT.gStyle.SetOptFit(111)
     
     hp = asym_plus.GetAsymmetry('ll')
-    hp.SetTitle('PID Background A_{LL} for #pi^{+}')
+    hp.SetTitle('PID Background A_{LL} for #pi^{+} (Run 6 data)')
     hp.SetMarkerStyle(21)
     
     hm = asym_minus.GetAsymmetry('ll')
-    hm.SetTitle('PID Background A_{LL} for #pi^{-}')
+    hm.SetTitle('PID Background A_{LL} for #pi^{-} (Run 6 data)')
     hm.SetMarkerStyle(20)
     
     for h in (hp,hm):
@@ -1358,6 +1389,10 @@ def pid_background_asymmetry(runlist=analysis.final_runlist_run5):
     hm.Fit('pol0')
     hm.Draw('e1')
     
+    for h in (hp,hm):
+        print h.GetName()
+        for i in range(h.GetNbinsX()):
+            print 'y=% .2e, stat=%.2e' % (h.GetBinContent(i+1), h.GetBinError(i+1))
     raw_input('wait here')
     cp.Print('pid_background_asymmetry_plus.png')
     cm.Print('pid_background_asymmetry_minus.png')
@@ -1417,7 +1452,7 @@ def print_ssa(runlist=analysis.final_runlist_run5, charge=1):
         [ h.Delete() for h in (y,b,ls,us) ]
 
 
-def asigma(runlist=analysis.transverse_run5):
+def asigma(runlist=analysis.transverse_run6):
     """plots asigma -- duh"""
     ROOT.gStyle.SetOptStat(0)
     ROOT.gStyle.SetErrorX(0.0)
@@ -1430,7 +1465,6 @@ def asigma(runlist=analysis.transverse_run5):
     polarizations = analysis.Polarizations.Final
     allFiles = glob(run5_hist_dir + '-transverse/chargedPions_*.hist.root')
     allFiles += glob(run6_hist_dir + '-transverse/chargedPions_*.hist.root')
-    print allFiles
     for fname in allFiles:
         run = analysis.getRun(fname)
         if runlist is None or run in runlist:
@@ -1439,17 +1473,29 @@ def asigma(runlist=analysis.transverse_run5):
             mgr = analysis.HistogramManager(tfile,('pt',))
             
             try:
+                bin6 = scalars[str(run) + '-5-6']
                 bin7 = scalars[str(run) + '-5-7']
                 bin8 = scalars[str(run) + '-5-8']
                 bin9 = scalars[str(run) + '-5-9']
             except KeyError:
-                print run, 'is not in the scalars database'
+                try:
+                    bin6 = scalars[str(run) + '-6-6']
+                    bin7 = scalars[str(run) + '-6-7']
+                    bin8 = scalars[str(run) + '-6-8']
+                    bin9 = scalars[str(run) + '-6-9']
+                except KeyError:
+                    print run, 'is not in the scalars database'
                 continue
-            uu = bin7.uu + bin8.uu + bin9.uu
-            ud = bin7.ud + bin8.ud + bin9.ud
-            du = bin7.du + bin8.du + bin9.du
-            dd = bin7.dd + bin8.dd + bin9.dd
-            
+            if run > 7000000:
+                uu = bin6.uu + bin7.uu + bin8.uu + bin9.uu
+                ud = bin6.ud + bin7.ud + bin8.ud + bin9.ud
+                du = bin6.du + bin7.du + bin8.du + bin9.du
+                dd = bin6.dd + bin7.dd + bin8.dd + bin9.dd
+            else:
+                uu = bin7.uu + bin8.uu + bin9.uu
+                ud = bin7.ud + bin8.ud + bin9.ud
+                du = bin7.du + bin8.du + bin9.du
+                dd = bin7.dd + bin8.dd + bin9.dd
             try:
                 pol = polarizations[bin7.fill]
             except KeyError:
@@ -1470,7 +1516,7 @@ def asigma(runlist=analysis.transverse_run5):
     
     for h in (hp,hm):
         h.SetXTitle('p_{T}')
-        h.GetYaxis().SetRangeUser(-1.0, 1.0)
+        h.GetYaxis().SetRangeUser(-0.105, 0.10)
     
     cp = ROOT.TCanvas('cp')
     hp.Fit('pol0')
@@ -1480,9 +1526,15 @@ def asigma(runlist=analysis.transverse_run5):
     hm.Fit('pol0')
     hm.Draw('e1')
     
+    for h in (hp,hm):
+        print h.GetName()
+        for i in range(h.GetNbinsX()):
+            print 'y=% .2e, stat=%.2e' % (h.GetBinContent(i+1), h.GetBinError(i+1))
+    
     raw_input('wait here')
     cp.Print('asigma_plus.png')
     cm.Print('asigma_minus.png')
+    
 
 
 def pid_pt_dependence(runlist=analysis.final_runlist_run5, tfile=None):
@@ -1539,4 +1591,110 @@ def pid_pt_dependence(runlist=analysis.final_runlist_run5, tfile=None):
     
     raw_input('wait here:')
     outfile.Close()
+
+
+def systematic_uncertainty_run5(charge='plus', key=None):
+    """returns final bin-by-bin systematic uncertainties.  key can be one of (None)"""
+    plus_all_meas = [
+    analysis.DataPoint( y=-5.85e-03, stat=4.57e-03, sys=0.00, x=3.0, xlow=2.0, binwidth=2.0 ),
+    analysis.DataPoint( y= 2.74e-02, stat=1.15e-02, sys=0.00, x=5.0, xlow=4.0, binwidth=2.0 ),
+    analysis.DataPoint( y= 3.50e-03, stat=2.24e-02, sys=0.00, x=7.0, xlow=6.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-1.96e-02, stat=4.05e-02, sys=0.00, x=9.0, xlow=8.0, binwidth=2.0 )
+    ]
+    minus_all_meas = [
+    analysis.DataPoint( y=-2.04e-03, stat=4.71e-03, sys=0.00, x=3.0, xlow=2.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-1.09e-03, stat=1.21e-02, sys=0.00, x=5.0, xlow=4.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-3.65e-02, stat=2.37e-02, sys=0.00, x=7.0, xlow=6.0, binwidth=2.0 ),
+    analysis.DataPoint( y= 3.42e-03, stat=4.32e-02, sys=0.00, x=9.0, xlow=8.0, binwidth=2.0 )
+    ]
+    
+    ## math.fabs(nSigmaPion) > 2
+    plus_all_pid_bg = [
+    analysis.DataPoint( y= 1.60e-02, stat=7.21e-03, sys=0.00, x=3.0, xlow=2.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-5.02e-03, stat=1.67e-02, sys=0.00, x=5.0, xlow=4.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-4.15e-02, stat=3.39e-02, sys=0.00, x=7.0, xlow=6.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-1.58e-02, stat=6.39e-02, sys=0.00, x=9.0, xlow=8.0, binwidth=2.0 )
+    ]
+    minus_all_pid_bg = [
+    analysis.DataPoint( y= 6.63e-03, stat=7.08e-03, sys=0.00, x=3.0, xlow=2.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-6.25e-03, stat=1.71e-02, sys=0.00, x=5.0, xlow=4.0, binwidth=2.0 ),
+    analysis.DataPoint( y= 3.39e-02, stat=3.80e-02, sys=0.00, x=7.0, xlow=6.0, binwidth=2.0 ),
+    analysis.DataPoint( y= 1.69e-02, stat=7.74e-02, sys=0.00, x=9.0, xlow=8.0, binwidth=2.0 )
+    ]
+    
+    ## math.fabs(nSigmaPion) > 2, 2006 data
+    plus_all_pid_bg_2006 = [
+    analysis.DataPoint( y= 1.47e-02, stat=5.85e-03, sys=0.00, x=3.0, xlow=2.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-4.32e-03, stat=1.09e-02, sys=0.00, x=5.0, xlow=4.0, binwidth=2.0 ),
+    analysis.DataPoint( y= 9.59e-03, stat=1.90e-02, sys=0.00, x=7.0, xlow=6.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-1.01e-03, stat=3.11e-02, sys=0.00, x=9.0, xlow=8.0, binwidth=2.0 )
+    ]
+    minus_all_pid_bg_2006 = [
+    analysis.DataPoint( y= 4.98e-03, stat=6.15e-03, sys=0.00, x=3.0, xlow=2.0, binwidth=2.0 ),
+    analysis.DataPoint( y= 1.95e-02, stat=1.21e-02, sys=0.00, x=5.0, xlow=4.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-1.91e-02, stat=2.22e-02, sys=0.00, x=7.0, xlow=6.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-6.86e-03, stat=4.01e-02, sys=0.00, x=9.0, xlow=8.0, binwidth=2.0 )
+    ]
+    
+    ## asigma from 2006 transverse runs, BJP1 triggers only
+    plus_asigma = [
+    analysis.DataPoint( y=-2.26e-03, stat=6.17e-03, sys=0.00, x=3.0, xlow=2.0, binwidth=2.0 ),
+    analysis.DataPoint( y= 9.57e-03, stat=1.28e-02, sys=0.00, x=5.0, xlow=4.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-3.81e-02, stat=2.17e-02, sys=0.00, x=7.0, xlow=6.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-3.15e-02, stat=3.42e-02, sys=0.00, x=9.0, xlow=8.0, binwidth=2.0 )
+    ]
+    minus_asigma = [
+    analysis.DataPoint( y= 3.29e-05, stat=6.39e-03, sys=0.00, x=3.0, xlow=2.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-4.37e-03, stat=1.37e-02, sys=0.00, x=5.0, xlow=4.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-3.53e-02, stat=2.37e-02, sys=0.00, x=7.0, xlow=6.0, binwidth=2.0 ),
+    analysis.DataPoint( y=-2.44e-02, stat=3.85e-02, sys=0.00, x=9.0, xlow=8.0, binwidth=2.0 )
+    ]
+    
+    pid_bg_frac = [0.10, 0.09, 0.10, 0.16]
+    non_long_frac = [0.018, 0.018, 0.018, 0.018]
+    
+    ## quadrature sum of ZDC/BBC comparison and beam-gas background study
+    relative_lumi_syst = math.sqrt(4.9e-04 ** 2 + 3.0e-04 ** 2)
+    
+    if charge == 'plus':
+        all_meas = plus_all_meas
+        pid_bg = plus_all_pid_bg
+        ## next line combines Run 5 and Run 6 b/g asymmetries
+        [pbg.add(plus_all_pid_bg_2006[i]) for i,pbg in enumerate(pid_bg)]
+        asigma = plus_asigma
+    elif charge == 'minus':
+        all_meas = minus_all_meas
+        pid_bg = minus_all_pid_bg
+        ## next line combines Run 5 and Run 6 b/g asymmetries
+        [pbg.add(minus_all_pid_bg_2006[i]) for i,pbg in enumerate(pid_bg)]
+        asigma = minus_asigma
+    else:
+        raise KeyError(charge)
+    
+    for i,datum in enumerate(all_meas):
+        dpid = math.fabs(pid_bg[i].y - datum.y)
+        err = math.sqrt(pid_bg[i].stat**2 + datum.stat**2)
+        ##  use error on background if measurements are consistent
+        if (pid_bg[i].stat > dpid): dpid = pid_bg[i].stat 
+        
+        ## correct equation is just A_sigma, not A_LL - A_sigma
+        #dasigma = math.fabs(asigma[i].y - datum.y)
+        dasigma = math.fabs(asigma[i].y)
+        err = math.sqrt(asigma[i].stat**2 + datum.stat**2)
+        ##  use error on background if measurements are consistent
+        if (asigma[i].stat > dasigma): dasigma = asigma[i].stat
+        
+        tot = math.sqrt( (dpid*pid_bg_frac[i])**2 + \
+                         (dasigma*non_long_frac[i])**2 + \
+                         (relative_lumi_syst)**2 \
+                       )
+        
+        print 'Systematic Uncertainty for charge=%s, pT=%.1f' % (charge, datum.x)
+        print 'pid background = %.3f * %.2e = %.2e' % (pid_bg_frac[i], dpid, pid_bg_frac[i]*dpid)
+        print 'non-long beam  = %.3f * %.2e = %.2e' % (non_long_frac[i], dasigma, non_long_frac[i]*dasigma)
+        print 'relative lumi  = %.2e' % relative_lumi_syst
+        print 'Total: %e' % tot
+        print '----------------------------------------------------'
+    
+    
 
