@@ -749,7 +749,7 @@ def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist',useLSF=False,fill
                     cmd = 'bsub -q star_cas_short -e err/%d.err -o out/%d.out ' % (fill,fill) + cmd
                 os.system(cmd)
 
-def bsub(treeDir, runlist=None):
+def bsub(treeDir, runlist=None, triglist=None):
     import analysis
     """submits a single writeHistograms job to LSF for each tree.root file in treeDir"""
     allfiles = os.listdir(treeDir)
@@ -758,8 +758,9 @@ def bsub(treeDir, runlist=None):
         run = analysis.getRun(fname)
         if runlist is None or run in runlist:
             os.system('bsub -q star_cas_short -e err/%d.err -o out/%d.out python -c \
-                "import analysis; analysis.histos.writeHistograms(\'%s\',globber=\'*%d*\')"' \
-                % (run, run, treeDir, run))
+                "import analysis; analysis.histos.writeHistograms(\'%s\',globber=\'*%d*\', \
+                trigList=%s)"' \
+                % (run, run, treeDir, run, triglist))
             time.sleep(0.2)
 
 
