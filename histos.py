@@ -367,9 +367,9 @@ class TrackHistogramCollection(dict):
             self['nSigmaPion'].Fill(track.nSigmaPion())
     
     
-    def fillTrackJetPair(self, track, tcuts, jet, jcuts):
+    def fillTrackJetPair(self, track, tcuts, jet, awayjet=None):
         """all jet-pion correlation studies go here"""
-        if tcuts.eta and tcuts.dca and tcuts.fit and tcuts.pid and jcuts.rt and jcuts.eta:
+        if tcuts.eta and tcuts.dca and tcuts.fit and tcuts.pid:
             deta = track.Eta() - jet.Eta()
             dphi = track.Phi() - jet.Phi()
             
@@ -380,20 +380,16 @@ class TrackHistogramCollection(dict):
                 dphi = dphi - 2*math.pi
                   
             self['dphi_deta'].Fill(dphi, deta)
-            
-            #renormalize
-            if dphi < -math.pi:
-                dphi = dphi + 2*math.pi
-            if dphi > math.pi:
-                dphi = dphi - 2*math.pi
-            
-            dR = math.sqrt(deta**2 + dphi**2)
-            z = track.Pt() / jet.Pt()
+                        
+            dR = track.DeltaR(jet)
             if dR < 0.4: 
+                z = track.Vect().Dot(jet.Vect()) / jet.P()**2
                 self['z'].Fill(track.Pt(), z)
                 self['pt_near'].Fill(track.Pt())
             elif dR > 1.5:
-                self['z_away'].Fill(track.Pt(), z)
+                if awayjet is not None:
+                    z_away = track.Vect().Dot(awayjet.Vect()) / awayjet.P()**2
+                    self['z_away'].Fill(track.Pt(), z_away)
                 self['pt_away'].Fill(track.Pt())
     
     
@@ -410,7 +406,8 @@ class TrackHistogramCollection(dict):
 class HistogramCollection(dict):
     """convenience class for dealing with multiple histos all filled the same way"""
     mcVzBins             = minimc.MiniMcHistos.vzBins
-    allKeys = ['nVertices', 'vx_vy', 'vz', 'vzBBC', 'spinBit', 'bx7', 'bbc']
+    allKeys = ['nVertices', 'vx_vy', 'vz', 'vzBBC', 'spinBit', 'bx7', 'bbc', 'jet_pt_balance',
+        'jet_p_balance', 'jet_eta_balance', 'jet_phi_balance']
     
     def __init__(self, name, tfile=None, keys=None):
         super(HistogramCollection, self).__init__()
@@ -426,6 +423,10 @@ class HistogramCollection(dict):
             self['spinBit'] = ROOT.TH1D('%s_spinBit' % (name,),'',17,0.5,16.5)
             self['bx7'] = ROOT.TH1D('%s_bx7' % (name,),'',128,-0.5,127.5)
             self['bbc'] = ROOT.TH1D('%s_bbc' % (name,),'',400,-0.5,399.5)
+            self['jet_pt_balance'] = ROOT.TH2D('%s_jet_pt_balance' % name,'',200,0.0,50.0, 200,0.0,50.0)
+            self['jet_p_balance'] = ROOT.TH2D('%s_jet_p_balance' % name,'',200,0.0,50.0, 200,0.0,50.0)
+            self['jet_eta_balance'] = ROOT.TH2D('%s_jet_eta_balance' % name,'',100,-2.0,2.0, 100,-2.0,2.0)
+            self['jet_phi_balance'] = ROOT.TH2D('%s_jet_phi_balance' % name,'',100,-math.pi,math.pi, 100,-math.pi,math.pi)
         
         self.tracks_plus    = TrackHistogramCollection('%s_plus' % (name,), tfile, keys)
         self.tracks_minus = TrackHistogramCollection('%s_minus' % (name,), tfile, keys)
@@ -444,6 +445,14 @@ class HistogramCollection(dict):
             self['vzBBC'].Fill(vertex.z())
             self['spinBit'].Fill(event.spinBit())
             self['bx7'].Fill(event.bx7())
+    
+    def fillJets(self, triggerJet, awayJet=None):
+        if awayJet is not None:
+            self['jet_pt_balance'].Fill(triggerJet.Pt(), awayJet.Pt())
+            self['jet_p_balance'].Fill(triggerJet.P(), awayJet.P())
+            self['jet_eta_balance'].Fill(triggerJet.Eta(), awayJet.Eta())
+            self['jet_phi_balance'].Fill(triggerJet.Phi(), awayJet.Phi())
+    
     
     def trackHistograms(self,charge):
         if charge == 1:  return self.tracks_plus
@@ -473,7 +482,7 @@ class HistogramManager(dict):
     trigSetups = ('96011','96201','96211','96221','96233','hightower','jetpatch', 'alltrigs',\
           '117001','137221','137222','137611','137622')
     
-    def __init__(self, tfile=None, keys=None):
+    def __init__(self, tfile=None, keys=None, triggers=None):
         super(HistogramManager, self).__init__()
         
         if tfile is not None:
@@ -482,13 +491,16 @@ class HistogramManager(dict):
         self.fill = 0
         
         self.allHistos = []
+        self.mytriggers = []
         
         for spin in ('uu','ud','du','dd','other','anyspin'):
             self[spin] = {}
             setattr(self, spin, self[spin])
             for trig in self.trigSetups:
-                self.allHistos.append( HistogramCollection('_%s_%s' % (trig, spin), tfile, keys) )
-                self[spin][trig] = self.allHistos[-1]
+                if triggers is None or trig in triggers:
+                    self.mytriggers.append(trig)
+                    self.allHistos.append( HistogramCollection('_%s_%s' % (trig, spin), tfile, keys) )
+                    self[spin][trig] = self.allHistos[-1]
     
     
     def processEvent(self, event):
@@ -530,28 +542,69 @@ class HistogramManager(dict):
         ## event-wise histograms
         ecuts = EventCuts(event)
         for trig in activeTriggers:
-            if not triggerOk[trig]: continue
+            if not triggerOk[trig] or trig not in self.mytriggers: continue
             self[spin][trig].fillEvent(event, ecuts)
         
         ## track-wise histograms
         if not ecuts.all: return
         tcuts = TrackCuts(self.fill)
-        jcuts = [JetCuts(jet, event) for jet in event.jets()]
         for track in event.tracks():
             tcuts.set(track)
             for trig in activeTriggers:
-                if not triggerOk[trig]: continue
+                if not triggerOk[trig] or trig not in self.mytriggers: continue
                 tcoll = self[spin][trig].trackHistograms(track.charge())
                 tcoll.fillTrack(track, tcuts)
+        
+        ## jet studies
+        jcuts = [JetCuts(jet, event) for jet in event.jets()]
+        for trig in activeTriggers:
+            if not triggerOk[trig] or trig not in self.mytriggers: continue
+            try:
+                itrig = int(trig)
+            except ValueError:
+                if trig == 'jetpatch':
+                    itrig = (event.runId() < 7000000) and 96221 or 137221
+                else:
+                    continue
+            
+            diJets = [] ## a diJet is (trigger jet, away-side jet)
+            inclusiveJets = []
+            monoJets = []
+            
+            for i,jet in enumerate(event.jets()):
+                if jcuts[i].eta and jcuts[i].rt and itrig in jcuts[i].trig:
+                    inclusiveJets.append(jet)
+                    
+                    ## now look for away-side partner
+                    diJetFound = False
+                    for j,jet2 in enumerate(event.jets()):
+                        if jet2 is jet: continue
+                        if jcuts[j].eta and jcuts[j].rt:
+                            dphi = jet.Phi() - jet2.Phi()
+                            
+                            #normalize dphi
+                            if dphi < -math.pi:
+                                dphi = dphi + 2*math.pi
+                            if dphi > math.pi:
+                                dphi = dphi - 2*math.pi
+                            
+                            if dphi > 2.0:
+                                diJets.append( (jet, jet2) )
+                                self[spin][trig].fillJets(jet, jet2)
+                                diJetFound = True
+                    
+                    if not diJetFound: monoJets.append(jet)
+            
+            ## time to fill the correlation histos
+            for track in event.tracks():
+                tcuts.set(track)
+                tcoll = self[spin][trig].trackHistograms(track.charge())
                 
-                ## track-jet correlations
-                for i,jet in enumerate(event.jets()):
-                    if 137222 in jcuts[i].trig:
-                        if trig in ('137221', '137222', 'jetpatch', 'alltrigs'):
-                            tcoll.fillTrackJetPair(track, tcuts, jet, jcuts[i])
-                    elif 137221 in jcuts[i].trig:
-                        if trig in ('137221', 'jetpatch', 'alltrigs'):
-                            tcoll.fillTrackJetPair(track, tcuts, jet, jcuts[i])                                   
+                for jet in monoJets:
+                    tcoll.fillTrackJetPair(track, tcuts, jet)
+                
+                for triggerJet, awayJet in diJets:
+                    tcoll.fillTrackJetPair(track, tcuts, triggerJet, awayJet)
     
     
     def drawQA(self,):
@@ -601,12 +654,12 @@ class HistogramManager(dict):
         """make it persistent in the current tfile"""
         ## create charge-summed histos
         for spin in ('uu','ud','du','dd','other'):
-            for trig in self.trigSetups:
-                self[spin][trig].trackHistograms(0).Add( self[spin][trig].trackHistograms(1)    )
+            for trig in self.mytriggers:
+                self[spin][trig].trackHistograms(0).Add( self[spin][trig].trackHistograms(1)  )
                 self[spin][trig].trackHistograms(0).Add( self[spin][trig].trackHistograms(-1) )
         
         ## create spin-integrated histos
-        for trig in self.trigSetups:
+        for trig in self.mytriggers:
             self['anyspin'][trig].Add( self['uu'][trig] )
             self['anyspin'][trig].Add( self['ud'][trig] )
             self['anyspin'][trig].Add( self['du'][trig] )
@@ -618,7 +671,7 @@ class HistogramManager(dict):
     
 
 
-def writeHistograms(treeDir='~/data/run5/tree', globber='*'):
+def writeHistograms(treeDir='~/data/run5/tree', globber='*', trigList=None):
     import analysis
     chain = ROOT.TChain('tree')
     chain.Add(treeDir + '/chargedPions_' + globber + '.tree.root')
@@ -629,7 +682,7 @@ def writeHistograms(treeDir='~/data/run5/tree', globber='*'):
     fname = chain.GetCurrentFile().GetName()
     outname = os.path.basename(fname).replace('.tree.','.hist.')
     outFile = ROOT.TFile(outname, 'recreate')
-    h = HistogramManager()
+    h = HistogramManager(triggers=trigList)
     h.fill = analysis.getFill(analysis.getRun(fname))
     
     for i in xrange(entries):
