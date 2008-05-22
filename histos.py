@@ -6,6 +6,7 @@ from array import array
 
 import ROOT
 import minimc
+import analysis
 
 pidCalibration = {
 6988 : ( 0.066608, 0.889596),
@@ -501,6 +502,7 @@ class HistogramManager(dict):
                     self.mytriggers.append(trig)
                     self.allHistos.append( HistogramCollection('_%s_%s' % (trig, spin), tfile, keys) )
                     self[spin][trig] = self.allHistos[-1]
+        self.mytriggers = analysis.uniqify(self.mytriggers)
     
     
     def processEvent(self, event):
@@ -753,6 +755,10 @@ def bsub(treeDir, runlist=None, triglist=None):
     import analysis
     """submits a single writeHistograms job to LSF for each tree.root file in treeDir"""
     allfiles = os.listdir(treeDir)
+    try:
+        os.mkdir('out')
+        os.mkdir('err')
+    except OSError: pass
     for fname in allfiles:
         if not fname.endswith('tree.root'): continue
         run = analysis.getRun(fname)
