@@ -1698,3 +1698,147 @@ def systematic_uncertainty_run5(charge='plus', key=None):
     
     
 
+
+def dis2008_run6_projections():
+    """using real 2006 data, plot projected statistical significance of Run 6 inclusive"""
+    ROOT.gStyle.SetOptDate(0)
+    asym_plus = analysis.AsymmetryGenerator('asym_plus')
+    asym_minus = analysis.AsymmetryGenerator('asym_minus')
+    
+    runlist = analysis.long2_run6
+    
+    scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run6.txt'
+    scalars = analysis.ScalarCounts(scalar_path)
+    
+    polarizations = analysis.Polarizations.Final
+    
+    from analysis.asym import theoryCurves
+    plusGraphs = [
+    theoryCurves(analysis.asym.werner_plus_dss_cteqm5_std, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_plus_dss_cteqm5_zero, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_plus_dss_cteqm5_max, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_plus_dss_cteqm5_min, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_plus_dss_cteqm5_gsc, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph()
+    ]
+    minusGraphs = [
+    theoryCurves(analysis.asym.werner_minus_dss_cteqm5_std, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_minus_dss_cteqm5_zero, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_minus_dss_cteqm5_max, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_minus_dss_cteqm5_min, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),    
+    theoryCurves(analysis.asym.werner_minus_dss_cteqm5_gsc, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph()
+    ]
+    
+    
+    ## generate the asymmetries
+    allFiles = glob(run6_hist_dir + '/chargedPions_*.hist.root')
+    for fname in allFiles:
+        run = analysis.getRun(fname)
+        if runlist is None or run in runlist:
+            print fname, run
+            tfile = ROOT.TFile(fname)
+            mgr = analysis.HistogramManager(tfile,['pt'])
+            
+            try:
+                bin6 = scalars[str(run) + '-5-6']
+                bin7 = scalars[str(run) + '-5-7']
+                bin8 = scalars[str(run) + '-5-8']
+                bin9 = scalars[str(run) + '-5-9']
+            except KeyError:
+                print run, 'is not in the scalars database'
+                continue
+            uu = bin6.uu + bin7.uu + bin8.uu + bin9.uu
+            ud = bin6.ud + bin7.ud + bin8.ud + bin9.ud
+            du = bin6.du + bin7.du + bin8.du + bin9.du
+            dd = bin6.dd + bin7.dd + bin8.dd + bin9.dd
+            
+            try:
+                pol = polarizations[bin7.fill]
+            except KeyError:
+                print bin7.fill, 'has no final polarization values'
+            
+            asym_plus.FillFromHistogramManager(mgr, 'jetpatch', 1, uu, ud, du, dd, pol.py, pol.pb)
+            asym_minus.FillFromHistogramManager(mgr, 'jetpatch', -1, uu, ud, du, dd, pol.py, pol.pb)
+            tfile.Close()
+    
+    ## fun with graphics
+    h1 = asym_plus.GetAsymmetry('ll')
+    [ h1.SetBinContent(i+1, 0.0) for i in range(4) ]
+    g1 = ROOT.TGraphErrors(h1)
+    h2 = asym_minus.GetAsymmetry('ll')
+    [ h2.SetBinContent(i+1, 0.0) for i in range(4) ]
+    g2 = ROOT.TGraphErrors(h2)
+    
+    for grList in (plusGraphs, minusGraphs):
+        #grList[1].SetLineStyle(3)
+        grList[1].SetLineColor(ROOT.kBlue)
+        #grList[2].SetLineStyle(4)
+        grList[2].SetLineColor(ROOT.kRed)
+        #grList[3].SetLineStyle(2)
+        grList[3].SetLineColor(ROOT.kGreen)
+        #grList[4].SetLineStyle(5)
+        grList[4].SetLineColor(ROOT.kMagenta)
+        for gr in grList:
+            gr.SetLineWidth(3)
+    
+    ## ignore bin width errors
+    for gr in (g1,g2):
+        for point in range(gr.GetN()):
+            gr.SetPointError(point, 0.0, gr.GetErrorY(point))
+    
+    line = ROOT.TLine(2.0, 0.0, 10.0, 0.0)
+    line.SetLineStyle(2)
+    
+    latex = ROOT.TLatex()
+    
+    leg = ROOT.TLegend(0.13, 0.65, 0.35, 0.88)
+    leg.SetFillStyle(0)
+    leg.SetBorderSize(0)
+    leg.AddEntry(plusGraphs[0],' GRSV-STD', 'l')
+    leg.AddEntry(plusGraphs[1],' #Delta G =  0', 'l')
+    leg.AddEntry(plusGraphs[2],' #Delta G =  G', 'l')
+    leg.AddEntry(plusGraphs[3],' #Delta G = -G', 'l')
+    leg.AddEntry(plusGraphs[4],' GS Set C', 'l')
+    
+    bg = ROOT.TH1D(h1)
+    bg.Reset()
+    bg.SetYTitle(' A_{LL}')
+    bg.GetYaxis().SetRangeUser(-0.11, 0.11)
+    
+    ## pi-plus
+    c1 = ROOT.TCanvas('c1','A_{LL} for #pi^{+}', 1060, 800)
+    bg.SetXTitle('#pi^{+} P_{T} (GeV/c)')
+    bg.DrawCopy()
+    g1.SetMarkerSize(0.9);
+    g1.SetMarkerStyle(21)
+    g1.Draw('p')
+    [ g.Draw('l') for g in plusGraphs ]
+    #systGraph['plus'].SetLineColor(1)
+    #systGraph['plus'].SetFillColor(15)
+    #systGraph['plus'].Draw('fl')
+    line.Draw('same')
+    leg.Draw('p')
+    latex.DrawLatex(2.3,0.12," #vec{p} + #vec{p} #rightarrow #pi^{+} + X at #sqrt{s}=200 GeV \
+                -1< #eta^{#pi}< 1 ")
+    latex.DrawLatex(2.6,-0.07,"2006 STAR Projections");
+    
+    ## pi-minus
+    c2 = ROOT.TCanvas('c2','A_{LL} for #pi^{-}', 1060, 800)
+    bg.SetXTitle('#pi^{-} P_{T} (GeV/c)')
+    bg.DrawCopy()
+    g2.SetMarkerSize(0.9);
+    g2.SetMarkerStyle(20)
+    g2.Draw('p')
+    [ g.Draw('l') for g in minusGraphs ]
+    #systGraph['minus'].SetLineColor(1)
+    #systGraph['minus'].SetFillColor(15)
+    #systGraph['minus'].Draw('fl')
+    line.Draw('same')
+    leg.Draw('p')
+    latex.DrawLatex(2.3,0.12," #vec{p} + #vec{p} #rightarrow #pi^{-} + X at #sqrt{s}=200 GeV \
+                -1< #eta^{#pi}< 1 ")
+    latex.DrawLatex(2.6,-0.07,"2006 STAR Projections")
+    
+    raw_input('wait here:')
+    c1.Print('.gif')
+    c2.Print('.gif')
+
