@@ -316,7 +316,8 @@ class TrackHistogramCollection(dict):
     mcDcaGBins       = minimc.MiniMcHistos.dcaGBins
     
     allKeys = ['pt', 'eta', 'phi', 'nHitsFit', 'dEdx', 'dcaG', 'nSigmaPion',
-        'dphi_deta', 'z', 'z_away', 'pt_near', 'pt_away', 'pt_bg']
+        'dphi_deta', 'z', 'z_away', 'pt_near', 'pt_away', 'pt_bg', 'z_jet',
+        'z_away_jet', 'xi', 'xi_away']
     
     def __init__(self, name, tfile=None, keys=None):
         if tfile is not None:
@@ -344,7 +345,19 @@ class TrackHistogramCollection(dict):
             self['pt_near'] = ROOT.TH1D('%s_pt_near' % (name,), '', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
             
             self['pt_bg'] = ROOT.TH1D('%s_pt_bg' % name, '', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-    
+            
+            # http://www.star.bnl.gov/protected/spin/rfatemi/Jet_2005/Binning/BIN.html
+            jet_et_bins = [5.0, 6.15, 7.5645, 9.30434, 11.4443, 14.0765, 17.3141, 21.2964, 
+                26.1945, 32.2193, 39.6297, 48.7446, 59.9558]
+            ar = array('d', jet_et_bins)
+            self['z_jet'] = ROOT.TH2D('%s_z_jet' % name, 'z vs. jet E_T', \
+                len(jet_et_bins)-1, ar, 50, 0., 1.)
+            self['z_away_jet'] = ROOT.TH2D('%s_z_away_jet' % name, 'z vs. away jet E_T', \
+                len(jet_et_bins)-1, ar, 50, 0., 1.)
+            self['xi'] = ROOT.TH2D('%s_xi' % name, '', len(jet_et_bins)-1, ar, 50, 0., 4.)
+            self['xi_away'] = ROOT.TH2D('%s_xi_away' % name, '', len(jet_et_bins)-1, ar, \
+                50, 0., 4.)            
+            
     
     def fillTrack(self, track, tcuts):
         if tcuts.eta and tcuts.dca and tcuts.fit and tcuts.pid:
@@ -385,13 +398,20 @@ class TrackHistogramCollection(dict):
             dR = track.DeltaR(jet)
             if dR < 0.4: 
                 z = track.Vect().Dot(jet.Vect()) / jet.P()**2
+                xi = math.log(jet.E() / track.P())
                 self['z'].Fill(track.Pt(), z)
+                self['z_jet'].Fill(jet.Pt(), z)
+                self['xi'].Fill(jet.Pt(), xi)
                 self['pt_near'].Fill(track.Pt())
             elif dR > 1.5:
                 if awayjet is not None:
                     z_away = track.Vect().Dot(awayjet.Vect()) / awayjet.P()**2
+                    xi = math.log(awayjet.E() / track.P())
                     self['z_away'].Fill(track.Pt(), z_away)
+                    self['z_away_jet'].Fill(awayjet.Pt(), z_away)
+                    self['xi_away'].Fill(awayjet.Pt(), xi)
                 self['pt_away'].Fill(track.Pt())
+                
     
     
     def Add(self, other):
@@ -751,6 +771,7 @@ def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist',useLSF=False,fill
                     cmd = 'bsub -q star_cas_short -e err/%d.err -o out/%d.out ' % (fill,fill) + cmd
                 os.system(cmd)
 
+
 def bsub(treeDir, runlist=None, triglist=None):
     import analysis
     """submits a single writeHistograms job to LSF for each tree.root file in treeDir"""
@@ -763,6 +784,7 @@ def bsub(treeDir, runlist=None, triglist=None):
         if not fname.endswith('tree.root'): continue
         run = analysis.getRun(fname)
         if runlist is None or run in runlist:
+            os.sys.stdout.write('%d ' % run)
             os.system('bsub -q star_cas_short -e err/%d.err -o out/%d.out python -c \
                 "import analysis; analysis.histos.writeHistograms(\'%s\',globber=\'*%d*\', \
                 trigList=%s)"' \
