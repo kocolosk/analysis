@@ -74,3 +74,15 @@ def daqEventCount(run, trigId):
                 return int(eventCountItem.lstrip('align="right">').rstrip('</TD>R'))
     
     
+
+def lafferty_wyatt_point(lowedge, highedge, expo_slope):
+    """calculates the l-w point for a bin where the true distribution is an
+    exponential characterized by expo_slope.
+    """
+    import math
+    rhs = (math.exp(expo_slope*highedge) - math.exp(expo_slope*lowedge)) / expo_slope
+    rhs /= (highedge - lowedge)
+    return math.log(rhs) / expo_slope
+
+
+
