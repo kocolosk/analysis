@@ -1842,3 +1842,81 @@ def dis2008_run6_projections():
     c1.Print('.gif')
     c2.Print('.gif')
 
+def z_slope_run5(trig='jetpatch', runlist=None, charge=0):
+    """docstring for z_slope_run5"""
+    z_jet = None
+    z_away_jet = None
+    keepMeOpen = []
+    allFiles = glob(run5_hist_dir + '/chargedPions_*.hist.root')
+    for fname in allFiles[:]:
+        run = analysis.getRun(fname)
+        if runlist is None or run in runlist:
+            print fname, run
+            tfile = ROOT.TFile(fname)
+            mgr = analysis.HistogramManager(tfile,['z_jet', 'z_away_jet'],(trig,))
+            
+            if z_jet is None:
+                z_jet = mgr['anyspin'][trig].trackHistograms(charge)['z_jet'].Clone()
+                z_away_jet = mgr['anyspin'][trig].trackHistograms(charge)['z_away_jet'].Clone()
+                keepMeOpen.append(tfile)
+            else:
+                z_jet.Add(mgr['anyspin'][trig].trackHistograms(charge)['z_jet'])
+                z_away_jet.Add(mgr['anyspin'][trig].trackHistograms(charge)['z_away_jet'])
+    
+    z_jet_pt = [z_jet.ProjectionY('z_jet_pt_%d' % (i+1,), i+1,i+1) \
+        for i in range(z_jet.GetNbinsX())]
+    z_away_jet_pt = [z_away_jet.ProjectionY('z_away_jet_pt_%d' % (i+1,), i+1,i+1) \
+        for i in range(z_away_jet.GetNbinsX())]
+    
+    ps = ROOT.TPostScript('zslopes_%s.ps' % trig)
+    c = ROOT.TCanvas('c','',100,100,600,800)
+    c.Divide(3,4)
+    
+    if trig =='96233':
+        threshold = 6.4
+    elif trig == '96221':
+        threshold = 4.5
+    else:
+        threshold = 0
+    
+    f = ROOT.gROOT.GetFunction('expo')
+    f.SetLineWidth(2)
+    f.SetLineStyle(2)
+    
+    for i,g in enumerate(z_jet_pt):
+        title = '%.1f < p_{T,jet} < %.1f ' % (z_jet.GetBinLowEdge(i+1), z_jet.GetBinLowEdge(i+2))
+        
+        pad = c.cd(i+1)
+        pad.SetTitle(title)
+        ROOT.gPad.SetLogy()
+        
+        ## anything lower is restricted by jet pT cut
+        fit_min = 2.0 / z_jet.GetBinLowEdge(i+1) 
+        ## kinda arbitrary, just ensuring enough energy in BTOW to fire trigger
+        fit_max = (z_jet.GetBinLowEdge(i+1) - threshold)/z_jet.GetBinLowEdge(i+1)
+        
+        if fit_max - fit_min < 0: fit_max += 0.5
+        
+        z_jet_pt[i].SetTitle(title)
+        z_jet_pt[i].GetXaxis().SetTitle('z')
+        z_jet_pt[i].Fit('expo','r', '', fit_min, fit_max)
+        
+        writer = ROOT.TLatex()
+        writer.SetNDC()
+        writer.DrawLatex(0.42, 0.95, 'slope %.2f #chi^{2}: %.1f/%d' % \
+            (f.GetParameter(1), f.GetChisquare(), f.GetNDF()) )
+        
+        writer2 = ROOT.TLatex()
+        writer2.SetNDC()
+        writer2.SetTextColor(ROOT.kRed)
+        
+        z_away_jet_pt[i].SetMarkerColor(ROOT.kRed)
+        z_away_jet_pt[i].SetLineColor(ROOT.kRed)
+        z_away_jet_pt[i].Fit('expo', 'r', 'same', fit_min, fit_max)
+        
+        writer2.DrawLatex(0.42, 0.85, 'slope %.2f #chi^{2}: %.1f/%d' % \
+            (f.GetParameter(1), f.GetChisquare(), f.GetNDF()) )
+    
+    raw_input('wait here:')
+    ps.Close()
+
