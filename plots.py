@@ -78,6 +78,30 @@ def spin2006_asymmetries():
     h2 = asym_minus.GetAsymmetry('ll')
     g2 = ROOT.TGraphErrors(h2)
     
+    ## set numbers to exactly the prelim result
+    h1.SetBinContent(1, -0.0125)
+    h1.SetBinContent(2,  0.0297)
+    h1.SetBinContent(3,  0.0155)
+    h1.SetBinContent(4, -0.0371)
+    
+    h1.SetBinError(1, 0.0054)
+    h1.SetBinError(2, 0.0135)
+    h1.SetBinError(3, 0.0263)
+    h1.SetBinError(4, 0.0477)
+    
+    h2.SetBinContent(1, -0.0048)
+    h2.SetBinContent(2, -0.0247)
+    h2.SetBinContent(3, -0.0551)
+    h2.SetBinContent(4,  0.0140)
+    
+    h2.SetBinError(1, 0.0056)
+    h2.SetBinError(2, 0.0142)
+    h2.SetBinError(3, 0.0278)
+    h2.SetBinError(4, 0.0512)
+    
+    g1 = ROOT.TGraphErrors(h1)
+    g2 = ROOT.TGraphErrors(h2)
+    
     ## ignore bin width errors
     for gr in (g1,g2):
         for point in range(gr.GetN()):
@@ -88,13 +112,13 @@ def spin2006_asymmetries():
     
     latex = ROOT.TLatex()
     
-    leg = ROOT.TLegend(0.13, 0.65, 0.35, 0.88)
-    leg.SetFillStyle(0)
-    leg.SetBorderSize(0)
-    leg.AddEntry(plusGraphs[0],' GRSV-STD', 'l')
-    leg.AddEntry(plusGraphs[1],' #Delta G =  0', 'l')
-    leg.AddEntry(plusGraphs[2],' #Delta G =  G', 'l')
-    leg.AddEntry(plusGraphs[3],' #Delta G = -G', 'l')
+    #leg = ROOT.TLegend(0.13, 0.65, 0.35, 0.88)
+    #leg.SetFillStyle(0)
+    #leg.SetBorderSize(0)
+    #leg.AddEntry(plusGraphs[0],' GRSV-STD', 'l')
+    #leg.AddEntry(plusGraphs[1],' #Delta G =  0', 'l')
+    #leg.AddEntry(plusGraphs[2],' #Delta G =  G', 'l')
+    #leg.AddEntry(plusGraphs[3],' #Delta G = -G', 'l')
     
     bg = ROOT.TH1D(h1)
     bg.Reset()
@@ -102,7 +126,7 @@ def spin2006_asymmetries():
     bg.GetYaxis().SetRangeUser(-0.11, 0.11)
     
     ## pi-plus
-    c1 = ROOT.TCanvas('c1','A_{LL} for #pi^{+}')
+    c1 = ROOT.TCanvas('c1','A_{LL} for #pi^{+}', 1060, 800)
     bg.SetXTitle('#pi^{+} P_{T} (GeV/c)')
     bg.DrawCopy()
     g1.SetMarkerSize(0.9);
@@ -113,13 +137,13 @@ def spin2006_asymmetries():
     systGraph['plus'].SetFillColor(15)
     systGraph['plus'].Draw('fl')
     line.Draw('same')
-    leg.Draw('p')
+    #leg.Draw('p')
     latex.DrawLatex(2.3,0.12," #vec{p} + #vec{p} #rightarrow #pi^{+} + X at #sqrt{s}=200 GeV \
-                        -1< #eta^{#pi}< 1 ")
+                -1< #eta^{#pi}< 1 ")
     latex.DrawLatex(2.6,-0.07,"2005 STAR Preliminary");
     
     ## pi-minus
-    c2 = ROOT.TCanvas('c2','A_{LL} for #pi^{-}')
+    c2 = ROOT.TCanvas('c2','A_{LL} for #pi^{-}', 1060, 800)
     bg.SetXTitle('#pi^{-} P_{T} (GeV/c)')
     bg.DrawCopy()
     g2.SetMarkerSize(0.9);
@@ -130,12 +154,62 @@ def spin2006_asymmetries():
     systGraph['minus'].SetFillColor(15)
     systGraph['minus'].Draw('fl')
     line.Draw('same')
-    leg.Draw('p')
+    #leg.Draw('p')
     latex.DrawLatex(2.3,0.12," #vec{p} + #vec{p} #rightarrow #pi^{-} + X at #sqrt{s}=200 GeV \
-                        -1< #eta^{#pi}< 1 ")
-    latex.DrawLatex(2.6,-0.07,"2005 STAR Preliminary");
+                -1< #eta^{#pi}< 1 ")
+    latex.DrawLatex(2.6,-0.07,"2005 STAR Preliminary")
+    
+    ## add the new predictions
+    from analysis.asym import theoryCurves
+    plusGraphs2 = [
+    theoryCurves(analysis.asym.werner_plus_dss_cteqm5_std, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_plus_dss_cteqm5_zero, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_plus_dss_cteqm5_max, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_plus_dss_cteqm5_min, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_plus_dss_cteqm5_gsc, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph()
+    ]
+    minusGraphs2 = [
+    theoryCurves(analysis.asym.werner_minus_dss_cteqm5_std, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_minus_dss_cteqm5_zero, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_minus_dss_cteqm5_max, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),
+    theoryCurves(analysis.asym.werner_minus_dss_cteqm5_min, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph(),    
+    theoryCurves(analysis.asym.werner_minus_dss_cteqm5_gsc, analysis.xsec.werner_minus_dss_cteqm5_pt).getGraph()
+    ]
+    
+    leg = ROOT.TLegend(0.13, 0.65, 0.35, 0.88)
+    leg.SetFillStyle(0)
+    leg.SetBorderSize(0)
+    leg.AddEntry(plusGraphs2[0],' GRSV-STD', 'l')
+    leg.AddEntry(plusGraphs2[1],' #Delta G =  0', 'l')
+    leg.AddEntry(plusGraphs2[2],' #Delta G =  G', 'l')
+    leg.AddEntry(plusGraphs2[3],' #Delta G = -G', 'l')
+    leg.AddEntry(plusGraphs2[4],' GS Set C', 'l')
+    
+    for grList in (plusGraphs2, minusGraphs2):
+        grList[1].SetLineColor(ROOT.kBlue)
+        grList[2].SetLineColor(ROOT.kRed)
+        grList[3].SetLineColor(ROOT.kGreen)
+        grList[4].SetLineColor(ROOT.kMagenta)
+        for gr in grList:
+            gr.SetLineWidth(3)
+    
+    for grList in (plusGraphs, minusGraphs):
+        for gr in grList:
+            gr.SetLineStyle(2)
+            
+    c1.cd()
+    leg.Draw('p')
+    [ g.Draw('l') for g in plusGraphs2 ]
+    latex.DrawLatex(4.8, 0.09, 'solid: DSS  dashed: mod. KKP')
+    
+    c2.cd()
+    leg.Draw('p')
+    [ g.Draw('l') for g in minusGraphs2 ]
+    latex.DrawLatex(4.8, 0.09, 'solid: DSS  dashed: mod. KKP')
     
     raw_input('wait here:')
+    c1.Print('.gif')
+    c2.Print('.gif')
 
 
 def asymmetries_for_publication_run5(runlist=None):
@@ -187,7 +261,13 @@ def asymmetries_for_publication_run5(runlist=None):
     #syst = {'plus': [7.3, 8.4, 7.5, 5.1], 'minus': [5.7, 6.0, 5.7, 7.1] }
     
     ## assuming pT dependence in PID background
-    syst = {'plus': [2.26, 2.99, 4.59, 10.26], 'minus': [1.05, 1.66, 7.07, 12.41] }
+    #syst = {'plus': [2.26, 2.99, 4.59, 10.26], 'minus': [1.05, 1.66, 7.07, 12.41] }
+    
+    syst = {}
+    tmp = systematic_uncertainty_run5('plus')
+    syst['plus'] = [1000*elem for elem in tmp]
+    tmp = systematic_uncertainty_run5('minus')
+    syst['minus'] = [1000*elem for elem in tmp]
     
     systGraph = {'plus': ROOT.TGraph(len(syst_x)+3), 'minus': ROOT.TGraph(len(syst_x)+3) }
     for charge in ('plus','minus'):
@@ -370,6 +450,8 @@ def asymmetries_for_publication_run5(runlist=None):
         for i in range(h.GetNbinsX()):
             print 'y=% .2e, stat=%.2e' % (h.GetBinContent(i+1), h.GetBinError(i+1))
     raw_input('wait here:')
+    
+    c3.Print('.eps')
 
 
 def jet_correlations_run5():
@@ -383,17 +465,6 @@ def jet_correlations_run5():
     style.SetLabelSize(0.035,'xy')
     style.SetTitleOffset(1.2,'y')
     style.cd()
-    
-    #fig3 = ROOT.TH2D('figure3','',50,-1.5*math.pi,0.5*math.pi,50,-2.0,0.4)
-    #fig3.SetYTitle('#eta pion - #eta jet')
-    #fig3.SetXTitle('#phi pion - #phi jet')
-    
-    #fig3b = ROOT.TH2D('figure3b','',50,-math.pi,math.pi,50,-1.5,1.5)
-    
-    #xbins = [2.0, 3.0, 4.0, 5.5, 7.0, 10.0]
-    #ar = array('d',xbins)
-    #fig3c = ROOT.TH2D('figure3c','Uncorrected Pion Momentum Fraction',len(xbins)-1,ar,50,0.,1.)
-    #fig3c_away = ROOT.TH2D('figure3c_away','',len(xbins)-1,ar,50,0.,1.)
     
     runlist = None
     
@@ -439,7 +510,7 @@ def jet_correlations_run5():
     fig3c_mean = ROOT.gDirectory.Get('%s_1' % (h2.GetName(),))
     fig3c_mean.SetTitle('Uncorrected pion momentum fraction')
     fig3c_mean.SetXTitle('#pi p_{T} [GeV/c]')
-    fig3c_mean.SetYTitle('< p_{T,#pi} / p_{T,jet} >')
+    fig3c_mean.SetYTitle('< z >')
     fig3c_mean.SetAxisRange(0,1,'y')
     fig3c_mean.SetMarkerStyle(21)
     
@@ -457,8 +528,8 @@ def jet_correlations_run5():
     fig3c_away_mean.Draw('same')
     leg.Draw('same')
     
-    c3 = ROOT.TCanvas('c3')
-    h3.Draw()
+    #c3 = ROOT.TCanvas('c3')
+    #h3.Draw()
     
     c4 = ROOT.TCanvas('combo plot')
     mainpad = ROOT.TPad('mainpad', '', 0.0, 0.0, 1.0, 1.0)
@@ -483,7 +554,7 @@ def jet_correlations_run5():
     
     mainpad.cd()
     fig3c_mean.SetTitle('')
-    fig3c_mean.GetYaxis().SetRangeUser(0., 0.8)
+    fig3c_mean.GetYaxis().SetRangeUser(0., 0.7)
     fig3c_mean.Draw()
     fig3c_away_mean.Draw('same')
     
@@ -496,15 +567,18 @@ def jet_correlations_run5():
     h1.GetYaxis().SetLabelSize(0.06)
     
     ## this is temporary till we get the cuts right
-    h1.GetZaxis().SetRangeUser(10, 600000)
+    #h1.GetZaxis().SetRangeUser(10, 600000)
     #h1.GetYaxis().SetRangeUser(-1.5, 0.4)
+    h1.GetYaxis().SetRangeUser(-1.7, 0.7)
+    
     
     h1.DrawCopy('lego2')
+    #h1.DrawCopy('col z')
     
     mainpad.cd()
     leg2 = ROOT.TLegend(0.15, 0.78, 0.45, 0.92)
-    leg2.AddEntry(fig3c_mean,'< z > trigger jet','p')
-    leg2.AddEntry(fig3c_away_mean,'< z > away-side jet','p')
+    leg2.AddEntry(fig3c_mean,'trigger jet','p')
+    leg2.AddEntry(fig3c_away_mean,'away-side jet','p')
     leg2.Draw()
     
     raw_input('wait here:')
@@ -1656,14 +1730,20 @@ def systematic_uncertainty_run5(charge='plus', key=None):
     ## quadrature sum of ZDC/BBC comparison and beam-gas background study
     relative_lumi_syst = math.sqrt(4.9e-04 ** 2 + 3.0e-04 ** 2)
     
+    ## trigger bias
+    plus_trigger_bias = [0.0, 0.0, 0.0, 0.0]
+    minus_trigger_bias = [0.0, 0.0, 0.0, 0.0]
+    
     if charge == 'plus':
         all_meas = plus_all_meas
+        trigger_bias = plus_trigger_bias
         pid_bg = plus_all_pid_bg
         ## next line combines Run 5 and Run 6 b/g asymmetries
         [pbg.add(plus_all_pid_bg_2006[i]) for i,pbg in enumerate(pid_bg)]
         asigma = plus_asigma
     elif charge == 'minus':
         all_meas = minus_all_meas
+        trigger_bias = minus_trigger_bias
         pid_bg = minus_all_pid_bg
         ## next line combines Run 5 and Run 6 b/g asymmetries
         [pbg.add(minus_all_pid_bg_2006[i]) for i,pbg in enumerate(pid_bg)]
@@ -1671,6 +1751,7 @@ def systematic_uncertainty_run5(charge='plus', key=None):
     else:
         raise KeyError(charge)
     
+    syst = []
     for i,datum in enumerate(all_meas):
         dpid = math.fabs(pid_bg[i].y - datum.y)
         err = math.sqrt(pid_bg[i].stat**2 + datum.stat**2)
@@ -1684,18 +1765,22 @@ def systematic_uncertainty_run5(charge='plus', key=None):
         ##  use error on background if measurements are consistent
         if (asigma[i].stat > dasigma): dasigma = asigma[i].stat
         
-        tot = math.sqrt( (dpid*pid_bg_frac[i])**2 + \
+        tot = math.sqrt( trigger_bias[i]**2 + \
+                         (dpid*pid_bg_frac[i])**2 + \
                          (dasigma*non_long_frac[i])**2 + \
                          (relative_lumi_syst)**2 \
                        )
+        syst.append(tot)
         
         print 'Systematic Uncertainty for charge=%s, pT=%.1f' % (charge, datum.x)
+        print 'trigger bias   = %.2e' % (trigger_bias[i])
         print 'pid background = %.3f * %.2e = %.2e' % (pid_bg_frac[i], dpid, pid_bg_frac[i]*dpid)
         print 'non-long beam  = %.3f * %.2e = %.2e' % (non_long_frac[i], dasigma, non_long_frac[i]*dasigma)
         print 'relative lumi  = %.2e' % relative_lumi_syst
         print 'Total: %e' % tot
         print '----------------------------------------------------'
     
+    return syst
     
 
 
@@ -1841,6 +1926,7 @@ def dis2008_run6_projections():
     raw_input('wait here:')
     c1.Print('.gif')
     c2.Print('.gif')
+
 
 def z_slope_run5(trig='jetpatch', runlist=None, charge=0):
     """docstring for z_slope_run5"""
