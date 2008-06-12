@@ -249,7 +249,7 @@ def asymmetries_for_publication_run5(runlist=None):
         grList[3].SetLineStyle(2)
         grList[3].SetLineColor(ROOT.kGreen)
         grList[4].SetLineStyle(5)
-        grList[4].SetLineColor(ROOT.kYellow)
+        grList[4].SetLineColor(ROOT.kMagenta)
         for gr in grList:
             gr.SetLineWidth(3)
     
@@ -338,53 +338,27 @@ def asymmetries_for_publication_run5(runlist=None):
     bg = ROOT.TH1D(h1)
     bg.Reset()
     bg.SetYTitle(' A_{LL}')
-    bg.GetYaxis().SetRangeUser(-0.11, 0.11)
-    
-    ## pi-plus
-    c1 = ROOT.TCanvas('c1','A_{LL} for #pi^{+}')
-    bg.SetXTitle('#pi^{+} P_{T} [GeV/c]')
-    bg.DrawCopy()
-    g1.SetMarkerSize(0.9);
-    g1.SetMarkerStyle(21)
-    g1.Draw('p')
-    [ g.Draw('l') for g in plusGraphs ]
-    systGraph['plus'].SetLineColor(1)
-    systGraph['plus'].SetFillColor(12)
-    systGraph['plus'].Draw('fl')
-    line.Draw('same')
-    leg.Draw('p')
-    latex.DrawLatex(2.2,0.12,"STAR #vec{p} + #vec{p} #rightarrow #pi^{+} + X at #sqrt{s}=200 GeV \
-                -1< #eta^{#pi}< 1 ")
-    
-    ## pi-minus
-    c2 = ROOT.TCanvas('c2','A_{LL} for #pi^{-}')
-    bg.SetXTitle('#pi^{-} P_{T} [GeV/c]')
-    bg.DrawCopy()
-    g2.SetMarkerSize(0.9);
-    g2.SetMarkerStyle(20)
-    g2.Draw('p')
-    [ g.Draw('l') for g in minusGraphs ]
-    systGraph['minus'].SetLineColor(1)
-    systGraph['minus'].SetFillColor(12)
-    systGraph['minus'].Draw('fl')
-    line.Draw('same')
-    leg.Draw('p')
-    latex.DrawLatex(2.2,0.12,"STAR #vec{p} + #vec{p} #rightarrow #pi^{-} + X at #sqrt{s}=200 GeV \
-                -1< #eta^{#pi}< 1 ")
-    
+    bg.GetYaxis().SetRangeUser(-0.08, 0.06)
     
     ## combo plot
-    c3 = ROOT.TCanvas('c3', 'A_{LL} combined', 0, 0, 800, 400)
+    c3 = ROOT.TCanvas('c3', 'A_{LL} combined', 0, 0, 800, 350)
+    #c3 = ROOT.TCanvas('c3', 'A_{LL} combined', 0, 0, 350, 600)
     c3.Draw()
     titlepad = ROOT.TPad('titlepad', '', 0.0, 0.9, 1.0, 1.0)
     
     leftpad  = ROOT.TPad('leftpad','', 0.0, 0.0, 0.5, 1.0)
     leftpad.SetLeftMargin(0.14)
     leftpad.SetRightMargin(0.02)
+    #leftpad  = ROOT.TPad('top','', 0.0, 0.45, 1.0, 0.9)
+    #leftpad.SetTopMargin(0.14)
+    #leftpad.SetRightMargin(0.02)
     
     rightpad = ROOT.TPad('rightpad','', 0.5, 0.0, 1.0, 1.0)
     rightpad.SetLeftMargin(0.11)
     rightpad.SetRightMargin(0.05)
+    #rightpad = ROOT.TPad('bottom','', 0.0, 0.0, 1.0, 0.45)
+    #rightpad.SetLeftMargin(0.11)
+    #rightpad.SetRightMargin(0.05)
     
     for pad in (titlepad, leftpad, rightpad):
         pad.Draw()
@@ -392,7 +366,8 @@ def asymmetries_for_publication_run5(runlist=None):
         pad.SetBorderMode(0)
         pad.SetFillStyle(4000) ## make it transparent
         
-    leg2 = ROOT.TLegend(0.16, 0.62, 0.54, 0.90)
+    #leg2 = ROOT.TLegend(0.16, 0.62, 0.54, 0.90)
+    leg2 = ROOT.TLegend(0.16, 0.12, 0.6, 0.45)
     leg2.SetFillStyle(0)
     leg2.SetBorderSize(0)
     leg2.AddEntry(plusGraphs[0],' GRSV-std', 'l')
@@ -404,8 +379,8 @@ def asymmetries_for_publication_run5(runlist=None):
     titlepad.cd()
     latex.SetTextSize(0.7)
     latex.SetTextAlign(21)
-    latex.DrawLatex(0.5,0.2,"STAR #vec{p} + #vec{p} #rightarrow #pi + X at #sqrt{s}=200 GeV \
-         |#eta^{#pi}|<1.0")
+    latex.DrawLatex(0.5,0.3,"STAR #vec{p} + #vec{p} #rightarrow #pi + X at #sqrt{s}=200 GeV \
+                       |#eta_{#pi}|<1.0")
     
     leftpad.cd()
     bg.SetXTitle('')
@@ -424,7 +399,8 @@ def asymmetries_for_publication_run5(runlist=None):
     leg2.Draw('p')
     latex.SetTextSize(0.2)
     latex.SetTextAlign(21)
-    latex.DrawLatex(4.0,-0.075,'#pi^{-}')
+    #latex.DrawLatex(4.0,-0.075,'#pi^{-}')
+    latex.DrawLatex(3.1,0.03,'#pi^{-}')
     
     rightpad.cd()
     bg.SetXTitle('#pi P_{T} [GeV/c]')
@@ -438,7 +414,8 @@ def asymmetries_for_publication_run5(runlist=None):
     systGraph['plus'].SetFillColor(12)
     systGraph['plus'].Draw('fl')
     line.Draw('same')
-    latex.DrawLatex(4.0,-0.075,'#pi^{+}')
+    #latex.DrawLatex(4.0,-0.075,'#pi^{+}')
+    latex.DrawLatex(3.1,0.03,'#pi^{+}')
     
     'pi-plus fit to pol0'
     h1.Fit('pol0', 'N', '', 2.0, 10.0)
