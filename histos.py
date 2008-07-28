@@ -864,6 +864,7 @@ class HistogramManager(dict):
                 itrig = int(trig)
             except ValueError:
                 if trig == 'jetpatch':
+                    ## use lower-threshold triggers since they're a superset here
                     itrig = (event.runId() < 7000000) and 96221 or 137221
                 else:
                     continue
@@ -894,7 +895,9 @@ class HistogramManager(dict):
                                 self[spin][trig].fillJets(jet, jet2)
                                 diJetFound = True
                     
-                    if not diJetFound: monoJets.append(jet)
+                    if not diJetFound: 
+                        monoJets.append(jet)
+                        self[spin][trig].fillJets(jet, None)
             
             ## time to fill the correlation histos
             for track in event.tracks():
