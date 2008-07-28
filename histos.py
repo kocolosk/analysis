@@ -328,9 +328,13 @@ class TrackHistogramCollection(dict):
     allKeys = ['pt', 'eta', 'phi', 'nHitsFit', 'dEdx', 'dcaG', 'nSigmaPion',
         'dphi_deta', 'z', 'z_away', 'pt_near', 'pt_away', 'pt_bg', 'z_jet',
         'z_away_jet', 'xi', 'xi_away', 'ptMc_ptPr', 'ptMc_ptGl', 'etaMc_etaPr',
-        'etaMc_etaGl', 'ptMc']
+        'etaMc_etaGl', 'ptMc', 'away_mult', 'near_mult', 'away_lead_pt', 'near_lead_pt']
     
     def __init__(self, name, tfile=None, keys=None):
+        self.away_mult = 0
+        self.near_mult = 0
+        self.away_lead_pt = 0.0
+        self.near_lead_pt = 0.0
         if tfile is not None:
             for key in self.allKeys:
                 if keys is None or key in keys:
@@ -385,7 +389,18 @@ class TrackHistogramCollection(dict):
                 len(jet_et_bins)-1, ar, 50, 0., 1.)
             self['xi'] = ROOT.TH2D('%s_xi' % name, '#Xi', len(jet_et_bins)-1, ar, 50, 0., 4.)
             self['xi_away'] = ROOT.TH2D('%s_xi_away' % name, '#Xi for away-side tracks', len(jet_et_bins)-1, ar, \
-                50, 0., 4.)            
+                50, 0., 4.)
+                
+            self['away_mult'] = ROOT.TH1D('%s_away_mult' % name, \
+                '# of pions on away-side', 10, -0.5, 9.5)
+            self['near_mult'] = ROOT.TH1D('%s_near_mult' % name, \
+                '# of pions on near-side', 10, -0.5, 9.5)
+            
+            self['away_lead_pt'] = ROOT.TH1D('%s_away_lead_pt' % name, \
+                'p_{T} of leading pion on away-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+            self['near_lead_pt'] = ROOT.TH1D('%s_near_lead_pt' % name, \
+                'p_{T} of leading pion on near-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+
             
     
     
@@ -441,7 +456,9 @@ class TrackHistogramCollection(dict):
             self['dphi_deta'].Fill(dphi, deta)
                         
             dR = track.DeltaR(jet)
-            if dR < 0.4: 
+            if dR < 0.4:
+                self.near_mult += 1
+                self.near_lead_pt = max(self.near_lead_pt, track.Pt())
                 z = track.Vect().Dot(jet.Vect()) / jet.P()**2
                 xi = math.log(jet.E() / track.P())
                 self['z'].Fill(track.Pt(), z)
@@ -449,6 +466,8 @@ class TrackHistogramCollection(dict):
                 self['xi'].Fill(jet.Pt(), xi)
                 self['pt_near'].Fill(track.Pt())
             elif dR > 1.5:
+                self.away_mult += 1
+                self.away_lead_pt = max(self.away_lead_pt, track.Pt())
                 if awayjet is not None:
                     z_away = track.Vect().Dot(awayjet.Vect()) / awayjet.P()**2
                     xi = math.log(awayjet.E() / track.P())
@@ -463,7 +482,12 @@ class TrackHistogramCollection(dict):
         val = self.values()
         return [v for v in val if v is not None]
     
-    
+    def Clear(self):
+        self.away_mult = 0
+        self.near_mult = 0
+        self.away_lead_pt = 0.0
+        self.near_lead_pt = 0.0
+        
     def Add(self, other):
         [ h.Add(other[key]) for key, h in self.items() ]
     
@@ -601,8 +625,9 @@ class HistogramCollection(dict):
             self['jet_eta_balance'] = ROOT.TH2D('%s_jet_eta_balance' % name,'',100,-2.0,2.0, 100,-2.0,2.0)
             self['jet_phi_balance'] = ROOT.TH2D('%s_jet_phi_balance' % name,'',100,-math.pi,math.pi, 100,-math.pi,math.pi)
             self['jet_pt'] = ROOT.TH1D('%s_jet_pt' % name, '', 200, 0.0, 50.0)
+            
         
-        self.tracks_plus    = TrackHistogramCollection('%s_plus' % (name,), tfile, keys)
+        self.tracks_plus = TrackHistogramCollection('%s_plus' % (name,), tfile, keys)
         self.tracks_minus = TrackHistogramCollection('%s_minus' % (name,), tfile, keys)
         self.tracks_sum = TrackHistogramCollection('%s_sum' % (name,), tfile, keys)
     
@@ -909,6 +934,26 @@ class HistogramManager(dict):
                 
                 for triggerJet, awayJet in diJets:
                     tcoll.fillTrackJetPair(track, tcuts, triggerJet, awayJet)
+            
+            tp = self[spin][trig].tracks_plus
+            tm = self[spin][trig].tracks_minus
+            for t in(tp,tm):
+                t['away_mult'].Fill(t.away_mult)
+                t['near_mult'].Fill(t.near_mult)
+                
+            ## define "lead pT" as leading charged pion (+ OR -) on that side
+            if tp.away_lead_pt > tm.away_lead_pt:
+                tp['away_lead_pt'].Fill(tp.away_lead_pt)
+            elif tm.away_lead_pt > 0.0:
+                tm['away_lead_pt'].Fill(tm.away_lead_pt)
+            
+            if tp.near_lead_pt > tm.near_lead_pt:
+                tp['near_lead_pt'].Fill(tp.near_lead_pt)
+            elif tm.near_lead_pt > 0.0:
+                tm['near_lead_pt'].Fill(tm.near_lead_pt)
+            
+            tp.Clear()
+            tm.Clear()
     
     
     def histos(self):
