@@ -328,7 +328,8 @@ class TrackHistogramCollection(dict):
     allKeys = ['pt', 'eta', 'phi', 'nHitsFit', 'dEdx', 'dcaG', 'nSigmaPion',
         'dphi_deta', 'z', 'z_away', 'pt_near', 'pt_away', 'pt_bg', 'z_jet',
         'z_away_jet', 'xi', 'xi_away', 'ptMc_ptPr', 'ptMc_ptGl', 'etaMc_etaPr',
-        'etaMc_etaGl', 'ptMc', 'away_mult', 'near_mult', 'away_lead_pt', 'near_lead_pt']
+        'etaMc_etaGl', 'ptMc', 'away_mult', 'near_mult', 'away_lead_pt', 'near_lead_pt',
+        'lead_matched', 'lead_cutfail', 'lead_nomatch']
     
     def __init__(self, name, tfile=None, keys=None):
         self.away_mult = 0
@@ -400,6 +401,13 @@ class TrackHistogramCollection(dict):
                 'p_{T} of leading pion on away-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
             self['near_lead_pt'] = ROOT.TH1D('%s_near_lead_pt' % name, \
                 'p_{T} of leading pion on near-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+            
+            self['lead_matched'] = ROOT.TH1D('%s_lead_matched' % name, \
+                'p_{T} of leading pion on away-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+            self['lead_cutfail'] = ROOT.TH1D('%s_lead_cutfail' % name, \
+                'p_{T} of leading pion on away-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+            self['lead_nomatch'] = ROOT.TH1D('%s_lead_nomatch' % name, \
+                'p_{T} of leading pion on away-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
 
             
     
@@ -589,7 +597,7 @@ class HistogramCollection(dict):
     
     allKeys = ['nVertices', 'vx_vy', 'vz', 'vzBBC', 'spinBit', 'bx7', 'bbc', 'jet_pt_balance',
         'jet_p_balance', 'jet_eta_balance', 'jet_phi_balance', 'cosTheta', 'hardP',
-        'x1','x2','x1_x2','STD','MAX','MIN','ZERO','GS_C','denom', 'jet_pt']
+        'x1','x2','x1_x2','STD','MAX','MIN','ZERO','GS_C','denom', 'jet_pt', 'lead_neutral']
     
     def __init__(self, name, tfile=None, keys=None):
         super(HistogramCollection, self).__init__()
@@ -625,6 +633,9 @@ class HistogramCollection(dict):
             self['jet_eta_balance'] = ROOT.TH2D('%s_jet_eta_balance' % name,'',100,-2.0,2.0, 100,-2.0,2.0)
             self['jet_phi_balance'] = ROOT.TH2D('%s_jet_phi_balance' % name,'',100,-math.pi,math.pi, 100,-math.pi,math.pi)
             self['jet_pt'] = ROOT.TH1D('%s_jet_pt' % name, '', 200, 0.0, 50.0)
+            self['lead_neutral'] = ROOT.TH1D('%s_lead_neutral' % name, \
+                'pT spectrum for neutral leading particles', \
+                self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
             
         
         self.tracks_plus = TrackHistogramCollection('%s_plus' % (name,), tfile, keys)
@@ -952,6 +963,27 @@ class HistogramManager(dict):
             elif tm.near_lead_pt > 0.0:
                 tm['near_lead_pt'].Fill(tm.near_lead_pt)
             
+            ## calculate leading z particle relative to each away-side jet
+            for triggerJet, awayJet in diJets:
+                lead = awayJet.leadingParticle()
+                if lead.detectorId() == ROOT.kTpcId:
+                    found_match = False
+                    for track in event.tracks():
+                        if matched(track, lead):
+                            tcuts.set(track)
+                            coll = track.charge() > 0 and tp or tm
+                            if tcuts.all:
+                                coll['lead_matched'].Fill(track.Pt())
+                            else:
+                                coll['lead_cutfail'].Fill(track.Pt())
+                            found_match = True
+                            break
+                    if not found_match:
+                        coll = lead.charge() > 0 and tp or tm
+                        coll['lead_nomatch'].Fill(lead.Pt())
+                else:
+                    self[spin][trig]['lead_neutral'].Fill(lead.Pt())
+            
             tp.Clear()
             tm.Clear()
     
@@ -1058,6 +1090,16 @@ def writeHistograms(treeDir='~/data/run5/tree', globber='*', trigList=None):
     outFile.cd()
     h.Write()
     outFile.Close()
+
+
+def matched(t1, t2):
+    return math.fabs(t1.Pt() - t2.Pt()) < 1e-3 and \
+           math.fabs(t1.Eta() - t2.Eta()) < 1e-3 and \
+           math.fabs(t1.Phi() - t2.Phi()) < 1e-3 and \
+           t1.nHits() == t2.nHits() and \
+           t1.nHitsFit() == t2.nHitsFit() and \
+           t1.nHitsPoss() == t2.nHitsPoss() and \
+           t1.charge() == t2.charge()
 
 
 def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist',useLSF=False,fillList=None):
