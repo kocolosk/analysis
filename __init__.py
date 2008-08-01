@@ -4,8 +4,9 @@ libs_to_load = [ 'libPhysics', 'libTable', 'StarRoot', 'StarClassLibrary', 'St_b
 'StChain', 'St_Tables', 'StUtilities', 'StTreeMaker', 'StIOMaker', 'StTriggerDataMaker', 
 'StBichsel', 'StEvent', 'StEventUtilities', 'StDbLib', 'StEmcUtil', 'StTofUtil', 'StPmdUtil', 
 'StStrangeMuDstMaker', 'StMuDSTMaker', 'StDaqLib', 'StDetectorDbMaker', 'StEmcTriggerMaker', 
-'StMCAsymMaker', 'StSpinDbMaker', 'St_db_Maker', 'StTriggerUtilities', 'StJetFinder', 'StJetMaker', 
-'StChargedPionAnalysisMaker', 'StSpinTree', 'StMiniMcEvent']
+'StJetSkimEvent', 'StJets', 'StMCAsymMaker', 'StSpinDbMaker', 'St_db_Maker', 
+'StTriggerUtilities', 'StJetFinder', 'StJetMaker', 'StMiniMcEvent', 
+'StChargedPionAnalysisMaker', 'StSpinTree']
 
 print 'analysis : loading shared libraries ...'
 libs_already_loaded = ROOT.gSystem.GetLibraries()
@@ -42,4 +43,7 @@ from util   import *
 from asym   import golden_runlist_c, minbias_runs, final_runlist_run5
 from runlists import *
 
-__all__ = ['asym','datamc2','histos','minimc', 'runlists']
+__all__ = ['asym','datamc2','histos','minimc', 'runlists', 'util']
+
+## 4bernd
+import pdfs
