@@ -83,6 +83,26 @@ def lafferty_wyatt_point(lowedge, highedge, expo_slope):
     rhs = (math.exp(expo_slope*highedge) - math.exp(expo_slope*lowedge)) / expo_slope
     rhs /= (highedge - lowedge)
     return math.log(rhs) / expo_slope
-
-
-
+    
+def hadd_interactive(histDir, runlist, trig, spin, charge, key):
+    import ROOT
+    from glob import glob
+    import os.path
+    allFiles = glob( os.path.join(histDir, "*.root") )
+    if charge == None:
+        keystring = "_%s_%s_%s" % (trig,spin,key)
+    else:
+        keystring = "_%s_%s_%s_%s" % (trig,spin,charge,key)
+    ## should check that the first file is in the runlist
+    f = ROOT.TFile(allFiles[0])
+    h = f.Get(keystring).Clone()
+    h.SetDirectory(0)
+    f.Close()
+    for fname in allFiles[1:]:
+        run = getRun(fname)
+        if runlist is None or run in runlist:
+            print fname, keystring
+            tmp = ROOT.TFile(fname)
+            h.Add( tmp.Get(keystring) )
+            tmp.Close()
+    return h
