@@ -44,6 +44,3 @@ from asym   import golden_runlist_c, minbias_runs, final_runlist_run5
 from runlists import *
 
 __all__ = ['asym','datamc2','histos','minimc', 'runlists', 'util']
-
-## 4bernd
-import pdfs
