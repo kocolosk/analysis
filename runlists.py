@@ -541,7 +541,7 @@ long2_run6 = [
  7134006,
  7134007,
  7134009,
- 7134010,
+ # 7134010, ## non-null offset
  7134013,
  7134015,
  7134043,
@@ -562,14 +562,14 @@ long2_run6 = [
  7134076,
  7135003,
  7135004,
- 7135016,
- 7135018,
- 7135019,
- 7135022,
- 7135023,
- 7135024,
- 7135025,
- 7135028,
+ # 7135016, ## no final polarizations for F7858
+ # 7135018, ## no final polarizations for F7858
+ # 7135019, ## no final polarizations for F7858
+ # 7135022, ## no final polarizations for F7858
+ # 7135023, ## no final polarizations for F7858
+ # 7135024, ## no final polarizations for F7858
+ # 7135025, ## no final polarizations for F7858
+ # 7135028, ## no final polarizations for F7858
  7136017,
  7136022,
  7136023,
@@ -704,10 +704,10 @@ long2_run6 = [
  #7143031, ## Murad -- No tpc
  7143043,
  7143044,
- 7143045,
- 7143046,
+ # 7143045, ## non-null offset
+ # 7143046, ## non-null offset
  7143047,
- 7143048,
+ # 7143048, ## non-null offset
  7143049,
  7143054,
  7143055,
@@ -742,7 +742,7 @@ long2_run6 = [
  7146006,
  7146008,
  7146009,
- 7146016,
+ # 7146016, ## non-null offset
  7146017,
  7146019,
  7146020,
