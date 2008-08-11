@@ -329,7 +329,7 @@ class TrackHistogramCollection(dict):
         'dphi_deta', 'z', 'z_away', 'pt_near', 'pt_away', 'pt_bg', 'z_jet',
         'z_away_jet', 'xi', 'xi_away', 'ptMc_ptPr', 'ptMc_ptGl', 'etaMc_etaPr',
         'etaMc_etaGl', 'ptMc', 'away_mult', 'near_mult', 'away_lead_pt', 'near_lead_pt',
-        'lead_matched', 'lead_cutfail', 'lead_nomatch']
+        'lead_matched', 'lead_cutfail', 'lead_nomatch', 'z_away2', 'z_away3', 'z_away4']
     
     def __init__(self, name, tfile=None, keys=None):
         self.away_mult = 0
@@ -408,6 +408,17 @@ class TrackHistogramCollection(dict):
                 'p_{T} of leading pion on away-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
             self['lead_nomatch'] = ROOT.TH1D('%s_lead_nomatch' % name, \
                 'p_{T} of leading pion on away-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+            
+            self['z_away2'] = ROOT.TH1D('%s_z_away2' % name, '', 40, 0., 1.0)
+            self['z_away2'].SetXTitle('p_{T}(#pi)/p_{T}(trigger jet)')
+            
+            self['z_away3'] = ROOT.TH1D('%s_z_away3' % name, '', 40, 0., 1.0)
+            self['z_away3'].SetXTitle('fraction of non-trigger jet p carried by #pi')
+            
+            self['z_away4'] = ROOT.TH1D('%s_z_away4' % name, \
+                'inclusive if separate z-bins', 40, 0., 1.0)
+            self['z_away4'].SetXTitle('p_{T}(#pi)/p_{T}(trigger jet)')
+            
 
             
     
@@ -595,9 +606,10 @@ class HistogramCollection(dict):
     mcVzBins         = minimc.MiniMcHistos.vzBins
     mcPtBins         = minimc.MiniMcHistos.ptBins
     
-    allKeys = ['nVertices', 'vx_vy', 'vz', 'vzBBC', 'spinBit', 'bx7', 'bbc', 'jet_pt_balance',
-        'jet_p_balance', 'jet_eta_balance', 'jet_phi_balance', 'cosTheta', 'hardP',
-        'x1','x2','x1_x2','STD','MAX','MIN','ZERO','GS_C','denom', 'jet_pt', 'lead_neutral']
+    allKeys = ['nVertices', 'vx_vy', 'vz', 'vzBBC', 'spinBit', 'bx7', 'bbc', 
+        'jet_pt_balance', 'jet_p_balance', 'jet_eta_balance', 'jet_phi_balance', 
+        'cosTheta', 'hardP', 'x1','x2','x1_x2','STD','MAX','MIN','ZERO','GS_C','denom', 
+        'jet_pt', 'lead_neutral', 'inclusive_jet_mult', 'dijet_mult']
     
     def __init__(self, name, tfile=None, keys=None):
         super(HistogramCollection, self).__init__()
@@ -636,6 +648,10 @@ class HistogramCollection(dict):
             self['lead_neutral'] = ROOT.TH1D('%s_lead_neutral' % name, \
                 'pT spectrum for neutral leading particles', \
                 self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+            self['inclusive_jet_mult'] = ROOT.TH1D('%s_inclusive_jet_mult' % name, '',\
+                15, -0.5, 14.5)
+            self['dijet_mult'] = ROOT.TH1D('%s_dijet_mult' % name, '', \
+                15, -0.5, 14.5)
             
         
         self.tracks_plus = TrackHistogramCollection('%s_plus' % (name,), tfile, keys)
@@ -824,6 +840,8 @@ class HistogramManager(dict):
         """fill histograms with info from event"""
         self.eventCounter.Fill(0)
         
+        sortedTracks = sorted(event.tracks(), lambda t1,t2: t1.Pt()<t2.Pt() and 1 or -1)
+        
         ## spin sorting
         spin = 'other'
         if not simu and event.isSpinValid():
@@ -935,6 +953,9 @@ class HistogramManager(dict):
                         monoJets.append(jet)
                         self[spin][trig].fillJets(jet, None)
             
+            self[spin][trig]['inclusive_jet_mult'].Fill(len(inclusiveJets))
+            self[spin][trig]['dijet_mult'].Fill(len(diJets))
+            
             ## time to fill the correlation histos
             for track in event.tracks():
                 tcuts.set(track)
@@ -983,6 +1004,53 @@ class HistogramManager(dict):
                         coll['lead_nomatch'].Fill(lead.Pt())
                 else:
                     self[spin][trig]['lead_neutral'].Fill(lead.Pt())
+            
+            ## new definitions for "z_away"
+            
+            for jet in inclusiveJets:
+                if 10.0 < jet.Pt() < 30.0:
+                    for track in sortedTracks:
+                        tcuts.set(track)
+                        if tcuts.all and math.fabs(track.DeltaPhi(jet)) > 2.0:
+                            if track.charge() > 0:
+                                tp['z_away2'].Fill(track.Pt()/jet.Pt())
+                            else:
+                                tm['z_away2'].Fill(track.Pt()/jet.Pt())
+                            break
+            
+            for jet in inclusiveJets:
+                if 10.0 < jet.Pt() < 30.0:
+                    used_bins_plus = []
+                    used_bins_minus = []
+                    for track in sortedTracks:
+                        tcuts.set(track)
+                        if tcuts.all and math.fabs(track.DeltaPhi(jet)) > 2.0:
+                            bin = zbin(track.Pt()/jet.Pt())
+                            if track.charge() > 0:
+                                if bin not in used_bins_plus:
+                                    tp['z_away4'].Fill(track.Pt()/jet.Pt())
+                                    used_bins_plus.append(bin)
+                                # else:
+                                #     print 'Duplicate pi+ bin:', event.eventId(), bin
+                            else:
+                                if bin not in used_bins_minus:
+                                    tm['z_away4'].Fill(track.Pt()/jet.Pt())
+                                    used_bins_minus.append(bin)
+                                # else:
+                                #     print 'Duplicate pi- bin:', event.eventId(), bin
+            
+            for jet, awayJet in diJets:
+                if 10.0 < jet.Pt() < 30.0:
+                    for track in sortedTracks:
+                        tcuts.set(track)
+                        if tcuts.all and math.fabs(track.DeltaPhi(jet)) > 2.0:
+                            z = track.Vect().Dot(awayJet.Vect()) / awayJet.P()**2
+                            if track.charge() > 0:
+                                tp['z_away3'].Fill(z)
+                            else:
+                                tm['z_away3'].Fill(z)
+                            break
+            
             
             tp.Clear()
             tm.Clear()
@@ -1100,6 +1168,13 @@ def matched(t1, t2):
            t1.nHitsFit() == t2.nHitsFit() and \
            t1.nHitsPoss() == t2.nHitsPoss() and \
            t1.charge() == t2.charge()
+
+
+def zbin(zval):
+    """return bin index for this track -- used so that we take at most 1 track/bin/jet"""
+    zmax = [0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 1.0]
+    for i,z in enumerate(zmax):
+        if zval < z: return i+1
 
 
 def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist',useLSF=False,fillList=None):
