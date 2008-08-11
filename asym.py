@@ -46,20 +46,20 @@ class AsymmetryGenerator:
          }
       else:
          arraybins = array('d')
-         arraybins.fromlist(self.bins[1:])
+         arraybins.fromlist(self.bins)
          self.top = { 
-            'ls' : ROOT.TH1D('_%s_ls' % (name,), '', self.bins[0], arraybins),
-            'us' : ROOT.TH1D('_%s_us' % (name,), '', self.bins[0], arraybins),
-            'ly' : ROOT.TH1D('_%s_ly' % (name,), '', self.bins[0], arraybins),
-            'lb' : ROOT.TH1D('_%s_lb' % (name,), '', self.bins[0], arraybins),
-            'll' : ROOT.TH1D('_%s_ll' % (name,), '', self.bins[0], arraybins),
+            'ls' : ROOT.TH1D('_%s_ls' % (name,), '', len(self.bins)-1, arraybins),
+            'us' : ROOT.TH1D('_%s_us' % (name,), '', len(self.bins)-1, arraybins),
+            'ly' : ROOT.TH1D('_%s_ly' % (name,), '', len(self.bins)-1, arraybins),
+            'lb' : ROOT.TH1D('_%s_lb' % (name,), '', len(self.bins)-1, arraybins),
+            'll' : ROOT.TH1D('_%s_ll' % (name,), '', len(self.bins)-1, arraybins),
          }
          self.bot = { 
-            'ls' : ROOT.TH1D('_%s_ls_bot' % (name,), '', self.bins[0], arraybins),
-            'us' : ROOT.TH1D('_%s_us_bot' % (name,), '', self.bins[0], arraybins),
-            'ly' : ROOT.TH1D('_%s_ly_bot' % (name,), '', self.bins[0], arraybins),
-            'lb' : ROOT.TH1D('_%s_lb_bot' % (name,), '', self.bins[0], arraybins),
-            'll' : ROOT.TH1D('_%s_ll_bot' % (name,), '', self.bins[0], arraybins),
+            'ls' : ROOT.TH1D('_%s_ls_bot' % (name,), '', len(self.bins)-1, arraybins),
+            'us' : ROOT.TH1D('_%s_us_bot' % (name,), '', len(self.bins)-1, arraybins),
+            'ly' : ROOT.TH1D('_%s_ly_bot' % (name,), '', len(self.bins)-1, arraybins),
+            'lb' : ROOT.TH1D('_%s_lb_bot' % (name,), '', len(self.bins)-1, arraybins),
+            'll' : ROOT.TH1D('_%s_ll_bot' % (name,), '', len(self.bins)-1, arraybins),
          }
       
       [ h.Sumw2() for h in self.top.values() ]
@@ -70,10 +70,24 @@ class AsymmetryGenerator:
    
    
    def FillFromHistogramManager(self, mgr, trigId, charge, uu, ud, du, dd, Py, Pb):
-      self.FillFromHistogram(5, uu, ud, du, dd, Py, Pb, mgr['uu'][trigId].trackHistograms(charge)[self.key])
-      self.FillFromHistogram(6, uu, ud, du, dd, Py, Pb, mgr['du'][trigId].trackHistograms(charge)[self.key])
-      self.FillFromHistogram(9, uu, ud, du, dd, Py, Pb, mgr['ud'][trigId].trackHistograms(charge)[self.key])
-      self.FillFromHistogram(10,uu, ud, du, dd, Py, Pb, mgr['dd'][trigId].trackHistograms(charge)[self.key])
+       if self.key in ('jet_pt',):
+            self.FillFromHistogram(5, uu, ud, du, dd, Py, Pb, mgr['uu'][trigId][self.key])
+            self.FillFromHistogram(6, uu, ud, du, dd, Py, Pb, mgr['du'][trigId][self.key])
+            self.FillFromHistogram(9, uu, ud, du, dd, Py, Pb, mgr['ud'][trigId][self.key])
+            self.FillFromHistogram(10,uu, ud, du, dd, Py, Pb, mgr['dd'][trigId][self.key])
+       elif self.key in ('z_away',):
+            # c = ROOT.TCanvas()
+            # mgr['uu'][trigId].trackHistograms(charge)[self.key].Draw('col z')
+            # raw_input('hold')
+            self.FillFromHistogram(5, uu, ud, du, dd, Py, Pb, mgr['uu'][trigId].trackHistograms(charge)[self.key].ProjectionY())
+            self.FillFromHistogram(6, uu, ud, du, dd, Py, Pb, mgr['du'][trigId].trackHistograms(charge)[self.key].ProjectionY())
+            self.FillFromHistogram(9, uu, ud, du, dd, Py, Pb, mgr['ud'][trigId].trackHistograms(charge)[self.key].ProjectionY())
+            self.FillFromHistogram(10, uu, ud, du, dd, Py, Pb, mgr['dd'][trigId].trackHistograms(charge)[self.key].ProjectionY())
+       else:            
+            self.FillFromHistogram(5, uu, ud, du, dd, Py, Pb, mgr['uu'][trigId].trackHistograms(charge)[self.key])
+            self.FillFromHistogram(6, uu, ud, du, dd, Py, Pb, mgr['du'][trigId].trackHistograms(charge)[self.key])
+            self.FillFromHistogram(9, uu, ud, du, dd, Py, Pb, mgr['ud'][trigId].trackHistograms(charge)[self.key])
+            self.FillFromHistogram(10,uu, ud, du, dd, Py, Pb, mgr['dd'][trigId].trackHistograms(charge)[self.key])
    
    
    def FillFromHistogram(self, spinbit, uu, ud, du, dd, Py, Pb, h):
@@ -1238,7 +1252,7 @@ minbias_runs = [
 #6130069, ## polarizations
 #6130070,
 #6130071,
-6135014,
+#6135014, ## even/odd stagger problem
 6138019,
 6138020,
 6139013,
@@ -1248,9 +1262,9 @@ minbias_runs = [
 6142020,
 6142021,
 6142022,
-6142060,
-6142063,
-6142064,
+#6142060, ## ZDC/BBC ratio 3sigma from zero
+#6142063,
+#6142064,
 6143028,
 6143033,
 6144028,
@@ -1284,9 +1298,9 @@ minbias_runs = [
 6169073,
 6170016,
 6170017,
-#6172015, ## bx111
-#6172016,
-#6174025
+6172015, ## bx111
+6172016, ## bx111
+6174025 ## bx111
 ]
 
 run6a = [
@@ -1702,18 +1716,18 @@ final_runlist_run5_no_minbias = [
  6128030,
  6128031,
  6128032,
- 6128043,
- 6128051,
- 6128052,
- 6128053,
- 6128054,
- 6128055,
- 6128056,
- 6128057,
- 6128058,
- 6128059,
- 6128062,
- 6128063,
+ #6128043, ## even/odd stagger problem (case with no reliable ZDC info)
+ #6128051,
+ #6128052,
+ #6128053,
+ #6128054,
+ #6128055,
+ #6128056,
+ #6128057,
+ #6128058,
+ #6128059,
+ #6128062,
+ #6128063,
  #6130054, ## no final polarizations available
  #6130055,
  #6130056,
@@ -1767,24 +1781,24 @@ final_runlist_run5_no_minbias = [
  6134011,
  6134024,
  6134047,
- #6134060, ## bx111
- 6135001,
- 6135002,
- 6135005,
- 6135006,
- 6135007,
- 6135008,
- 6135009,
- 6135010,
- 6135013,
- 6135033,
- 6135034,
- 6135035,
- 6135036,
- 6135037,
- 6135038,
- 6135052,
- 6135053,
+ 6134060, ## bx111
+ #6135001, ## even/odd stagger problems
+ #6135002,
+ #6135005,
+ #6135006,
+ #6135007,
+ #6135008,
+ #6135009,
+ #6135010,
+ #6135013,
+ #6135033, ## ZDC/BBC ratio 3sigma from zero
+ #6135034,
+ #6135035,
+ #6135036,
+ #6135037,
+ #6135038,
+ #6135052, ## even/odd stagger problem
+ #6135053,
  6136014,
  6136015,
  6136017,
@@ -1945,23 +1959,23 @@ final_runlist_run5_no_minbias = [
  6142025,
  6142026,
  6142027,
- 6142038,
- 6142039,
- 6142040,
- 6142041,
- 6142042,
- 6142043,
- 6142044,
- 6142045,
- 6142049,
- 6142050,
- 6142051,
- 6142052,
- 6142053,
- 6142054,
- 6142055,
- 6142056,
- 6142057,
+ #6142038, ## ZDC/BBC ratio 3sigma from zero
+ #6142039,
+ #6142040,
+ #6142041,
+ #6142042,
+ #6142043,
+ #6142044,
+ #6142045,
+ #6142049,
+ #6142050,
+ #6142051,
+ #6142052,
+ #6142053,
+ #6142054,
+ #6142055,
+ #6142056,
+ #6142057,
  6142077,
  6142078,
  6142079,
@@ -2353,55 +2367,55 @@ final_runlist_run5_no_minbias = [
  6170014,
  6170015,
  6170018,
- #6170031, ## bx111
- #6170032,
- #6170033,
- #6170034,
- #6170035,
- #6170038,
- #6170039,
- #6170040,
- #6170041,
- #6170045,
- #6171022,
- #6171024,
- #6171034,
- #6171039,
- #6171040,
- #6171041,
- #6171043,
- #6171044,
- #6171045,
- #6171046,
- #6171048,
- #6171049,
- #6171062,
- #6171063,
- #6172001,
- #6172002,
- #6172003,
- #6172006,
- #6172007,
- #6172010,
- #6172069,
- #6172085,
- #6172086,
- #6172087,
- #6172092,
- #6172093,
- #6174010,
- #6174011,
- #6174012,
- #6174013,
- #6174014,
- #6174017,
- #6174018,
- #6174019,
- #6174020,
- #6174021,
- #6174026,
- #6174027,
- #6174031,
+ 6170031, ## bx111
+ 6170032, ## bx111
+ 6170033, ## bx111
+ 6170034, ## bx111
+ 6170035, ## bx111
+ 6170038, ## bx111
+ 6170039, ## bx111
+ 6170040, ## bx111
+ 6170041, ## bx111
+ 6170045, ## bx111
+ 6171022, ## bx111
+ 6171024, ## bx111
+ 6171034, ## bx111
+ 6171039, ## bx111
+ 6171040, ## bx111
+ 6171041, ## bx111
+ 6171043, ## bx111
+ 6171044, ## bx111
+ 6171045, ## bx111
+ 6171046, ## bx111
+ 6171048, ## bx111
+ 6171049, ## bx111
+ 6171062, ## bx111
+ 6171063, ## bx111
+ 6172001, ## bx111
+ 6172002, ## bx111
+ 6172003, ## bx111
+ 6172006, ## bx111
+ 6172007, ## bx111
+ 6172010, ## bx111
+ 6172069, ## bx111
+ 6172085, ## bx111
+ 6172086, ## bx111
+ 6172087, ## bx111
+ 6172092, ## bx111
+ 6172093, ## bx111
+ 6174010, ## bx111
+ 6174011, ## bx111
+ 6174012, ## bx111
+ 6174013, ## bx111
+ 6174014, ## bx111
+ 6174017, ## bx111
+ 6174018, ## bx111
+ 6174019, ## bx111
+ 6174020, ## bx111
+ 6174021, ## bx111
+ 6174026, ## bx111
+ 6174027, ## bx111
+ 6174031, ## bx111
  6174044,
  6174045,
  6174046,
