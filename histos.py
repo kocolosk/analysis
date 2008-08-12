@@ -1289,7 +1289,7 @@ def combineSamples(outFileName, inputFileList):
     [f.Close() for f in tfile]
 
 
-def bsub(treeDir, runlist=None, triglist=None):
+def bsub(treeDir, runList=None, trigList=None):
     import analysis
     """submits a single writeHistograms job to LSF for each tree.root file in treeDir"""
     allfiles = os.listdir(treeDir)
