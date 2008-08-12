@@ -1,5 +1,6 @@
 import math
 import os
+import sys
 ##import uuid 
 import time
 from array import array
@@ -840,7 +841,12 @@ class HistogramManager(dict):
         """fill histograms with info from event"""
         self.eventCounter.Fill(0)
         
-        sortedTracks = sorted(event.tracks(), lambda t1,t2: t1.Pt()<t2.Pt() and 1 or -1)
+        if sys.version_info[1] >= 4:
+            sortedTracks =  sorted(event.tracks(), \
+                lambda t1,t2: t1.Pt()<t2.Pt() and 1 or -1)
+        else:
+            sortedTracks = [track for track in event.tracks()]
+            sortedTracks.sort(lambda t1,t2: t1.Pt()<t2.Pt() and 1 or -1)
         
         ## spin sorting
         spin = 'other'
