@@ -5,8 +5,8 @@ libs_to_load = [ 'libPhysics', 'libTable', 'StarRoot', 'StarClassLibrary', 'St_b
 'StBichsel', 'StEvent', 'StEventUtilities', 'StDbLib', 'StEmcUtil', 'StTofUtil', 'StPmdUtil', 
 'StStrangeMuDstMaker', 'StMuDSTMaker', 'StDaqLib', 'StDetectorDbMaker', 'StEmcTriggerMaker', 
 'StJetSkimEvent', 'StJets', 'StMCAsymMaker', 'StSpinDbMaker', 'St_db_Maker', 
-'StTriggerUtilities', 'StJetFinder', 'StJetMaker', 'StMiniMcEvent', 
-'StChargedPionAnalysisMaker', 'StSpinTree']
+'StTriggerUtilities', 'StEEmcUtil', 'StEmcRawMaker', 'StEmcADCtoEMaker', 'StJetFinder', 
+'StJetMaker', 'StMiniMcEvent', 'StChargedPionAnalysisMaker', 'StSpinTree']
 
 print 'analysis : loading shared libraries ...'
 libs_already_loaded = ROOT.gSystem.GetLibraries()
