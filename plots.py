@@ -212,7 +212,7 @@ def spin2006_asymmetries():
     c2.Print('.gif')
 
 
-def asymmetries_for_publication_run5(runlist=None):
+def asymmetries_for_publication_run5(runlist=analysis.final_runlist_run5, choice='horizontal_point_syst'):
     """final results for inclusive asymmetries from Run 5"""
     asym_plus = analysis.AsymmetryGenerator('asym_plus', key='pt')
     asym_minus = analysis.AsymmetryGenerator('asym_minus', key='pt')
@@ -222,9 +222,6 @@ def asymmetries_for_publication_run5(runlist=None):
     
     polarizations = analysis.Polarizations.Final
     
-    #theory = analysis.asym.theoryCurves()
-    #plusGraphs = [ theory.getGraph('plus',key) for key in ('std','zero','max','min') ]
-    #minusGraphs = [ theory.getGraph('minus',key) for key in ('std','zero','max','min') ]
     from analysis.asym import theoryCurves
     plusGraphs = [
     theoryCurves(analysis.asym.werner_plus_dss_cteqm5_std, analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph(),
@@ -254,7 +251,7 @@ def asymmetries_for_publication_run5(runlist=None):
             gr.SetLineWidth(3)
     
     ## systematic uncertainties
-    baseline = -0.1
+    baseline = -0.082
     syst_x = [3.0, 5.0, 7.0, 9.0]
     
     ## preliminary result
@@ -278,7 +275,7 @@ def asymmetries_for_publication_run5(runlist=None):
             systGraph[charge].SetPoint(i+1, syst_x[i], baseline + (val/1000.0))
     
     ## generate the asymmetries
-    allFiles = glob(run5_hist_dir + '/chargedPions_*.hist.root')
+    allFiles = glob(run5_hist_dir + '/chargedPions_*.hist.root')[:]
     for fname in allFiles:
         run = analysis.getRun(fname)
         if runlist is None or run in runlist:
@@ -304,10 +301,10 @@ def asymmetries_for_publication_run5(runlist=None):
                 print bin7.fill, 'has no final polarization values'
                 continue
             
-            #asym_plus.FillFromHistogramManager(mgr, 'alltrigs', 1, uu, ud, du, dd, pol.py, pol.pb)
-            #asym_minus.FillFromHistogramManager(mgr, 'alltrigs', -1, uu, ud, du, dd, pol.py, pol.pb)
-            asym_plus.FillFromHistogramManager(mgr, 'jetpatch', 1, uu, ud, du, dd, pol.py, pol.pb)
-            asym_minus.FillFromHistogramManager(mgr, 'jetpatch', -1, uu, ud, du, dd, pol.py, pol.pb)
+            asym_plus.FillFromHistogramManager(mgr, 'jetpatch', 1, uu, ud, du,
+                                               dd, pol.py, pol.pb)
+            asym_minus.FillFromHistogramManager(mgr, 'jetpatch', -1, uu, ud, du,
+                                                dd, pol.py, pol.pb)
             tfile.Close()
             
     ## fun with graphics
@@ -338,27 +335,20 @@ def asymmetries_for_publication_run5(runlist=None):
     bg = ROOT.TH1D(h1)
     bg.Reset()
     bg.SetYTitle(' A_{LL}')
-    bg.GetYaxis().SetRangeUser(-0.08, 0.06)
+    bg.GetYaxis().SetRangeUser(-0.09, 0.06)
     
     ## combo plot
     c3 = ROOT.TCanvas('c3', 'A_{LL} combined', 0, 0, 800, 350)
-    #c3 = ROOT.TCanvas('c3', 'A_{LL} combined', 0, 0, 350, 600)
     c3.Draw()
     titlepad = ROOT.TPad('titlepad', '', 0.0, 0.9, 1.0, 1.0)
     
     leftpad  = ROOT.TPad('leftpad','', 0.0, 0.0, 0.5, 1.0)
     leftpad.SetLeftMargin(0.14)
     leftpad.SetRightMargin(0.02)
-    #leftpad  = ROOT.TPad('top','', 0.0, 0.45, 1.0, 0.9)
-    #leftpad.SetTopMargin(0.14)
-    #leftpad.SetRightMargin(0.02)
     
     rightpad = ROOT.TPad('rightpad','', 0.5, 0.0, 1.0, 1.0)
     rightpad.SetLeftMargin(0.11)
     rightpad.SetRightMargin(0.05)
-    #rightpad = ROOT.TPad('bottom','', 0.0, 0.0, 1.0, 0.45)
-    #rightpad.SetLeftMargin(0.11)
-    #rightpad.SetRightMargin(0.05)
     
     for pad in (titlepad, leftpad, rightpad):
         pad.Draw()
@@ -366,8 +356,7 @@ def asymmetries_for_publication_run5(runlist=None):
         pad.SetBorderMode(0)
         pad.SetFillStyle(4000) ## make it transparent
         
-    #leg2 = ROOT.TLegend(0.16, 0.62, 0.54, 0.90)
-    leg2 = ROOT.TLegend(0.16, 0.12, 0.6, 0.45)
+    leg2 = ROOT.TLegend(0.17, 0.23, 0.6, 0.5)
     leg2.SetFillStyle(0)
     leg2.SetBorderSize(0)
     leg2.AddEntry(plusGraphs[0],' GRSV-std', 'l')
@@ -396,10 +385,8 @@ def asymmetries_for_publication_run5(runlist=None):
     systGraph['minus'].SetFillColor(12)
     systGraph['minus'].Draw('fl')
     line.Draw('same')
-    leg2.Draw('p')
     latex.SetTextSize(0.2)
     latex.SetTextAlign(21)
-    #latex.DrawLatex(4.0,-0.075,'#pi^{-}')
     latex.DrawLatex(3.1,0.03,'#pi^{-}')
     
     rightpad.cd()
@@ -414,12 +401,95 @@ def asymmetries_for_publication_run5(runlist=None):
     systGraph['plus'].SetFillColor(12)
     systGraph['plus'].Draw('fl')
     line.Draw('same')
-    #latex.DrawLatex(4.0,-0.075,'#pi^{+}')
+    latex.DrawLatex(3.1,0.03,'#pi^{+}')
+    leg2.Draw('p')
+        
+    ## vertical combo plot
+    c4 = ROOT.TCanvas('c4', 'A_{LL} combined', 0, 0, 400, 500)
+    c4.Draw()
+    titlepad2 = ROOT.TPad('titlepad2', '', 0.0, 0.9, 1.0, 1.0)
+    
+    toppad  = ROOT.TPad('toppad','', 0.0, 0.5, 1.0, 1.0)
+    toppad.SetTopMargin(0.15)
+    toppad.SetRightMargin(0.02)
+    toppad.SetBottomMargin(0.0)
+    
+    bottompad = ROOT.TPad('bottompad','', 0.0, 0.0, 1.0, 0.5)
+    bottompad.SetRightMargin(0.02)
+    bottompad.SetTopMargin(0.0)
+    bottompad.SetBottomMargin(0.15)
+    bottompad.SetTickx()
+    
+    bg.GetYaxis().SetRangeUser(-0.079, 0.059)
+    
+    for pad in (titlepad2, toppad, bottompad):
+        pad.Draw()
+        pad.SetFillColor(10)
+        pad.SetBorderMode(0)
+        pad.SetFillStyle(4000) ## make it transparent
+    
+    legt = ROOT.TLegend(0.14, 0.15, 0.6, 0.35)
+    legt.SetFillStyle(0)
+    legt.SetBorderSize(0)
+    legt.AddEntry(plusGraphs[0],' GRSV-std', 'l')
+    legt.AddEntry(plusGraphs[4],' GS Set C', 'l')
+        
+    legb = ROOT.TLegend(0.14, 0.25, 0.6, 0.57)
+    legb.SetFillStyle(0)
+    legb.SetBorderSize(0)
+    legb.AddEntry(plusGraphs[2],' GRSV #Deltag =  g input', 'l')
+    legb.AddEntry(plusGraphs[1],' GRSV #Deltag =  0 input', 'l')
+    legb.AddEntry(plusGraphs[3],' GRSV #Deltag = -g input', 'l')
+    
+    
+    titlepad2.cd()
+    latex.SetTextSize(0.36)
+    latex.SetTextAlign(21)
+    latex.DrawLatex(0.5,0.5,"STAR #vec{p} + #vec{p} #rightarrow #pi + X at #sqrt{s}=200 GeV \
+    |#eta_{#pi}|<1.0")
+    
+    toppad.cd()
+    bg.SetXTitle('')
+    bg.SetYTitle('A_{LL}')
+    bg.GetYaxis().SetLabelSize(0.055)
+    bg.GetYaxis().SetTitleOffset(0.7)
+    bg.GetYaxis().SetTitleSize(0.07)
+    bg.DrawCopy()
+    g2.SetMarkerSize(0.9);
+    g2.SetMarkerStyle(20)
+    g2.Draw('p')
+    [ g.Draw('l') for g in minusGraphs ]
+    systGraph['minus'].SetLineColor(1)
+    systGraph['minus'].SetFillColor(12)
+    systGraph['minus'].Draw('fl')
+    line.Draw('same')
+    latex.SetTextSize(0.2)
+    latex.SetTextAlign(21)
+    latex.DrawLatex(3.1,0.03,'#pi^{-}')
+    legt.Draw('p')
+    
+    bottompad.cd()
+    bg.GetXaxis().SetLabelSize(0.055)
+    bg.GetXaxis().SetTitleSize(0.06)
+    bg.GetXaxis().SetTitleOffset(0.9)
+    bg.SetXTitle('#pi P_{T} [GeV/c]')
+    bg.SetYTitle('')
+    bg.DrawCopy()
+    g1.SetMarkerSize(0.9);
+    g1.SetMarkerStyle(21)
+    g1.Draw('p')
+    [ g.Draw('l') for g in plusGraphs ]
+    systGraph['plus'].SetLineColor(1)
+    systGraph['plus'].SetFillColor(12)
+    systGraph['plus'].Draw('fl')
+    line.Draw('same')
+    legb.Draw('p')
     latex.DrawLatex(3.1,0.03,'#pi^{+}')
     
-    'pi-plus fit to pol0'
+    
+    #pi-plus fit to pol0
     h1.Fit('pol0', 'N', '', 2.0, 10.0)
-    'pi-minus fit to pol0'
+    #pi-minus fit to pol0
     h2.Fit('pol0', 'N', '', 2.0, 10.0)
     
     for h in (h1,h2):
@@ -1188,7 +1258,7 @@ def spinInfoForFrank():
     f.Close()
 
 
-def ssa_by_fill(asym_key='ly', runlist=analysis.final_runlist_run5):
+def ssa_by_fill(asym_key='ly', runlist=analysis.final_runlist_run5, variable='pt', year=2006):
     """generates canvas for asym_key (ly,lb,ls,us). Each data point is the SSA for a fill"""
     tuples = analysis.getAllFills(runlist)
     fills = []
@@ -1207,26 +1277,31 @@ def ssa_by_fill(asym_key='ly', runlist=analysis.final_runlist_run5):
     asym_plus = {}
     asym_minus = {}
     for f in fills:
-        asym_plus[f] = analysis.AsymmetryGenerator(name='F%s_plus' % f, bins=[1,2.0,10.0])
-        asym_minus[f] = analysis.AsymmetryGenerator(name='F%s_minus' % f, bins=[1,2.0,10.0])
+        asym_plus[f] = analysis.AsymmetryGenerator(name='F%s_plus' % f, bins=[1,2.0,10.0], key=variable)
+        asym_minus[f] = analysis.AsymmetryGenerator(name='F%s_minus' % f, bins=[1,2.0,10.0], key=variable)
     
-    scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run5.txt'
+    if year == 2005:
+        scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run5.txt'
+        allFiles = glob(run5_hist_dir + '/chargedPions_*.hist.root')
+    else:
+        scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run6.txt'
+        allFiles = glob(run6_hist_dir + '/chargedPions_*.hist.root')
+    
     scalars = analysis.ScalarCounts(scalar_path)
-    
     polarizations = analysis.Polarizations.Final
     
-    allFiles = glob(run5_hist_dir + '/chargedPions_*.hist.root')
     for fname in allFiles:
         run = analysis.getRun(fname)
         if runlist is None or run in runlist:
             print fname, run
             tfile = ROOT.TFile(fname)
-            mgr = analysis.HistogramManager(tfile,('pt',))
+            mgr = analysis.HistogramManager(tfile, keys=[variable], triggers=['jetpatch'])
             
             try:
-                bin7 = scalars[str(run) + '-5-7']
-                bin8 = scalars[str(run) + '-5-8']
-                bin9 = scalars[str(run) + '-5-9']
+                bin6 = scalars.get(str(run) + '-5-6') or scalars[str(run) + '-6-6']
+                bin7 = scalars.get(str(run) + '-5-7') or scalars[str(run) + '-6-7']
+                bin8 = scalars.get(str(run) + '-5-8') or scalars[str(run) + '-6-8']
+                bin9 = scalars.get(str(run) + '-5-9') or scalars[str(run) + '-6-9']
             except KeyError:
                 print run, 'is not in the scalars database'
                 continue
@@ -1234,20 +1309,27 @@ def ssa_by_fill(asym_key='ly', runlist=analysis.final_runlist_run5):
             ud = bin7.ud + bin8.ud + bin9.ud
             du = bin7.du + bin8.du + bin9.du
             dd = bin7.dd + bin8.dd + bin9.dd
-            
+            if year == 2006:
+                uu += bin6.uu
+                ud += bin6.ud
+                du += bin6.du
+                dd += bin6.dd
             try:
                 pol = polarizations[bin7.fill]
             except KeyError:
                 print bin7.fill, 'has no final polarization values'
                 continue
             
+            # print mgr.anyspin['jetpatch']['jet_pt'].GetEntries(), \
+            #       mgr.anyspin['jetpatch'].tracks_plus['pt_away'].GetEntries()
+            
             asym_plus[bin7.fill].FillFromHistogramManager(mgr, 'jetpatch', 1, uu, ud, du, dd, pol.py, pol.pb)
             asym_minus[bin7.fill].FillFromHistogramManager(mgr, 'jetpatch', -1, uu, ud, du, dd, pol.py, pol.pb)
             tfile.Close()
     
     title = {'ly':'Yellow Beam', 'lb':'Blue Beam', 'ls':'Like-Sign', 'us':'Unlike-Sign'}
-    final_hist_plus = ROOT.TH1D('final_hist_plus','#pi^{+} %s SSA' % title[asym_key], len(fills), 0.5, len(fills)+0.5)
-    final_hist_minus = ROOT.TH1D('final_hist_minus','#pi^{-} %s SSA' % title[asym_key], len(fills), 0.5, len(fills)+0.5)
+    final_hist_plus = ROOT.TH1D('final_hist_plus','Leading #pi^{+} %s SSA' % title[asym_key], len(fills), 0.5, len(fills)+0.5)
+    final_hist_minus = ROOT.TH1D('final_hist_minus','Leading #pi^{-} %s SSA' % title[asym_key], len(fills), 0.5, len(fills)+0.5)
     marker_color = {'ly':ROOT.kYellow, 'lb':ROOT.kBlue, 'ls':ROOT.kRed, 'us':ROOT.kBlack}
     for h in (final_hist_plus, final_hist_minus):
         h.SetMarkerColor( marker_color[asym_key] )
@@ -1259,7 +1341,8 @@ def ssa_by_fill(asym_key='ly', runlist=analysis.final_runlist_run5):
         hplus = asym_plus[f].GetAsymmetry(asym_key)
         final_hist_plus.SetBinContent( i+1, hplus.GetBinContent(1) )
         final_hist_plus.SetBinError( i+1, hplus.GetBinError(1) )
-        print '%d % .4f % .4f % .4f' % (f, hplus.GetBinContent(1), hplus.GetBinError(1), hplus.GetBinContent(1)/hplus.GetBinError(1))
+        print '%d % .4f' % (f, hplus.GetBinError(1))
+        # print '%d % .4f % .4f % .4f' % (f, hplus.GetBinContent(1), hplus.GetBinError(1), hplus.GetBinContent(1)/hplus.GetBinError(1))
         hplus.Delete()
         
         hminus = asym_minus[f].GetAsymmetry(asym_key)
@@ -1274,34 +1357,45 @@ def ssa_by_fill(asym_key='ly', runlist=analysis.final_runlist_run5):
     cp = ROOT.TCanvas('%s_ssa_fill_plus' % asym_key)
     final_hist_plus.Draw('e1')
     final_hist_plus.Fit('pol0')
+    print ROOT.gROOT.GetFunction('pol0').GetProb()
     cm = ROOT.TCanvas('%s_ssa_fill_minus' % asym_key)
     final_hist_minus.Draw('e1')
     final_hist_minus.Fit('pol0')
+    print ROOT.gROOT.GetFunction('pol0').GetProb()
     raw_input('wait here')
     cp.Print('.png')
     cm.Print('.png')
 
 
-def ssa(asym_key='ly', runlist=analysis.final_runlist_run5, variable='pt'):
+def ssa(asym_key='ly', runlist=analysis.final_runlist_run5, variable='pt', year=2006, bins=None):
     """plots a ssa against the given variable"""
     ## note: need to redefine binning if variable != pt
-    asym_plus = analysis.AsymmetryGenerator('asym_plus', key=variable)
-    asym_minus = analysis.AsymmetryGenerator('asym_minus', key=variable)
-    scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run5.txt'
+    if bins:
+        asym_plus = analysis.AsymmetryGenerator('asym_plus', key=variable, bins=bins)
+        asym_minus = analysis.AsymmetryGenerator('asym_minus', key=variable, bins=bins)
+    else:
+        asym_plus = analysis.AsymmetryGenerator('asym_plus', key=variable)
+        asym_minus = analysis.AsymmetryGenerator('asym_minus', key=variable)
+    if year == 2005:
+        scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run5.txt'
+        allFiles = glob(run5_hist_dir + '/chargedPions_*.hist.root')
+    elif year == 2006:
+        scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run6.txt'        
+        allFiles = glob(run6_hist_dir + '/chargedPions_*.hist.root')
     scalars = analysis.ScalarCounts(scalar_path)
     polarizations = analysis.Polarizations.Final
-    allFiles = glob(run5_hist_dir + '/chargedPions_*.hist.root')
     for fname in allFiles:
         run = analysis.getRun(fname)
         if runlist is None or run in runlist:
             print fname, run
             tfile = ROOT.TFile(fname)
-            mgr = analysis.HistogramManager(tfile,('pt',))
+            mgr = analysis.HistogramManager(tfile,(variable,))
             
             try:
-                bin7 = scalars[str(run) + '-5-7']
-                bin8 = scalars[str(run) + '-5-8']
-                bin9 = scalars[str(run) + '-5-9']
+                bin6 = scalars.get(str(run) + '-5-6') or scalars[str(run) + '-6-6']
+                bin7 = scalars.get(str(run) + '-5-7') or scalars[str(run) + '-6-7']
+                bin8 = scalars.get(str(run) + '-5-8') or scalars[str(run) + '-6-8']
+                bin9 = scalars.get(str(run) + '-5-9') or scalars[str(run) + '-6-9']
             except KeyError:
                 print run, 'is not in the scalars database'
                 continue
@@ -1309,7 +1403,11 @@ def ssa(asym_key='ly', runlist=analysis.final_runlist_run5, variable='pt'):
             ud = bin7.ud + bin8.ud + bin9.ud
             du = bin7.du + bin8.du + bin9.du
             dd = bin7.dd + bin8.dd + bin9.dd
-            
+            if year == 2006:
+                uu += bin6.uu
+                ud += bin6.ud
+                du += bin6.du
+                dd += bin6.dd
             try:
                 pol = polarizations[bin7.fill]
             except KeyError:
@@ -1320,19 +1418,27 @@ def ssa(asym_key='ly', runlist=analysis.final_runlist_run5, variable='pt'):
             asym_minus.FillFromHistogramManager(mgr, 'jetpatch', -1, uu, ud, du, dd, pol.py, pol.pb)
             tfile.Close()
             
-    title = {'ly':'Yellow Beam', 'lb':'Blue Beam', 'ls':'Like-Sign', 'us':'Unlike-Sign'}
-    marker_color = {'ly':ROOT.kYellow, 'lb':ROOT.kBlue, 'ls':ROOT.kRed, 'us':ROOT.kBlack}
+    title = {'ly':'Yellow Beam', 
+             'lb':'Blue Beam', 
+             'ls':'Like-Sign', 
+             'us':'Unlike-Sign', 
+             'll':'Double-Spin'}
+    marker_color = {'ly':ROOT.kYellow, 
+                    'lb':ROOT.kBlue, 
+                    'ls':ROOT.kRed, 
+                    'us':ROOT.kBlack,
+                    'll':ROOT.kBlack}
     
     ROOT.gStyle.SetOptStat(0)
     ROOT.gStyle.SetErrorX(0.0)
     ROOT.gStyle.SetOptFit(111)
     
     hp = asym_plus.GetAsymmetry(asym_key)
-    hp.SetTitle(title[asym_key] + ' SSA for #pi^{+}')
+    hp.SetTitle(title[asym_key] + ' Asymmetry for #pi^{+}')
     hp.SetMarkerStyle(21)
     
     hm = asym_minus.GetAsymmetry(asym_key)
-    hm.SetTitle(title[asym_key] + ' SSA for #pi^{-}')
+    hm.SetTitle(title[asym_key] + ' Asymmetry for #pi^{-}')
     hm.SetMarkerStyle(20)
     
     for h in (hp,hm):
@@ -1345,10 +1451,12 @@ def ssa(asym_key='ly', runlist=analysis.final_runlist_run5, variable='pt'):
     
     cp = ROOT.TCanvas('cp')
     hp.Fit('pol0')
+    print ROOT.gROOT.GetFunction('pol0').GetProb()
     hp.Draw('e1')
     
     cm = ROOT.TCanvas('cm')
     hm.Fit('pol0')
+    print ROOT.gROOT.GetFunction('pol0').GetProb()
     hm.Draw('e1')
     
     raw_input('wait here')
@@ -1357,7 +1465,7 @@ def ssa(asym_key='ly', runlist=analysis.final_runlist_run5, variable='pt'):
     
 
 
-def pid_background_asymmetry(runlist=analysis.final_runlist_run5):
+def pid_background_asymmetry(runlist=analysis.final_runlist_run5, year=2006):
     """plots A_{LL} for charged tracks outside PID window and fits with a pol0"""
     asym_plus = analysis.AsymmetryGenerator('asym_plus', key='pt_bg')
     asym_minus = analysis.AsymmetryGenerator('asym_minus', key='pt_bg')
@@ -1375,29 +1483,22 @@ def pid_background_asymmetry(runlist=analysis.final_runlist_run5):
             mgr = analysis.HistogramManager(tfile,('pt_bg',))
             
             try:
-                bin6 = scalars[str(run) + '-5-6']
-                bin7 = scalars[str(run) + '-5-7']
-                bin8 = scalars[str(run) + '-5-8']
-                bin9 = scalars[str(run) + '-5-9']
+                bin6 = scalars.get(str(run) + '-5-6') or scalars[str(run) + '-6-6']
+                bin7 = scalars.get(str(run) + '-5-7') or scalars[str(run) + '-6-7']
+                bin8 = scalars.get(str(run) + '-5-8') or scalars[str(run) + '-6-8']
+                bin9 = scalars.get(str(run) + '-5-9') or scalars[str(run) + '-6-9']
             except KeyError:
-                try:
-                    bin6 = scalars[str(run) + '-6-6']
-                    bin7 = scalars[str(run) + '-6-7']
-                    bin8 = scalars[str(run) + '-6-8']
-                    bin9 = scalars[str(run) + '-6-9']
-                except KeyError:
-                    print run, 'is not in the scalars database'
+                print run, 'is not in the scalars database'
                 continue
-            if run > 7000000:
-                uu = bin6.uu + bin7.uu + bin8.uu + bin9.uu
-                ud = bin6.ud + bin7.ud + bin8.ud + bin9.ud
-                du = bin6.du + bin7.du + bin8.du + bin9.du
-                dd = bin6.dd + bin7.dd + bin8.dd + bin9.dd
-            else:
-                uu = bin7.uu + bin8.uu + bin9.uu
-                ud = bin7.ud + bin8.ud + bin9.ud
-                du = bin7.du + bin8.du + bin9.du
-                dd = bin7.dd + bin8.dd + bin9.dd
+            uu = bin7.uu + bin8.uu + bin9.uu
+            ud = bin7.ud + bin8.ud + bin9.ud
+            du = bin7.du + bin8.du + bin9.du
+            dd = bin7.dd + bin8.dd + bin9.dd
+            if year == 2006:
+                uu += bin6.uu
+                ud += bin6.ud
+                du += bin6.du
+                dd += bin6.dd
             
             try:
                 pol = polarizations[bin7.fill]
@@ -1503,13 +1604,13 @@ def print_ssa(runlist=analysis.final_runlist_run5, charge=1):
         [ h.Delete() for h in (y,b,ls,us) ]
 
 
-def asigma(runlist=analysis.transverse_run6):
+def asigma(runlist=analysis.transverse_run6, variable='pt'):
     """plots asigma -- duh"""
     ROOT.gStyle.SetOptStat(0)
     ROOT.gStyle.SetErrorX(0.0)
     ROOT.gStyle.SetOptFit(111)
-    asym_plus = analysis.AsymmetryGenerator('asym_plus', key='pt')
-    asym_minus = analysis.AsymmetryGenerator('asym_minus', key='pt')
+    asym_plus = analysis.AsymmetryGenerator('asym_plus', key=variable)
+    asym_minus = analysis.AsymmetryGenerator('asym_minus', key=variable)
     #scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run5.txt'
     scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run6.txt'
     scalars = analysis.ScalarCounts(scalar_path)
@@ -1521,7 +1622,7 @@ def asigma(runlist=analysis.transverse_run6):
         if runlist is None or run in runlist:
             print fname, run
             tfile = ROOT.TFile(fname)
-            mgr = analysis.HistogramManager(tfile,('pt',))
+            mgr = analysis.HistogramManager(tfile,(variable,))
             
             try:
                 bin6 = scalars[str(run) + '-5-6']
@@ -1558,15 +1659,15 @@ def asigma(runlist=analysis.transverse_run6):
             tfile.Close()
     
     hp = asym_plus.GetAsymmetry('ll')
-    hp.SetTitle('A_{#Sigma} for #pi^{+} using Run 6 data')
+    hp.SetTitle('A_{#Sigma} for #pi^{+} away-side')
     hp.SetMarkerStyle(21)
     
     hm = asym_minus.GetAsymmetry('ll')
-    hm.SetTitle('A_{#Sigma} for #pi^{-} using Run 6 data')
+    hm.SetTitle('A_{#Sigma} for #pi^{-} away side')
     hm.SetMarkerStyle(20)
     
     for h in (hp,hm):
-        h.SetXTitle('p_{T}')
+        h.SetXTitle('p_{T} away')
         h.GetYaxis().SetRangeUser(-0.105, 0.10)
     
     cp = ROOT.TCanvas('cp')
@@ -1708,8 +1809,10 @@ def systematic_uncertainty_run5(charge='plus', key=None):
     relative_lumi_syst = math.sqrt(4.9e-04 ** 2 + 3.0e-04 ** 2)
     
     ## trigger bias
-    plus_trigger_bias = [0.0, 0.0, 0.0, 0.0]
-    minus_trigger_bias = [0.0, 0.0, 0.0, 0.0]
+    #plus_trigger_bias = [0.0, 0.0, 0.0, 0.0]
+    #minus_trigger_bias = [0.0, 0.0, 0.0, 0.0]
+    plus_trigger_bias = [4.1e-3, 7.3e-3, 6.1e-3, 4.5e-3]
+    minus_trigger_bias = [3.9e-3, 4.3e-3, 4.0e-3, 5.7e-3]
     
     if charge == 'plus':
         all_meas = plus_all_meas
@@ -1983,3 +2086,243 @@ def z_slope_run5(trig='jetpatch', runlist=None, charge=0):
     raw_input('wait here:')
     ps.Close()
 
+
+def x1b(v1, v2):
+    return 0.005 * (v1.Pt() * math.exp(v1.Eta()) + v2.Pt() * math.exp(v2.Eta()))
+
+def x2b(v1, v2):
+    return 0.005 * (v1.Pt() * math.exp(-v1.Eta()) + v2.Pt() * math.exp(-v2.Eta()))
+
+def g2t_kinematics():
+    f = ROOT.TFile('small2.root')
+    h2 = ROOT.TH2D('h2','Recalculated (x1,x2) versus g2t record', 200, -0.1, 0.1, 200, -0.1, 0.1)
+    h2.SetXTitle('x1(reco)-x1(g2t)')
+    h2.SetYTitle('x2(reco)-x2(g2t)')
+    
+    h2pre = ROOT.TH2D('h2pre','Reco (x1,x2) before ISR vs g2t record', 200, -0.1, 0.1, 200, -0.1, 0.1)
+    h2pre.SetXTitle('x1b(reco)-x1(g2t)')
+    h2pre.SetYTitle('x2b(reco)-x2(g2t)')
+    
+    h2e = ROOT.TH2D('h2e','Partonic E_after/E_before ISR', 200, 0.5, 1.1, 200, 0.5, 1.1)
+    h2e.SetXTitle('E1_after/E1_before')
+    h2e.SetYTitle('E2_after/E2_before')
+    
+    i = 0
+    for entry in f.tree:
+        ev = f.tree.event
+        h2.Fill(ev.x1()-ev.mX1, ev.x2()-ev.mX2)
+        h2pre.Fill(x1b(ev.preISR1, ev.preISR2)-ev.mX1, x2b(ev.preISR1, ev.preISR2)-ev.mX2)
+        h2e.Fill(ev.parton1().E()/ev.preISR1.E(), ev.parton2().E()/ev.preISR2.E())
+        
+        print '=== Summary for entry %03d, event %04d ====================' % (i, ev.eventId())
+        print 'v1b %(x) .3f %(y) .3f %(z) .3f %(e) .3f' % {'x':ev.preISR1.X(), 'y':ev.preISR1.Y(), 'z':ev.preISR1.Z(), 'e':ev.preISR1.E()}
+        print 'v1a %(x) .3f %(y) .3f %(z) .3f %(e) .3f' % {'x':ev.parton1().X(), 'y':ev.parton1().Y(), 'z':ev.parton1().Z(), 'e':ev.parton1().E()}
+        print ''
+        print 'v2b %(x) .3f %(y) .3f %(z) .3f %(e) .3f' % {'x':ev.preISR2.X(), 'y':ev.preISR2.Y(), 'z':ev.preISR2.Z(), 'e':ev.preISR2.E()}
+        print 'v2a %(x) .3f %(y) .3f %(z) .3f %(e) .3f' % {'x':ev.parton2().X(), 'y':ev.parton2().Y(), 'z':ev.parton2().Z(), 'e':ev.parton2().E()}
+        print ''
+        print 'x1b %.4f  x1() %.4f mX1 %.4f' % (x1b(ev.preISR1, ev.preISR2), ev.x1(), ev.mX1)
+        print 'x2b %.4f  x2() %.4f mX2 %.4f' % (x2b(ev.preISR1, ev.preISR2), ev.x2(), ev.mX2)        
+        print ''
+        print 'shat = ', ev.s(), 'x1x2s = ', ev.mX1*ev.mX2*200*200
+        print '=========================================================='
+        
+        
+        i += 1
+        
+    h2.Draw()
+    c = ROOT.TCanvas()
+    h2pre.Draw()
+    c2 = ROOT.TCanvas()
+    h2e.Draw()
+    raw_input('wait here:')
+    
+
+def away_side_asymmetries_run6(runlist):
+    """final results for inclusive asymmetries from Run 5"""
+    asym_plus = analysis.AsymmetryGenerator('asym_plus', key='away_lead_pt')
+    asym_minus = analysis.AsymmetryGenerator('asym_minus', key='away_lead_pt')
+    
+    scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run6.txt'
+    scalars = analysis.ScalarCounts(scalar_path)
+    
+    polarizations = analysis.Polarizations.Final
+    
+    ## generate the asymmetries
+    allFiles = glob(run6_hist_dir + '/chargedPions_*.hist.root')[:]
+    for fname in allFiles:
+        run = analysis.getRun(fname)
+        if runlist is None or run in runlist:
+            print fname, run
+            tfile = ROOT.TFile(fname)
+            mgr = analysis.HistogramManager(tfile,['away_lead_pt'])
+            
+            try:
+                bin6 = scalars.get(str(run) + '-5-6') or scalars[str(run) + '-6-6']
+                bin7 = scalars.get(str(run) + '-5-7') or scalars[str(run) + '-6-7']
+                bin8 = scalars.get(str(run) + '-5-8') or scalars[str(run) + '-6-8']
+                bin9 = scalars.get(str(run) + '-5-9') or scalars[str(run) + '-6-9']
+            except KeyError:
+                print run, 'is not in the scalars database'
+                continue
+            uu = bin6.uu + bin7.uu + bin8.uu + bin9.uu
+            ud = bin6.ud + bin7.ud + bin8.ud + bin9.ud
+            du = bin6.du + bin7.du + bin8.du + bin9.du
+            dd = bin6.dd + bin7.dd + bin8.dd + bin9.dd
+            
+            try:
+                pol = polarizations[bin7.fill]
+            except KeyError:
+                print bin7.fill, 'has no final polarization values'
+                continue
+            
+            asym_plus.FillFromHistogramManager(mgr, 'jetpatch', 1, uu, ud, du,
+                                               dd, pol.py, pol.pb)
+            asym_minus.FillFromHistogramManager(mgr, 'jetpatch', -1, uu, ud, du,
+                                                dd, pol.py, pol.pb)
+            tfile.Close()
+    
+    line = ROOT.TLine(2.0, 0.0, 10.0, 0.0)
+    line.SetLineStyle(2)
+            
+    c1 = ROOT.TCanvas()
+    h1 = asym_plus.GetAsymmetry('ll')
+    h1.GetYaxis().SetRangeUser(-0.1, 0.1)
+    h1.SetTitle('Run 6 away-side A_{LL} BJP1 #pi^{+}')
+    h1.SetXTitle('p_{T}')
+    h1.SetMarkerStyle(21)
+    h1.Draw('e1')
+    line.Draw('same')
+    
+    c2 = ROOT.TCanvas()
+    h2 = asym_minus.GetAsymmetry('ll')
+    h2.GetYaxis().SetRangeUser(-0.1, 0.1)
+    h2.SetTitle('Run 6 away-side A_{LL} BJP1 #pi^{-}')
+    h2.SetXTitle('p_{T}')
+    h2.SetMarkerStyle(20)
+    h2.Draw('e1')
+    line.Draw('same')
+    
+    raw_input('wait here:')
+
+
+def ssa_by_run(asym_key='ly', runlist=analysis.final_runlist_run5, variable='pt', year=2006, bins=[1,2.0,10.0]):
+    """generates canvas for asym_key (ly,lb,ls,us). Each data point is the SSA for a fill"""
+    
+    asym_plus = {}
+    asym_minus = {}
+    # if variable == 'jet_pt':
+    #     bins = [1,5.0,50.0]
+    # else:
+    #     bins = [1,2.0,10.0]
+    for f in runlist:
+        asym_plus[f] = analysis.AsymmetryGenerator(name='R%s_plus' % f, bins=bins, key=variable, useR123=True)
+        asym_minus[f] = analysis.AsymmetryGenerator(name='R%s_minus' % f, bins=bins, key=variable, useR123=True)
+    
+    if year == 2005:
+        scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run5.txt'
+        allFiles = glob(run5_hist_dir + '/chargedPions_*.hist.root')
+    else:
+        scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run6.txt'        
+        allFiles = glob(run6_hist_dir + '/chargedPions_*.hist.root')
+    
+    scalars = analysis.ScalarCounts(scalar_path)
+    polarizations = analysis.Polarizations.Final
+    
+    for fname in allFiles:
+        run = analysis.getRun(fname)
+        if runlist is None or run in runlist:
+            print fname, run
+            tfile = ROOT.TFile(fname)
+            mgr = analysis.HistogramManager(tfile,(variable,))
+            
+            try:
+                bin6 = scalars.get(str(run) + '-5-6') or scalars[str(run) + '-6-6']
+                bin7 = scalars.get(str(run) + '-5-7') or scalars[str(run) + '-6-7']
+                bin8 = scalars.get(str(run) + '-5-8') or scalars[str(run) + '-6-8']
+                bin9 = scalars.get(str(run) + '-5-9') or scalars[str(run) + '-6-9']
+            except KeyError:
+                print run, 'is not in the scalars database'
+                continue
+            uu = bin7.uu + bin8.uu + bin9.uu
+            ud = bin7.ud + bin8.ud + bin9.ud
+            du = bin7.du + bin8.du + bin9.du
+            dd = bin7.dd + bin8.dd + bin9.dd
+            if year == 2006:
+                uu += bin6.uu
+                ud += bin6.ud
+                du += bin6.du
+                dd += bin6.dd
+            try:
+                pol = polarizations[bin7.fill]
+            except KeyError:
+                print bin7.fill, 'has no final polarization values'
+                continue
+            
+            asym_plus[run].FillFromHistogramManager(mgr, 'jetpatch', 1, uu, ud, du, dd, pol.py, pol.pb)
+            asym_minus[run].FillFromHistogramManager(mgr, 'jetpatch', -1, uu, ud, du, dd, pol.py, pol.pb)
+            tfile.Close()
+    
+    title = {'ll': 'Double Spin', 'ly':'Yellow Beam', 'lb':'Blue Beam', 'ls':'Like-Sign', 'us':'Unlike-Sign'}
+    final_hist_plus = ROOT.TH1D('final_hist_plus','#pi^{+} %s SSA' % title[asym_key], len(runlist), 0.5, len(runlist)+0.5)
+    final_hist_minus = ROOT.TH1D('final_hist_minus','#pi^{-} %s SSA' % title[asym_key], len(runlist), 0.5, len(runlist)+0.5)
+    sigma_plus = ROOT.TH1D('sigma_plus', '#pi^{+} %s SSA Deviation Per Run' % \
+        title[asym_key], 50, -7.0, 7.0)
+    sigma_minus = ROOT.TH1D('sigma_minus', '#pi^{-} %s SSA Deviation Per Run' % \
+        title[asym_key], 50, -7.0, 7.0)
+    if variable == 'jet_pt':
+        [h.SetTitle('Jet %s SSA' % title[asym_key]) for h in (final_hist_minus,final_hist_plus)]
+    marker_color = {'ll': ROOT.kBlack, 'ly':ROOT.kYellow, 'lb':ROOT.kBlue, 'ls':ROOT.kRed, 'us':ROOT.kBlack}
+    for h in (final_hist_plus, final_hist_minus):
+        h.SetMarkerColor( marker_color[asym_key] )
+        h.GetYaxis().SetRangeUser(-0.2, 0.2)
+        h.SetXTitle('run index')
+    final_hist_plus.SetMarkerStyle(21)
+    final_hist_minus.SetMarkerStyle(20)
+    for h in (sigma_plus, sigma_minus):
+        h.SetXTitle('n#sigma')
+    for i,f in enumerate(runlist):
+        hplus = asym_plus[f].GetAsymmetry(asym_key)
+        try:
+            sigma_plus.Fill(hplus.GetBinContent(1)/hplus.GetBinError(1))
+            final_hist_plus.SetBinContent( i+1, hplus.GetBinContent(1) )
+            final_hist_plus.SetBinError( i+1, hplus.GetBinError(1) )
+            print '%d % .4f % .4f % .4f' % (f, hplus.GetBinContent(1), hplus.GetBinError(1), hplus.GetBinContent(1)/hplus.GetBinError(1))
+        except ZeroDivisionError:
+            print 'ACK', f, hplus.GetBinContent(1), hplus.GetBinError(1)
+        
+        hplus.Delete()
+        
+        hminus = asym_minus[f].GetAsymmetry(asym_key)
+        try:
+            sigma_minus.Fill(hminus.GetBinContent(1)/hminus.GetBinError(1))
+            final_hist_minus.SetBinContent( i+1, hminus.GetBinContent(1) )
+            final_hist_minus.SetBinError( i+1, hminus.GetBinError(1) )
+        except ZeroDivisionError:
+            print 'ACK', f, hminus.GetBinContent(1), hminus.GetBinError(1)
+        
+        hminus.Delete()
+    
+    ROOT.gStyle.SetOptStat('oume')
+    ROOT.gStyle.SetOptFit(111)
+    
+    c1 = ROOT.TCanvas()
+    sigma_minus.Fit('gaus')
+    c2 = ROOT.TCanvas()
+    sigma_plus.Fit('gaus')
+    
+    ROOT.gStyle.SetOptStat(0)
+    ROOT.gStyle.SetErrorX(0.0)
+    ROOT.gStyle.SetOptFit(111)
+    
+    cp = ROOT.TCanvas('%s_ssa_run_plus' % asym_key)
+    final_hist_plus.Draw('e1')
+    final_hist_plus.Fit('pol0')
+    print ROOT.gROOT.GetFunction('pol0').GetProb()
+    cm = ROOT.TCanvas('%s_ssa_run_minus' % asym_key)
+    final_hist_minus.Draw('e1')
+    final_hist_minus.Fit('pol0')
+    print ROOT.gROOT.GetFunction('pol0').GetProb()
+    raw_input('wait here')
+    cp.Print('.png')
+    cm.Print('.png')
