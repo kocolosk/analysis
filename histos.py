@@ -1321,12 +1321,12 @@ def bsub(treeDir, runList=None, trigList=None):
     for fname in allfiles:
         if not fname.endswith('tree.root'): continue
         run = analysis.getRun(fname)
-        if runlist is None or run in runlist:
+        if runList is None or run in runList:
             os.sys.stderr.write('%d ' % run)
             os.system('bsub -q star_cas_short -e err/%d.err -o out/%d.out python -c \
                 "import analysis; analysis.histos.writeHistograms(\'%s\',globber=\'*%d*\', \
                 trigList=%s)"' \
-                % (run, run, treeDir, run, triglist))
+                % (run, run, treeDir, run, trigList))
             time.sleep(0.2)
 
 
