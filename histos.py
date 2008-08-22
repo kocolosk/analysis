@@ -330,7 +330,8 @@ class TrackHistogramCollection(dict):
         'dphi_deta', 'z', 'z_away', 'pt_near', 'pt_away', 'pt_bg', 'z_jet',
         'z_away_jet', 'xi', 'xi_away', 'ptMc_ptPr', 'ptMc_ptGl', 'etaMc_etaPr',
         'etaMc_etaGl', 'ptMc', 'away_mult', 'near_mult', 'away_lead_pt', 'near_lead_pt',
-        'lead_matched', 'lead_cutfail', 'lead_nomatch', 'z_away2', 'z_away3', 'z_away4']
+        'lead_matched', 'lead_cutfail', 'lead_nomatch', 'z_away2', 'z_away3', 'z_away4',
+        'away2_eta', 'away2_nHitsFit', 'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg']
     
     def __init__(self, name, tfile=None, keys=None):
         self.away_mult = 0
@@ -420,7 +421,18 @@ class TrackHistogramCollection(dict):
                 'inclusive if separate z-bins', 40, 0., 1.0)
             self['z_away4'].SetXTitle('p_{T}(#pi)/p_{T}(trigger jet)')
             
-
+            self['away2_eta'] = ROOT.TH1D('%s_away2_eta' % (name,), 'away-side #eta', \
+                self.mcEtaBins[0], self.mcEtaBins[1], self.mcEtaBins[2])
+            self['away2_dcaG'] = ROOT.TH1D('%s_away2_dcaG' % (name,), 'away-side |dcaG|', \
+                self.mcDcaGBins[0], self.mcDcaGBins[1], self.mcDcaGBins[2])
+            self['away2_nHitsFit'] = ROOT.TH1D('%s_away2_nHitsFit' % (name,), 'away-side nHitsFit', \
+                self.mcNFitBins[0], self.mcNFitBins[1], self.mcNFitBins[2])
+            self['away2_nSigmaPion'] = ROOT.TH1D('%s_away2_nSigmaPion' % (name,), \
+                'away-side n#sigma(#pi)', 240, -6.0, 6.0)
+            
+            self['z_away2_bg'] = ROOT.TH1D('%s_z_away2_bg' % name, '', 40, 0., 1.0)
+            self['z_away2_bg'].SetXTitle('p_{T}(#pi)/p_{T}(trigger jet)')
+            
             
     
     
@@ -1017,11 +1029,20 @@ class HistogramManager(dict):
                 if 10.0 < jet.Pt() < 30.0:
                     for track in sortedTracks:
                         tcuts.set(track)
-                        if tcuts.all and math.fabs(track.DeltaPhi(jet)) > 2.0:
-                            if track.charge() > 0:
-                                tp['z_away2'].Fill(track.Pt()/jet.Pt())
-                            else:
-                                tm['z_away2'].Fill(track.Pt()/jet.Pt())
+                        if math.fabs(track.DeltaPhi(jet)) > 2.0:
+                            c = (track.charge() > 0) and tp or tm
+                            if tcuts.dca and tcuts.fit and tcuts.pid:
+                                c['away2_eta'].Fill(track.eta())
+                            if tcuts.eta and tcuts.fit and tcuts.pid:
+                                c['away2_dcaG'].Fill(track.globalDca().mag())
+                            if tcuts.eta and tcuts.dca and tcuts.pid:
+                                c['away2_nHitsFit'].Fill(track.nHitsFit())
+                            if tcuts.eta and tcuts.dca and tcuts.fit:
+                                c['away2_nSigmaPion'].Fill(track.nSigmaPion())
+                            if tcuts.eta and tcuts.dca and tcuts.fit and tcuts.pid_bg:
+                                c['z_away2_bg'].Fill(track.Pt()/jet.Pt())
+                            if tcuts.all:
+                                c['z_away2'].Fill(track.Pt()/jet.Pt())
                             break
             
             for jet in inclusiveJets:
