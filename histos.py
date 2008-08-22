@@ -331,7 +331,8 @@ class TrackHistogramCollection(dict):
         'z_away_jet', 'xi', 'xi_away', 'ptMc_ptPr', 'ptMc_ptGl', 'etaMc_etaPr',
         'etaMc_etaGl', 'ptMc', 'away_mult', 'near_mult', 'away_lead_pt', 'near_lead_pt',
         'lead_matched', 'lead_cutfail', 'lead_nomatch', 'z_away2', 'z_away3', 'z_away4',
-        'away2_eta', 'away2_nHitsFit', 'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg']
+        'away2_eta', 'away2_nHitsFit', 'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg',
+        'vz']
     
     def __init__(self, name, tfile=None, keys=None):
         self.away_mult = 0
@@ -364,6 +365,8 @@ class TrackHistogramCollection(dict):
             self['nHitsFit'] = ROOT.TH1D('%s_nHitsFit' % (name,), 'nHitsFit', self.mcNFitBins[0], self.mcNFitBins[1], self.mcNFitBins[2])
             self['dEdx'] = ROOT.TH1D('%s_dEdx' % (name,), 'dE/dx', self.mcDEdxBins[0], self.mcDEdxBins[1], self.mcDEdxBins[2])
             self['dcaG'] = ROOT.TH1D('%s_dcaG' % (name,), '|dcaGlobal|', self.mcDcaGBins[0], self.mcDcaGBins[1], self.mcDcaGBins[2])
+            self['vz'] = ROOT.TH1D('%s_vz' % (name,), 'vz for good tracks', \
+                self.mcVzBins[0], self.mcVzBins[1], self.mcVzBins[2])
             
             self['nSigmaPion'] = ROOT.TH1D('%s_nSigmaPion' % (name,), 'n#sigma(#pi)', 240, -6.0, 6.0)
             
@@ -432,8 +435,6 @@ class TrackHistogramCollection(dict):
             
             self['z_away2_bg'] = ROOT.TH1D('%s_z_away2_bg' % name, '', 40, 0., 1.0)
             self['z_away2_bg'].SetXTitle('p_{T}(#pi)/p_{T}(trigger jet)')
-            
-            
     
     
     def fillMcTrack(self, track):
@@ -920,6 +921,8 @@ class HistogramManager(dict):
                 if not triggerOk[trig] or trig not in self.mytriggers: continue
                 tcoll = self[spin][trig].trackHistograms(track.charge())
                 tcoll.fillTrack(track, tcuts)
+                if tcuts.all:
+                    tcoll['vz'].Fill(event.vertex(0).z())
         
         if simu:
             for track in event.matchedPairs():
