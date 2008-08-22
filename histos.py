@@ -325,6 +325,7 @@ class TrackHistogramCollection(dict):
     mcPBins          = minimc.MiniMcHistos.pBins
     mcDEdxBins       = minimc.MiniMcHistos.dEdxBins
     mcDcaGBins       = minimc.MiniMcHistos.dcaGBins
+    mcVzBins         = minimc.MiniMcHistos.vzBins
     
     allKeys = ['pt', 'eta', 'phi', 'nHitsFit', 'dEdx', 'dcaG', 'nSigmaPion',
         'dphi_deta', 'z', 'z_away', 'pt_near', 'pt_away', 'pt_bg', 'z_jet',
