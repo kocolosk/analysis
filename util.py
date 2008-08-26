@@ -1,8 +1,12 @@
 def getRun(path):
-    """searches for an integer runnumber in the supplied path"""
+    """searches for an integer runnumber in the supplied path.
+    if not found, return the filename after stripping path and suffix info"""
     import re
     regex = re.search('(6|7)\d{6}',path)
-    return int(regex.group())
+    try:
+        return int(regex.group())
+    except AttributeError:
+        return os.path.basename(path).split('.')[0]
 
 
 def getFill(runnumber):
