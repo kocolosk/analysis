@@ -1333,22 +1333,64 @@ def combineSamples(outFileName, inputFileList):
 
 def bsub(treeDir, runList=None, trigList=None):
     import analysis
-    """submits a single writeHistograms job to LSF for each tree.root file in treeDir"""
+    """submits a single writeHistograms job to LSF for each ROOT file in treeDir"""
     allfiles = os.listdir(treeDir)
     try:
         os.mkdir('out')
         os.mkdir('err')
     except OSError: pass
     for fname in allfiles:
-        if not fname.endswith('tree.root'): continue
+        if not fname.endswith('.root'): continue
         run = analysis.getRun(fname)
         if runList is None or run in runList:
-            os.sys.stderr.write('%d ' % run)
-            os.system('bsub -q star_cas_short -e err/%d.err -o out/%d.out python -c \
-                "import analysis; analysis.histos.writeHistograms(\'%s\',globber=\'*%d*\', \
+            os.sys.stderr.write('%s ' % run)
+            os.system('bsub -q star_cas_short -e err/%s.err -o out/%s.out python -c \
+                "import analysis; analysis.histos.writeHistograms(\'%s\',globber=\'*%s*\', \
                 trigList=%s)"' \
                 % (run, run, treeDir, run, trigList))
             time.sleep(0.2)
+
+
+def condor(treeDir, runList=None, trigList=None):
+    import analysis
+    """submits a single writeHistograms job to Condor for each ROOT file in treeDir"""
+    allfiles = os.listdir(treeDir)
+    try:
+        os.mkdir('out')
+        os.mkdir('err')
+        os.mkdir('log')
+    except OSError: 
+        pass
+        
+    ## build the script that we will run -- note trick with sys.argv
+    f = open('job.py', 'w')
+    f.write('import sys\n')
+    f.write('import analysis\n')
+    f.write('analysis.histos.writeHistograms(\'%s\', globber=\'*%%s*\' %% sys.argv[1], trigList=%s)\n' % (treeDir, trigList))
+    
+    ## build the submit.condor file
+    f = open('submit.condor', 'w')
+    f.write('executable = /usr/bin/python\n')
+    f.write('getenv = True\n')
+    f.write('notification = Error\n')
+    f.write('notify_user = kocolosk@rcf.rhic.bnl.gov\n')
+    f.write('universe = vanilla\n')
+    f.write('stream_output = True\n')
+    f.write('stream_error = True\n')
+    f.write('transfer_executable = False\n\n')
+    
+    for fname in allfiles:
+        if not fname.endswith('.root'): continue
+        run = analysis.getRun(fname)
+        if runList is None or run in runList:
+            f.write('output = out/%s.out\n' % run)
+            f.write('error = err/%s.err\n' % run)
+            f.write('log = log/%s.condor.log\n' % run)
+            f.write('arguments = %s/job.py %s\n' % (os.getcwd(), run))
+            f.write('queue\n\n')
+            
+    ## and off we go
+    os.system('condor_submit submit.condor')
 
 
 if __name__ == '__main__':
