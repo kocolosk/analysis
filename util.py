@@ -2,6 +2,7 @@ def getRun(path):
     """searches for an integer runnumber in the supplied path.
     if not found, return the filename after stripping path and suffix info"""
     import re
+    import os
     regex = re.search('(6|7)\d{6}',path)
     try:
         return int(regex.group())
