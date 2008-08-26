@@ -12,6 +12,7 @@ import analysis
 import mcasym
 
 simu = False
+year = 2006
 
 pidCalibration = {
 6988 : ( 0.066608, 0.889596),
@@ -272,7 +273,7 @@ class JetCuts:
     
     
     def set(self, jet, event):
-        if event.runId() < 7000000:
+        if (not simu and event.runId() < 7000000) or (simu and year == 2005):
             self.eta = 0.2 < jet.detectorEta() < 0.8
             self.rt = 0.1 < (jet.tpcEtSum() / jet.Et()) < 0.9
             self.trig = []
@@ -877,12 +878,25 @@ class HistogramManager(dict):
         
         ## trigger selection -- convert transverse trigger IDs to longitudinal
         triggerOk = {}
-        if simu or event.runId() < 7000000:
-            if simu:
-                for trigId in (96011, 96201, 96211, 96221, 96233):                
-                    triggerOk[str(trigId)] = event.isSimuTrigger(trigId)
-                    triggerOk['%d_hw' % (trigId,)] = False
-            elif event.isPolLong():
+        if simu:
+            for trigId in (96011, 96201, 96211, 96221, 96233, \
+                    117001, 137221, 137222, 137611, 137622):
+                triggerOk[str(trigId)] = event.isSimuTrigger(trigId)
+                triggerOk['%d_hw' % (trigId,)] = False
+            t = triggerOk
+            if year == 2005:
+                triggerOk['hightower'] = t['96011'] and t['96201']
+                triggerOk['jetpatch'] = t['96011'] and t['96221']
+                triggerOk['alltrigs'] = t['hightower'] or t['jetpatch']
+                activeTriggers = ('96011', '96201', '96211', '96221', '96233', \
+                    'hightower', 'jetpatch', 'alltrigs')
+            elif year == 2006:
+                triggerOk['jetpatch'] = t['117001'] and t['137221']
+                triggerOk['alltrigs'] = t['jetpatch']
+                activeTriggers = ('117001', '137221', '137222', '137611', '137622', \
+                    'jetpatch', 'alltrigs')
+        elif event.runId() < 7000000:
+            if event.isPolLong():
                 for trigId in (96011, 96201, 96211, 96221, 96233):
                     triggerOk[str(trigId)] = event.isTrigger(trigId) and event.isSimuTrigger(trigId)
                     triggerOk['%d_hw' % (trigId,)] = event.isTrigger(trigId)
@@ -941,7 +955,10 @@ class HistogramManager(dict):
             except ValueError:
                 if trig == 'jetpatch':
                     ## use lower-threshold triggers since they're a superset here
-                    itrig = (event.runId() < 7000000) and 96221 or 137221
+                    if (not simu and event.runId() < 7000000) or (simu and year == 2005):
+                        itrig = 96221
+                    else:
+                        itrig = 137221
                 else:
                     continue
             
