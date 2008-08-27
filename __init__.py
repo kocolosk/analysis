@@ -29,6 +29,8 @@ import minimc
 import histos
 import tree
 import datamc2 as datamc
+import simu
+import graphics
 
 ## classes
 from asym   import AsymmetryGenerator, ScalarCounts, Polarizations
