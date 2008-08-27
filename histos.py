@@ -1393,6 +1393,84 @@ def condor(treeDir, runList=None, trigList=None):
     os.system('condor_submit submit.condor')
 
 
+def hadd_simu(histDir='./'):
+    """groups files by dataset, then calls hadd on each"""
+    files = os.listdir(histDir)
+    prefixes = [os.path.basename(f)[:7] for f in files if f.endswith('.root')]
+    uniq = sets.Set(prefixes)
+    
+    ## build the hadd.condor file
+    f = open('hadd.condor', 'w')
+    f.write('executable = hadd\n')
+    f.write('getenv = True\n')
+    f.write('notification = Error\n')
+    f.write('notify_user = kocolosk@rcf.rhic.bnl.gov\n')
+    f.write('universe = vanilla\n')
+    f.write('stream_output = True\n')
+    f.write('stream_error = True\n')
+    f.write('transfer_executable = False\n\n')
+    
+    for elem in uniq:
+        print elem
+        f.write('output = hadd/%s.out\n' % elem)
+        f.write('error = hadd/%s.err\n' % elem)
+        f.write('log = hadd/%s.condor.log\n' % elem)
+        f.write('arguments = %s.cphist.root %s/%s_*.root\n' % (elem, os.getcwd(), elem))
+        f.write('queue\n\n')
+    
+    f.close()
+    
+    ## and off we go
+    os.system('condor_submit hadd.condor')
+
+
+def condor_simu(treeDir, runList=None, trigList=None):
+    """
+    submits a single writeHistograms job to Condor for each *sample* in treeDir.
+    combines condor() and hadd_simu() into one step to (hopefully) save time
+    """
+    import analysis
+    allfiles = os.listdir(treeDir)
+    try:
+        os.mkdir('out')
+        os.mkdir('err')
+        os.mkdir('log')
+    except OSError: 
+        pass
+        
+    files = os.listdir(treeDir)
+    prefixes = [os.path.basename(f)[:7] for f in files if f.endswith('.root')]
+    uniq = sets.Set(prefixes)
+    
+    ## build the script that we will run -- note trick with sys.argv
+    f = open('job.py', 'w')
+    f.write('import sys\n')
+    f.write('import analysis\n')
+    f.write('analysis.histos.writeHistograms(\'%s\', globber=\'*%%s*\' %% sys.argv[1], trigList=%s)\n' % (treeDir, trigList))
+    
+    ## build the submit.condor file
+    f = open('submit.condor', 'w')
+    f.write('executable = /usr/bin/python\n')
+    f.write('getenv = True\n')
+    f.write('notification = Error\n')
+    f.write('notify_user = kocolosk@rcf.rhic.bnl.gov\n')
+    f.write('universe = vanilla\n')
+    f.write('stream_output = True\n')
+    f.write('stream_error = True\n')
+    f.write('transfer_executable = False\n\n')
+    
+    ## add jobs for each simulation sample
+    for sample in uniq:
+        f.write('output = out/%s.out\n' % sample)
+        f.write('error = err/%s.err\n' % sample)
+        f.write('log = log/%s.condor.log\n' % sample)
+        f.write('arguments = %s/job.py %s\n' % (os.getcwd(), sample))
+        f.write('queue\n\n')
+    
+    ## and off we go
+    os.system('condor_submit submit.condor')
+
+
 if __name__ == '__main__':
     directory = sys.argv[1]
     run = sys.argv[2]
