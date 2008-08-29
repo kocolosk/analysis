@@ -31,6 +31,7 @@ import tree
 import datamc2 as datamc
 import simu
 import graphics
+import plots
 
 ## classes
 from asym   import AsymmetryGenerator, ScalarCounts, Polarizations
