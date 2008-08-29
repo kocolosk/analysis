@@ -464,7 +464,7 @@ class TrackHistogramCollection(dict):
             self['pt'].Fill(track.pt())
             self['phi'].Fill(track.phi())
             self['dEdx'].Fill(track.dEdx() * 1e7)
-            self['distortedPt'].Fill(distortedPt(track.Pt()))
+            self['distortedPt'].Fill(distortedPt(track))
         
         if tcuts.eta and tcuts.dca and tcuts.fit and tcuts.pid_bg:
             self['pt_bg'].Fill(track.pt())
