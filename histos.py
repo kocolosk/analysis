@@ -3,6 +3,7 @@ import os
 import sys
 ##import uuid 
 import time
+import sets
 from array import array
 
 import ROOT
@@ -276,7 +277,7 @@ class JetCuts:
         if (not simu and event.runId() < 7000000) or (simu and year == 2005):
             self.eta = 0.2 < jet.detectorEta() < 0.8
             self.rt = 0.1 < (jet.tpcEtSum() / jet.Et()) < 0.9
-            self.trig = []
+            self.trig = ['96011']
             
             ## HT geometric trigger condition
             for particle in jet.particles():
@@ -302,7 +303,7 @@ class JetCuts:
             #### WRONG!!!
             # self.rt = (jet.tpcEtSum() / jet.Et()) < 0.85
             self.rt = (jet.tpcEtSum() / jet.Et()) > 0.08
-            self.trig = []
+            self.trig = ['117001']
         
             ## JP geometric trigger condition
             for patchId in range(12):
@@ -334,7 +335,7 @@ class TrackHistogramCollection(dict):
         'etaMc_etaGl', 'ptMc', 'away_mult', 'near_mult', 'away_lead_pt', 'near_lead_pt',
         'lead_matched', 'lead_cutfail', 'lead_nomatch', 'z_away2', 'z_away3', 'z_away4',
         'away2_eta', 'away2_nHitsFit', 'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg',
-        'vz']
+        'vz', 'distortedPt']
     
     def __init__(self, name, tfile=None, keys=None):
         self.away_mult = 0
@@ -437,6 +438,10 @@ class TrackHistogramCollection(dict):
             
             self['z_away2_bg'] = ROOT.TH1D('%s_z_away2_bg' % name, '', 40, 0., 1.0)
             self['z_away2_bg'].SetXTitle('p_{T}(#pi)/p_{T}(trigger jet)')
+            
+            self['distortedPt'] = ROOT.TH1D('%s_distortedPt' % name, \
+                'pT corrected for space charge distortion', \
+                self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
     
     
     def fillMcTrack(self, track):
@@ -459,6 +464,7 @@ class TrackHistogramCollection(dict):
             self['pt'].Fill(track.pt())
             self['phi'].Fill(track.phi())
             self['dEdx'].Fill(track.dEdx() * 1e7)
+            self['distortedPt'].Fill(distortedPt(track.Pt()))
         
         if tcuts.eta and tcuts.dca and tcuts.fit and tcuts.pid_bg:
             self['pt_bg'].Fill(track.pt())
@@ -1175,7 +1181,7 @@ def writeHistograms(treeDir='~/data/run5/tree', globber='*', trigList=None):
     chain.GetEntry(0)
     fname = chain.GetCurrentFile().GetName()
     if simu:
-        outname = os.path.basename(fname).replace('.chargedPions.','.cphist.')
+        outname = os.path.basename(fname)[:7] + '.cphist.root'
     else:
         outname = os.path.basename(fname).replace('.tree.','.hist.')
     outFile = ROOT.TFile(outname, 'recreate')
@@ -1187,18 +1193,18 @@ def writeHistograms(treeDir='~/data/run5/tree', globber='*', trigList=None):
         
         ## found a new runnumber
         if fname != chain.GetCurrentFile().GetName():
-            outFile.cd()
-            print 'saving', outname
-            h.Write()
-            outFile.Close()
             fname = chain.GetCurrentFile().GetName()
             if simu:
-                outname = os.path.basename(fname).replace('.chargedPions.','.cphist.')
+                print 'starting', fname
             else:
+                outFile.cd()
+                print 'saving', outname
+                h.Write()
+                outFile.Close()
                 outname = os.path.basename(fname).replace('.tree.','.hist.')
-            outFile = ROOT.TFile(outname, 'recreate')
-            h = HistogramManager(triggers=trigList)
-            if not simu: h.fill = analysis.getFill(analysis.getRun(fname))
+                outFile = ROOT.TFile(outname, 'recreate')
+                h = HistogramManager(triggers=trigList)
+                h.fill = analysis.getFill(analysis.getRun(fname))
             
         h.processEvent(chain.event)
     
@@ -1223,6 +1229,17 @@ def zbin(zval):
     zmax = [0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 1.0]
     for i,z in enumerate(zmax):
         if zval < z: return i+1
+
+
+def distortedPt(track):
+    """correct track momentum in simulations for space charge distortion"""
+    A = 8.597E-04
+    pT = track.Pt()
+    if not simu: return pT
+    if track.charge() > 0:
+        return (pT - A*pT*pT)
+    else:
+        return (pT + A*pT*pT)
 
 
 def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist',useLSF=False,fillList=None):
@@ -1424,7 +1441,7 @@ def hadd_simu(histDir='./'):
     os.system('condor_submit hadd.condor')
 
 
-def condor_simu(treeDir, runList=None, trigList=None):
+def condor_simu(treeDir, trigList=None, year=2006):
     """
     submits a single writeHistograms job to Condor for each *sample* in treeDir.
     combines condor() and hadd_simu() into one step to (hopefully) save time
@@ -1446,6 +1463,8 @@ def condor_simu(treeDir, runList=None, trigList=None):
     f = open('job.py', 'w')
     f.write('import sys\n')
     f.write('import analysis\n')
+    f.write('analysis.histos.simu = True\n')
+    f.write('analysis.histos.year = %d\n' % year)
     f.write('analysis.histos.writeHistograms(\'%s\', globber=\'*%%s*\' %% sys.argv[1], trigList=%s)\n' % (treeDir, trigList))
     
     ## build the submit.condor file
@@ -1466,6 +1485,8 @@ def condor_simu(treeDir, runList=None, trigList=None):
         f.write('log = log/%s.condor.log\n' % sample)
         f.write('arguments = %s/job.py %s\n' % (os.getcwd(), sample))
         f.write('queue\n\n')
+    
+    f.close()
     
     ## and off we go
     os.system('condor_submit submit.condor')
