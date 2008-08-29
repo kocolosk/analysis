@@ -93,11 +93,13 @@ def hadd_interactive(histDir, runlist, trig, spin, charge, key):
     import ROOT
     from glob import glob
     import os.path
+    from sys import stdout
     allFiles = glob( os.path.join(histDir, "*.root") )
     if charge == None:
         keystring = "_%s_%s_%s" % (trig,spin,key)
     else:
         keystring = "_%s_%s_%s_%s" % (trig,spin,charge,key)
+    stdout.write('getting %s ' % keystring)
     ## should check that the first file is in the runlist
     f = ROOT.TFile(allFiles[0])
     h = f.Get(keystring).Clone()
@@ -106,8 +108,10 @@ def hadd_interactive(histDir, runlist, trig, spin, charge, key):
     for fname in allFiles[1:]:
         run = getRun(fname)
         if runlist is None or run in runlist:
-            print fname, keystring
+            stdout.write('.')
+            stdout.flush()
             tmp = ROOT.TFile(fname)
             h.Add( tmp.Get(keystring) )
             tmp.Close()
+    stdout.write(' done\n\n')
     return h
