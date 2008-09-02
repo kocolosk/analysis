@@ -31,7 +31,6 @@ import tree
 import datamc2 as datamc
 import simu
 import graphics
-import plots
 
 ## classes
 from asym   import AsymmetryGenerator, ScalarCounts, Polarizations
@@ -45,5 +44,7 @@ from util   import *
 ## runlists
 from asym   import golden_runlist_c, minbias_runs, final_runlist_run5
 from runlists import *
+
+import plots
 
 __all__ = ['asym','datamc2','histos','minimc', 'runlists', 'util']
