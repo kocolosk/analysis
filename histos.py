@@ -648,7 +648,7 @@ class HistogramCollection(dict):
     
     allKeys = ['nVertices', 'vx_vy', 'vz', 'vzBBC', 'spinBit', 'bx7', 'bbc', 
         'jet_pt_balance', 'jet_p_balance', 'jet_eta_balance', 'jet_phi_balance', 
-        'cosTheta', 'hardP', 'x1','x2','x1_x2','STD','MAX','MIN','ZERO','GS_C','denom', 
+        'cosTheta', 'hardP', 'x1','x2','x1_x2', 
         'jet_pt', 'lead_neutral', 'inclusive_jet_mult', 'dijet_mult']
     
     def __init__(self, name, tfile=None, keys=None):
@@ -712,11 +712,6 @@ class HistogramCollection(dict):
             self['x1'].Fill(event.x1())
             self['x2'].Fill(event.x2())
             self['x1_x2'].Fill(event.x1(), event.x2())
-            
-            for scenario in ('STD','MIN','MAX','ZERO','GS_NLOC'):
-                self[scenario].Fill(mcasym.num(scenario, event))
-            self['denom'].Fill(mcasym.denom('NLO', event))
-            
     
     
     def fillJets(self, triggerJet, awayJet=None):
