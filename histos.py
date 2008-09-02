@@ -362,6 +362,24 @@ class TrackHistogramCollection(dict):
                     self.mcEtaBins[0], self.mcEtaBins[1], self.mcEtaBins[2])
                 self['ptMc'] = ROOT.TH1D('%s_ptMc' % name, 'true track p_{T}', \
                     self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+                
+                if year == 2005:
+                    self['STD'] = ROOT.TH1D('%s_STD' % name, 'GRSV-STD', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+                    self['MAX'] = ROOT.TH1D('%s_MAX' % name, 'GRSV-MAX', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+                    self['MIN'] = ROOT.TH1D('%s_MIN' % name, 'GRSV-MIN', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+                    self['ZERO'] = ROOT.TH1D('%s_ZERO' % name, 'GRSV-ZERO', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+                    self['GS_NLOC'] = ROOT.TH1D('%s_GS_NLOC' % name, 'GS Set C', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+                    self['denom'] = ROOT.TH1D('%s_denom' % name, 'Asymmetry denominator', \
+                        self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+                else:
+                    self['STD'] = ROOT.TH1D('%s_STD' % name, 'GRSV-STD', 40, 0.0, 1.0)
+                    self['MAX'] = ROOT.TH1D('%s_MAX' % name, 'GRSV-MAX', 40, 0.0, 1.0)
+                    self['MIN'] = ROOT.TH1D('%s_MIN' % name, 'GRSV-MIN', 40, 0.0, 1.0)
+                    self['ZERO'] = ROOT.TH1D('%s_ZERO' % name, 'GRSV-ZERO', 40, 0.0, 1.0)
+                    self['GS_NLOC'] = ROOT.TH1D('%s_GS_NLOC' % name, 'GS Set C', 40, 0.0, 1.0)
+                    self['denom'] = ROOT.TH1D('%s_denom' % name, 'Asymmetry denominator', \
+                        40, 0.0, 1.0)
+            
             self['pt'] = ROOT.TH1D('%s_pt' % (name,), 'track p_{T}', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
             self['eta'] = ROOT.TH1D('%s_eta' % (name,), 'track #eta', self.mcEtaBins[0], self.mcEtaBins[1], self.mcEtaBins[2])
             self['phi'] = ROOT.TH1D('%s_phi' % (name,), 'track #phi', self.mcPhiBins[0], self.mcPhiBins[1], self.mcPhiBins[2])
@@ -646,15 +664,7 @@ class HistogramCollection(dict):
                 self['x1'] = ROOT.TH1D('%s_x1' % name, 'x1', 200, 0., 1.)
                 self['x2'] = ROOT.TH1D('%s_x2' % name, 'x2', 200, 0., 1.)
                 self['x1_x2'] = ROOT.TH2D('%s_x1_x2' % name, 'x1 vs. x2', 200, 0., 1., 200, 0., 1.) 
-                self['STD'] = ROOT.TH1D('%s_STD' % name, 'GRSV-STD', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-                self['MAX'] = ROOT.TH1D('%s_MAX' % name, 'GRSV-MAX', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-                self['MIN'] = ROOT.TH1D('%s_MIN' % name, 'GRSV-MIN', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-                self['ZERO'] = ROOT.TH1D('%s_ZERO' % name, 'GRSV-ZERO', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-                self['GS_NLOC'] = ROOT.TH1D('%s_GS_NLOC' % name, 'GS Set C', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-                self['denom'] = ROOT.TH1D('%s_denom' % name, 'Asymmetry denominator', \
-                    self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-                
-                
+            
             self['nVertices'] = ROOT.TH1D('%s_nVertices' % (name,),'',15,-0.5,14.5)
             self['vx_vy'] = ROOT.TH2D('%s_vx_vy' % (name,),'',400,-2.0,2.0, 400,-2.0,2.0)
             self['vz'] = ROOT.TH1D('%s_vz' % (name,),'',self.mcVzBins[0], self.mcVzBins[1], self.mcVzBins[2])
@@ -1058,6 +1068,7 @@ class HistogramManager(dict):
                         tcuts.set(track)
                         if math.fabs(track.DeltaPhi(jet)) > 2.0:
                             c = (track.charge() > 0) and tp or tm
+                            z = track.Pt()/jet.Pt()
                             if tcuts.dca and tcuts.fit and tcuts.pid:
                                 c['away2_eta'].Fill(track.eta())
                             if tcuts.eta and tcuts.fit and tcuts.pid:
@@ -1067,9 +1078,12 @@ class HistogramManager(dict):
                             if tcuts.eta and tcuts.dca and tcuts.fit:
                                 c['away2_nSigmaPion'].Fill(track.nSigmaPion())
                             if tcuts.eta and tcuts.dca and tcuts.fit and tcuts.pid_bg:
-                                c['z_away2_bg'].Fill(track.Pt()/jet.Pt())
+                                c['z_away2_bg'].Fill(z)
                             if tcuts.all:
-                                c['z_away2'].Fill(track.Pt()/jet.Pt())
+                                c['z_away2'].Fill(z)
+                                for scenario in ('STD','MIN','MAX','ZERO','GS_NLOC'):
+                                    c[scenario].Fill(z, mcasym.num(scenario, event))
+                                c['NLO'].Fill(z, mcasym.denom('NLO', event))
                             break
             
             for jet in inclusiveJets:
