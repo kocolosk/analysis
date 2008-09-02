@@ -335,7 +335,7 @@ class TrackHistogramCollection(dict):
         'etaMc_etaGl', 'ptMc', 'away_mult', 'near_mult', 'away_lead_pt', 'near_lead_pt',
         'lead_matched', 'lead_cutfail', 'lead_nomatch', 'z_away2', 'z_away3', 'z_away4',
         'away2_eta', 'away2_nHitsFit', 'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg',
-        'vz', 'distortedPt']
+        'vz', 'distortedPt', 'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC']
     
     def __init__(self, name, tfile=None, keys=None):
         self.away_mult = 0
