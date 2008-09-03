@@ -1078,7 +1078,7 @@ class HistogramManager(dict):
                                 c['z_away2'].Fill(z)
                                 for scenario in ('STD','MIN','MAX','ZERO','GS_NLOC'):
                                     c[scenario].Fill(z, mcasym.num(scenario, event))
-                                c['NLO'].Fill(z, mcasym.denom('NLO', event))
+                                c['denom'].Fill(z, mcasym.denom('NLO', event))
                             break
             
             for jet in inclusiveJets:
