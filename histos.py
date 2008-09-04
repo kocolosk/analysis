@@ -335,7 +335,7 @@ class TrackHistogramCollection(dict):
         'etaMc_etaGl', 'ptMc', 'away_mult', 'near_mult', 'away_lead_pt', 'near_lead_pt',
         'lead_matched', 'lead_cutfail', 'lead_nomatch', 'z_away2', 'z_away3', 'z_away4',
         'away2_eta', 'away2_nHitsFit', 'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg',
-        'vz', 'distortedPt', 'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC']
+        'vz', 'distortedPt', 'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom']
     
     def __init__(self, name, tfile=None, keys=None):
         self.away_mult = 0
@@ -372,13 +372,13 @@ class TrackHistogramCollection(dict):
                     self['denom'] = ROOT.TH1D('%s_denom' % name, 'Asymmetry denominator', \
                         self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
                 else:
-                    self['STD'] = ROOT.TH1D('%s_STD' % name, 'GRSV-STD', 40, 0.0, 1.0)
-                    self['MAX'] = ROOT.TH1D('%s_MAX' % name, 'GRSV-MAX', 40, 0.0, 1.0)
-                    self['MIN'] = ROOT.TH1D('%s_MIN' % name, 'GRSV-MIN', 40, 0.0, 1.0)
-                    self['ZERO'] = ROOT.TH1D('%s_ZERO' % name, 'GRSV-ZERO', 40, 0.0, 1.0)
-                    self['GS_NLOC'] = ROOT.TH1D('%s_GS_NLOC' % name, 'GS Set C', 40, 0.0, 1.0)
+                    self['STD'] = ROOT.TH1D('%s_STD' % name, 'GRSV-STD', 20, 0.0, 1.0)
+                    self['MAX'] = ROOT.TH1D('%s_MAX' % name, 'GRSV-MAX', 20, 0.0, 1.0)
+                    self['MIN'] = ROOT.TH1D('%s_MIN' % name, 'GRSV-MIN', 20, 0.0, 1.0)
+                    self['ZERO'] = ROOT.TH1D('%s_ZERO' % name, 'GRSV-ZERO', 20, 0.0, 1.0)
+                    self['GS_NLOC'] = ROOT.TH1D('%s_GS_NLOC' % name, 'GS Set C', 20, 0.0, 1.0)
                     self['denom'] = ROOT.TH1D('%s_denom' % name, 'Asymmetry denominator', \
-                        40, 0.0, 1.0)
+                        20, 0.0, 1.0)
             
             self['pt'] = ROOT.TH1D('%s_pt' % (name,), 'track p_{T}', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
             self['eta'] = ROOT.TH1D('%s_eta' % (name,), 'track #eta', self.mcEtaBins[0], self.mcEtaBins[1], self.mcEtaBins[2])
@@ -1076,9 +1076,10 @@ class HistogramManager(dict):
                                 c['z_away2_bg'].Fill(z)
                             if tcuts.all:
                                 c['z_away2'].Fill(z)
+                                var = year==2006 and z or track.Pt()
                                 for scenario in ('STD','MIN','MAX','ZERO','GS_NLOC'):
-                                    c[scenario].Fill(z, mcasym.num(scenario, event))
-                                c['denom'].Fill(z, mcasym.denom('NLO', event))
+                                    c[scenario].Fill(var, mcasym.num(scenario, event))
+                                c['denom'].Fill(var, mcasym.denom('NLO', event))
                             break
             
             for jet in inclusiveJets:
