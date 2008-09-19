@@ -17,14 +17,16 @@ class datapoint:
         self.y          = y
         self.stat       = stat
         self.sys        = sys
-        
+    
     def add(self, other):
         """add values from other into self"""
         assert(self.x == other.x)
         assert(self.xlow == other.xlow)
         assert(self.binwidth == other.binwidth)
-        err2 = 1.0/(self.stat**2 + self.sys**2) + 1.0/(other.stat**2 + other.sys**2)
-        mean = (self.y/(self.stat**2 + self.sys**2) + other.y/(other.stat**2+other.sys**2))/err2
+        err2 = 1.0/(self.stat**2 + self.sys**2) + \
+            1.0/(other.stat**2 + other.sys**2)
+        mean = (self.y/(self.stat**2 + self.sys**2) + \
+            other.y/(other.stat**2+other.sys**2))/err2
         self.y = mean
         try:
             self.stat = 1.0/math.sqrt(1.0/(self.stat**2) + 1.0/(other.stat**2))
@@ -34,7 +36,8 @@ class datapoint:
             self.sys = 1.0/math.sqrt(1.0/(self.sys**2) + 1.0/(other.sys**2))
         except ZeroDivisionError:
             pass
-        
+    
+
 # 1/Nevent d2 N / (2π pT dpT dy) [c2/GeV2]
 mbPlusYield = [
 datapoint( x=3.50e-01, xlow=3.00e-01, binwidth=1.00e-01, y=9.71e-01, stat=1.21e-02, sys=7.76e-02 ),
@@ -61,7 +64,6 @@ datapoint( x=6.50e+00, xlow=6.00e+00, binwidth=1.00e+00, y=1.07e-07, stat=2.11e-
 datapoint( x=7.50e+00, xlow=7.00e+00, binwidth=1.00e+00, y=3.27e-08, stat=1.25e-08, sys=4.25e-09 ),
 datapoint( x=9.00e+00, xlow=8.00e+00, binwidth=2.00e+00, y=7.83e-09, stat=4.58e-09, sys=1.02e-09 )
 ]
-
 
 mbMinusYield = [
 datapoint( x=3.50e-01, xlow=3.00e-01, binwidth=1.00e-01, y=9.71e-01, stat=1.22e-02, sys=7.76e-02 ),
@@ -349,7 +351,10 @@ datapoint( x=1.950E+01, xlow=1.900E+01, binwidth=1.000E+00, y=1.242E+02 )
 ]
 
 class minibulb:
-    """simple struct to store prescale and event counts for a given runnumber, trigId combo"""
+    """
+    simple struct to store prescale and event counts for a given runnumber, 
+    trigId combo
+    """
     def __init__(self):
         self.prescale               = 0.0
         self.triggers               = 0
@@ -360,7 +365,9 @@ class minibulb:
 
 class lightbulb:
     def __init__(self, minBiasId, vertexCut = 60, sigmaBBC = 26.1):
-        """class responsible for calculation of sampled integrated luminosities"""
+        """
+        class responsible for calculation of sampled integrated luminosities
+        """
         self.vertexCut  = vertexCut
         self.sigmaBBC   = sigmaBBC
         self.minBiasId  = minBiasId
@@ -507,9 +514,12 @@ class lightbulb:
     
     
     def printSummary(self):
-        print '==========================================================================================='
-        print 'trigId    L_int_mb      ε_vtx  ε_mb   vz     vz_mb    L_samp_mb     < ps >      L_sampled'
-        print '-------------------------------------------------------------------------------------------'
+        print '================================================================\
+        ==========================='
+        print 'trigId    L_int_mb      ε_vtx  ε_mb   vz     vz_mb    L_samp_mb \
+           < ps >      L_sampled'
+        print '----------------------------------------------------------------\
+        ---------------------------'
         trigList = self.data.keys()
         trigList.sort()
         for trigId in trigList:
@@ -523,8 +533,11 @@ class lightbulb:
             psFactor    = self.prescaleFactor(trigId, runList)
             l_samp      = self.sampledLuminosity(trigId, runList)
             print '%6d  %s   %5.3f  %5.3f  %5.3f  %5.3f  %s   %7.1f   %s' % \
-                (trigId, self.prettyPrint(l_int_mb), eps_vtx, eps_vtx_mb, vz, vz_mb, self.prettyPrint(l_samp_mb), psFactor, self.prettyPrint(l_samp))
-        print '==========================================================================================='
+                (trigId, self.prettyPrint(l_int_mb), eps_vtx, eps_vtx_mb, vz, 
+                vz_mb, self.prettyPrint(l_samp_mb), psFactor, 
+                self.prettyPrint(l_samp))
+        print '================================================================\
+        ==========================='
     
 
 
@@ -566,13 +579,13 @@ def initReader(reader):
     reader.requireShouldFire    = False
 
 # Some notes about Spectra's cross section
-# Figure 2 in nucl-ex/0601033 plots charge-separated invariant yields in terms of 
+# Figure 2 in nucl-ex/0601033 plots charge-separated invariant yields as 
 
 # (1/Nevents) * 1/(2pi*pt) * d^2/dptdy (N_pi)
 
-# well, sigma_BBC == N_ev/L, so if you average these yields and multiply by sigma_BBC * E/pT 
-# you should get the cross section in Figure 6 of that paper.  Next step is to make comparisons 
-# to Marco's new theory predictions
+# well, sigma_BBC == N_ev/L, so if you average these yields and multiply by 
+# sigma_BBC * E/pT you should get the cross section in Figure 6 of that paper.  
+# Next step is to make comparisons to Marco's new theory predictions
 
 def plotOldYields():
     graphPlus = ROOT.TGraphErrors(len(mbPlusYield))
@@ -667,7 +680,7 @@ def comboPlot(dataPoints, theoryPoints=None):
     dataGraphX = ROOT.TGraphErrors(len(dataPoints))
     for row,elem in enumerate(dataPoints):
         dataGraphX.SetPoint(row, elem.x, elem.y)
-        dataGraphX.SetPointError(row, 0.0, math.sqrt(elem.stat**2 + elem.sys**2))
+        dataGraphX.SetPointError(row,0.0,math.sqrt(elem.stat**2 + elem.sys**2))
     dataGraphX.Draw('P')
     
     theoryGraph = ROOT.TGraph(len(theoryPoints))
@@ -766,7 +779,7 @@ def simpleXsecPlot(dataPoints, theoryPoints=None):
     dataGraph1 = ROOT.TGraphErrors(len(dataPoints))
     for row,elem in enumerate(dataPoints):
         dataGraph1.SetPoint(row, elem.x, elem.y)
-        dataGraph1.SetPointError(row, 0.0, math.sqrt(elem.stat**2 + elem.sys**2))
+        dataGraph1.SetPointError(row,0.0,math.sqrt(elem.stat**2 + elem.sys**2))
         
     c1 = ROOT.TCanvas('c1')
     c1.SetLogy()
@@ -789,7 +802,7 @@ def simpleXsecPlot(dataPoints, theoryPoints=None):
     dataGraph2 = ROOT.TGraphErrors(len(dataPoints))
     for row,elem in enumerate(dataPoints):
         dataGraph2.SetPoint(row, elem.x, elem.y / theoryGraph.Eval(elem.x))
-        dataGraph1.SetPointError(row, 0.0, math.sqrt(elem.stat**2 + elem.sys**2))
+        dataGraph1.SetPointError(row,0.0,math.sqrt(elem.stat**2 + elem.sys**2))
         
     
     dataGraph2.SetTitle('Data/Theory Ratio for #pi^{-}')

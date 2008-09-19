@@ -665,7 +665,8 @@ long2_run6 = [
  7142001,
  7142005,
  #7142006, ## Murad -- No tpc
- #7142012, ## Murad -- failed : bbc, jets, jntows, jntrks, jpt, jrt, jtrkpt, jtowpt, jtrkdca, zv
+ #7142012, ## Murad -- failed : bbc, jets, jntows, jntrks, jpt, jrt, jtrkpt, j
+           ## towpt, jtrkdca, zv
  #7142014, ## no relative luminosities
  #7142015, ## no relative luminosities
  7142016,
@@ -687,8 +688,10 @@ long2_run6 = [
  7142048,
  7142049, 
  #7142052, ## no relative luminosities
- #7142059, ## Murad -- failed : bbc, jets, jntows, jntrks, jpt, jrt, jtrkpt, jtowpt, jtrkdca, jtrkdcaxy
- #7142060, ## Murad -- failed : bbc, jets, jntows, jntrks, jpt, jrt, jtrkpt, jtowpt, jtrkdca, zv
+ #7142059, ## Murad -- failed : bbc, jets, jntows, jntrks, jpt, jrt, jtrkpt, 
+           ## jtowpt, jtrkdca, jtrkdcaxy
+ #7142060, ## Murad -- failed : bbc, jets, jntows, jntrks, jpt, jrt, jtrkpt, 
+           ## jtowpt, jtrkdca, zv
  7142061,
  7143001,
  7143004,

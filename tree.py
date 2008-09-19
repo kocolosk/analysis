@@ -7,10 +7,12 @@ trackDir = '/Volumes/scratch/common/run6/chargedPions'
 jetDir   = '/Volumes/scratch/common/run6/jets'
 
 def fromJetSkim(runnumber):
-    """save a new StChargedPionEvent tree in $PWD, optionally including tracks and jets"""   
+    """
+    save an StChargedPionEvent tree in $PWD, optionally including tracks & jets
+    """
     skimFile = ROOT.TFile('%s/jetSkim_%d.tree.root' % (skimDir, runnumber))
     
-    trackFile = ROOT.TFile('%s/chargedPions_%d.tree.root' % (trackDir, runnumber))
+    trackFile = ROOT.TFile('%s/chargedPions_%d.tree.root' % (trackDir,runnumber))
     try:
         trackFile.chargedPionTree.BuildIndex('run','event')
     except AttributeError:
@@ -31,7 +33,8 @@ def fromJetSkim(runnumber):
     except AttributeError:
         ConeJets = jetFile.jet.ConeJets12
         
-    print '%d : skim=%d track=%d jet=%d' % (runnumber, skimFile.jetSkimTree.GetEntries(), \
+    print '%d : skim=%d track=%d jet=%d' % (runnumber, \
+        skimFile.jetSkimTree.GetEntries(), \
         trackFile.chargedPionTree.GetEntries(), jetFile.jet.GetEntries())
     
     outFile = ROOT.TFile('chargedPions_%d.tree.root' % (runnumber,), 'recreate')
@@ -117,7 +120,9 @@ def measureReadSpeed():
 
 
 def integratedLuminosity(tree, minbiasId=96011):
-    """returns recorded integrated luminosity seen by minbias trigger in nb^-1"""
+    """
+    returns recorded integrated luminosity seen by minbias trigger in nb^-1
+    """
     bbcXsec = 26.1 * 1e6 ## in nanobarns
     
     tree.SetBranchStatus('*', 0)
@@ -134,7 +139,7 @@ def integratedLuminosity(tree, minbiasId=96011):
     return (mbEventCounter * prescale) / bbcXsec
 
 
-def makeEventLists(fname='~/work/charged-pion-event-2/chargedPions_6119063.tree.root'):
+def makeEventLists(fname):
     #ROOT.StChargedPionJetParticle.Class().IgnoreTObjectStreamer()
     #f = ROOT.TFile(fname, 'update')
     #ch = f.tree
@@ -159,10 +164,12 @@ def makeEventLists(fname='~/work/charged-pion-event-2/chargedPions_6119063.tree.
     elists.append( ROOT.gDirectory.Get('has_vertex') )
     
     print 'generating bbc_789 list'
-    #ch.Draw('>>bbc_789','mBbcTimeBin%32==0 && mBbcTimeBin/32>6 && mBbcTimeBin/32<9')
+    #ch.Draw('>>bbc_789','mBbcTimeBin%32==0 && mBbcTimeBin/32>6 && \
+    #   mBbcTimeBin/32<9')
     ## dropping the discrete timebin cut -- APK 2008-01-09
     ## also fix a BUG!!! 9 vs. 10
-    ch.Draw('>>bbc_789','mBbcTimeBin%32==0 && mBbcTimeBin/32>6 && mBbcTimeBin/32<10')
+    ch.Draw('>>bbc_789','mBbcTimeBin%32==0 && mBbcTimeBin/32>6 && \
+        mBbcTimeBin/32<10')
     elists.append( ROOT.gDirectory.Get('bbc_789') )
     
     print 'generating spinDbOk list'
@@ -174,7 +181,9 @@ def makeEventLists(fname='~/work/charged-pion-event-2/chargedPions_6119063.tree.
     elists.append( ROOT.gDirectory.Get('has_track') )
     
     print 'generating has_good_pion list'
-    ch.Draw('>>has_good_pion','abs(mTracks.eta())<1.0 && mTracks.globalDca().mag()<1.0 && mTracks.nHitsFit()>25 && mTracks.nSigmaPion()>-1 && mTracks.nSigmaPion()<2')
+    ch.Draw('>>has_good_pion','abs(mTracks.eta())<1.0 && \
+        mTracks.globalDca().mag()<1.0 && mTracks.nHitsFit()>25 && \
+        mTracks.nSigmaPion()>-1 && mTracks.nSigmaPion()<2')
     elists.append( ROOT.gDirectory.Get('has_good_pion') )
     
     print 'now get intersection'
