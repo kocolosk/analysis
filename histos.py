@@ -15,6 +15,15 @@ import mcasym
 simu = False
 year = 2006
 
+ptBins      = minimc.MiniMcHistos.ptBins
+etaBins     = minimc.MiniMcHistos.etaBins
+phiBins     = minimc.MiniMcHistos.phiBins
+nFitBins    = minimc.MiniMcHistos.nFitBins
+pBins       = minimc.MiniMcHistos.pBins
+dEdxBins    = minimc.MiniMcHistos.dEdxBins
+dcaGBins    = minimc.MiniMcHistos.dcaGBins
+vzBins      = minimc.MiniMcHistos.vzBins
+
 pidCalibration = {
 6988 : ( 0.066608, 0.889596),
 6990 : ( 0.028513, 0.872612),
@@ -318,24 +327,58 @@ class JetCuts:
     
 
 
+## wow, I can inherit from ROOT.TH1 here too ... but then ROOT's weird 
+## class structure becomes more of a hindrance than a help
+class Histo(object):
+    """
+    wrapper around a ROOT histogram so I can add a few convenience methods
+    """
+    def __init__(self, hist):
+        self.h = hist
+        self.h.Sumw2()
+        self.vals = []
+    
+    def __getattr__(self, name):
+        """
+        fall back to ROOT method if I didn't define a replacement
+        """
+        return getattr(self.h, name)
+        
+    def Fill(self, x, y=None, z=None):
+        self.vals.append((x,y,z))
+        
+    def Flush(self):
+        """
+        Ends the event and actually fills the ROOT histogram, taking multi-
+        particle statistics into account.
+        """
+        weight = {}
+        keep = {}
+        for x,y,z in self.vals:
+            bin = self.h.FindBin(x, y or 0, z or 0)
+            weight[bin] = weight.get(bin,0) + 1
+            keep[bin] = (x,y,z)
+        for bin,w in weight.items():
+            x,y,z = keep[bin]
+            if z:
+                self.h.Fill(x,y,z,w)
+            elif y:
+                self.h.Fill(x,y,w)
+            else:
+                self.h.Fill(x,w)
+        self.vals = []
+    
+
 class TrackHistogramCollection(dict):
     """histograms filled for each track"""
-    mcPtBins         = minimc.MiniMcHistos.ptBins
-    mcEtaBins        = minimc.MiniMcHistos.etaBins
-    mcPhiBins        = minimc.MiniMcHistos.phiBins
-    mcNFitBins       = minimc.MiniMcHistos.nFitBins
-    mcPBins          = minimc.MiniMcHistos.pBins
-    mcDEdxBins       = minimc.MiniMcHistos.dEdxBins
-    mcDcaGBins       = minimc.MiniMcHistos.dcaGBins
-    mcVzBins         = minimc.MiniMcHistos.vzBins
-    
     allKeys = ['pt', 'eta', 'phi', 'nHitsFit', 'dEdx', 'dcaG', 'nSigmaPion',
         'dphi_deta', 'z', 'z_away', 'pt_near', 'pt_away', 'pt_bg', 'z_jet',
         'z_away_jet', 'xi', 'xi_away', 'ptMc_ptPr', 'ptMc_ptGl', 'etaMc_etaPr',
-        'etaMc_etaGl', 'ptMc', 'away_mult', 'near_mult', 'away_lead_pt', 'near_lead_pt',
-        'lead_matched', 'lead_cutfail', 'lead_nomatch', 'z_away2', 'z_away3', 'z_away4',
-        'away2_eta', 'away2_nHitsFit', 'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg',
-        'vz', 'distortedPt', 'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom']
+        'etaMc_etaGl', 'ptMc', 'away_mult', 'near_mult', 'away_lead_pt', 
+        'near_lead_pt', 'lead_matched', 'lead_cutfail', 'lead_nomatch', 
+        'z_away2', 'z_away3', 'z_away4', 'away2_eta', 'away2_nHitsFit', 
+        'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg', 'vz', 'distortedPt', 
+        'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom']
     
     def __init__(self, name, tfile=None, keys=None):
         self.away_mult = 0
@@ -348,118 +391,157 @@ class TrackHistogramCollection(dict):
                     self[key] = tfile.Get('%s_%s' % (name,key))
         else:
             if simu:
-                self['ptMc_ptPr'] = ROOT.TH2D('%s_ptMc_ptPr' % name, 'prim reco p_{T} vs. true p_{T}', \
-                    self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2], \
-                    self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-                self['ptMc_ptGl'] = ROOT.TH2D('%s_ptMc_ptGl' % name, 'glob reco p_{T} vs. true p_{T}', \
-                    self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2], \
-                    self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-                self['etaMc_etaPr'] = ROOT.TH2D('%s_etaMc_etaPr' % name, 'prim reco #eta vs. true #eta', \
-                    self.mcEtaBins[0], self.mcEtaBins[1], self.mcEtaBins[2], \
-                    self.mcEtaBins[0], self.mcEtaBins[1], self.mcEtaBins[2])
-                self['etaMc_etaGl'] = ROOT.TH2D('%s_etaMc_etaGl' % name, 'glob reco #eta vs. true #eta', \
-                    self.mcEtaBins[0], self.mcEtaBins[1], self.mcEtaBins[2], \
-                    self.mcEtaBins[0], self.mcEtaBins[1], self.mcEtaBins[2])
-                self['ptMc'] = ROOT.TH1D('%s_ptMc' % name, 'true track p_{T}', \
-                    self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+                self['ptMc_ptPr'] = Histo(ROOT.TH2D('%s_ptMc_ptPr' % name, \
+                    'prim reco p_{T} vs. true p_{T}', \
+                    ptBins[0], ptBins[1], ptBins[2], \
+                    ptBins[0], ptBins[1], ptBins[2]))
+                self['ptMc_ptGl'] = Histo(ROOT.TH2D('%s_ptMc_ptGl' % name, \
+                    'glob reco p_{T} vs. true p_{T}', \
+                    ptBins[0], ptBins[1], ptBins[2], \
+                    ptBins[0], ptBins[1], ptBins[2]))
+                self['etaMc_etaPr'] = Histo(ROOT.TH2D('%s_etaMc_etaPr' % name, \
+                    'prim reco #eta vs. true #eta', \
+                    etaBins[0], etaBins[1], etaBins[2], \
+                    etaBins[0], etaBins[1], etaBins[2]))
+                self['etaMc_etaGl'] = Histo(ROOT.TH2D('%s_etaMc_etaGl' % name, \
+                    'glob reco #eta vs. true #eta', \
+                    etaBins[0], etaBins[1], etaBins[2], \
+                    etaBins[0], etaBins[1], etaBins[2]))
+                self['ptMc'] = Histo(ROOT.TH1D('%s_ptMc' % name, \
+                    'true track p_{T}', \
+                    ptBins[0], ptBins[1], ptBins[2]))
                 
                 if year == 2005:
-                    self['STD'] = ROOT.TH1D('%s_STD' % name, 'GRSV-STD', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-                    self['MAX'] = ROOT.TH1D('%s_MAX' % name, 'GRSV-MAX', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-                    self['MIN'] = ROOT.TH1D('%s_MIN' % name, 'GRSV-MIN', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-                    self['ZERO'] = ROOT.TH1D('%s_ZERO' % name, 'GRSV-ZERO', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-                    self['GS_NLOC'] = ROOT.TH1D('%s_GS_NLOC' % name, 'GS Set C', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-                    self['denom'] = ROOT.TH1D('%s_denom' % name, 'Asymmetry denominator', \
-                        self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+                    self['STD'] = Histo(ROOT.TH1D('%s_STD' % name, \
+                        'GRSV-STD', ptBins[0], ptBins[1], ptBins[2]))
+                    self['MAX'] = Histo(ROOT.TH1D('%s_MAX' % name, \
+                        'GRSV-MAX', ptBins[0], ptBins[1], ptBins[2]))
+                    self['MIN'] = Histo(ROOT.TH1D('%s_MIN' % name, \
+                        'GRSV-MIN', ptBins[0], ptBins[1], ptBins[2]))
+                    self['ZERO'] = Histo(ROOT.TH1D('%s_ZERO' % name, \
+                        'GRSV-ZERO', ptBins[0], ptBins[1], ptBins[2]))
+                    self['GS_NLOC'] = Histo(ROOT.TH1D('%s_GS_NLOC' % name, \
+                        'GS Set C', ptBins[0], ptBins[1], ptBins[2]))
+                    self['denom'] = Histo(ROOT.TH1D('%s_denom' % name, \
+                        'Asymmetry denominator', \
+                        ptBins[0], ptBins[1], ptBins[2]))
                 else:
-                    self['STD'] = ROOT.TH1D('%s_STD' % name, 'GRSV-STD', 20, 0.0, 1.0)
-                    self['MAX'] = ROOT.TH1D('%s_MAX' % name, 'GRSV-MAX', 20, 0.0, 1.0)
-                    self['MIN'] = ROOT.TH1D('%s_MIN' % name, 'GRSV-MIN', 20, 0.0, 1.0)
-                    self['ZERO'] = ROOT.TH1D('%s_ZERO' % name, 'GRSV-ZERO', 20, 0.0, 1.0)
-                    self['GS_NLOC'] = ROOT.TH1D('%s_GS_NLOC' % name, 'GS Set C', 20, 0.0, 1.0)
-                    self['denom'] = ROOT.TH1D('%s_denom' % name, 'Asymmetry denominator', \
-                        20, 0.0, 1.0)
+                    self['STD'] = Histo(ROOT.TH1D('%s_STD' % name, \
+                        'GRSV-STD', 20, 0.0, 1.0))
+                    self['MAX'] = Histo(ROOT.TH1D('%s_MAX' % name, \
+                        'GRSV-MAX', 20, 0.0, 1.0))
+                    self['MIN'] = Histo(ROOT.TH1D('%s_MIN' % name, \
+                        'GRSV-MIN', 20, 0.0, 1.0))
+                    self['ZERO'] = Histo(ROOT.TH1D('%s_ZERO' % name, \
+                        'GRSV-ZERO', 20, 0.0, 1.0))
+                    self['GS_NLOC'] = Histo(ROOT.TH1D('%s_GS_NLOC' % name, \
+                        'GS Set C', 20, 0.0, 1.0))
+                    self['denom'] = Histo(ROOT.TH1D('%s_denom' % name, \
+                        'Asymmetry denominator', 20, 0.0, 1.0))
             
-            self['pt'] = ROOT.TH1D('%s_pt' % (name,), 'track p_{T}', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-            self['eta'] = ROOT.TH1D('%s_eta' % (name,), 'track #eta', self.mcEtaBins[0], self.mcEtaBins[1], self.mcEtaBins[2])
-            self['phi'] = ROOT.TH1D('%s_phi' % (name,), 'track #phi', self.mcPhiBins[0], self.mcPhiBins[1], self.mcPhiBins[2])
-            self['nHitsFit'] = ROOT.TH1D('%s_nHitsFit' % (name,), 'nHitsFit', self.mcNFitBins[0], self.mcNFitBins[1], self.mcNFitBins[2])
-            self['dEdx'] = ROOT.TH1D('%s_dEdx' % (name,), 'dE/dx', self.mcDEdxBins[0], self.mcDEdxBins[1], self.mcDEdxBins[2])
-            self['dcaG'] = ROOT.TH1D('%s_dcaG' % (name,), '|dcaGlobal|', self.mcDcaGBins[0], self.mcDcaGBins[1], self.mcDcaGBins[2])
-            self['vz'] = ROOT.TH1D('%s_vz' % (name,), 'vz for good tracks', \
-                self.mcVzBins[0], self.mcVzBins[1], self.mcVzBins[2])
+            self['pt'] = Histo(ROOT.TH1D('%s_pt' % (name,), 'track p_{T}', \
+                ptBins[0], ptBins[1], ptBins[2]))
+            self['eta'] = Histo(ROOT.TH1D('%s_eta' % (name,), 'track #eta', \
+                etaBins[0], etaBins[1], etaBins[2]))
+            self['phi'] = Histo(ROOT.TH1D('%s_phi' % (name,), 'track #phi', \
+                phiBins[0], phiBins[1], phiBins[2]))
+            self['nHitsFit'] = Histo(ROOT.TH1D('%s_nHitsFit' % (name,), \
+                'nHitsFit', nFitBins[0], nFitBins[1], nFitBins[2]))
+            self['dEdx'] = Histo(ROOT.TH1D('%s_dEdx' % (name,), 'dE/dx', \
+                dEdxBins[0], dEdxBins[1], dEdxBins[2]))
+            self['dcaG'] = Histo(ROOT.TH1D('%s_dcaG' % (name,), '|dcaGlobal|', \
+                dcaGBins[0], dcaGBins[1], dcaGBins[2]))
+            self['vz'] = Histo(ROOT.TH1D('%s_vz' % (name,), \
+                'vz for good tracks', vzBins[0], vzBins[1], vzBins[2]))
             
-            self['nSigmaPion'] = ROOT.TH1D('%s_nSigmaPion' % (name,), 'n#sigma(#pi)', 240, -6.0, 6.0)
+            self['nSigmaPion'] = Histo(ROOT.TH1D('%s_nSigmaPion' % (name,), \
+                'n#sigma(#pi)', 240, -6.0, 6.0))
             
-            self['dphi_deta'] = ROOT.TH2D('%s_dphi_deta' % (name,), 'track relative to trigger jet', \
-                50, -1.5*math.pi, 0.5*math.pi, 50, -2.0, 2.0)
+            self['dphi_deta'] = Histo(ROOT.TH2D('%s_dphi_deta' % (name,), \
+                'track relative to trigger jet', \
+                50, -1.5*math.pi, 0.5*math.pi, 50, -2.0, 2.0))
             self['dphi_deta'].SetXTitle('#delta#phi')
             self['dphi_deta'].SetYTitle('#delta#eta')
             z_xbins = [2.0, 3.0, 4.0, 5.5, 7.0, 10.0]
             ar = array('d',z_xbins)
             
-            self['z'] = ROOT.TH2D('%s_z' % (name,), '<z>', len(z_xbins)-1, ar, 50, 0., 1.)
-            self['z_away'] = ROOT.TH2D('%s_z_away' % (name,), '<z> for away-side jet', len(z_xbins)-1, ar, 50, 0., 1.)
+            self['z'] = Histo(ROOT.TH2D('%s_z' % (name,), '<z>', \
+                len(z_xbins)-1, ar, 50, 0., 1.))
+            self['z_away'] = Histo(ROOT.TH2D('%s_z_away' % (name,), \
+                '<z> for away-side jet', len(z_xbins)-1, ar, 50, 0., 1.))
             
-            self['pt_away'] = ROOT.TH1D('%s_pt_away' % (name,), 'track p_{T} away-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-            self['pt_near'] = ROOT.TH1D('%s_pt_near' % (name,), 'track p_{T} near-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+            self['pt_away'] = Histo(ROOT.TH1D('%s_pt_away' % (name,), \
+                'track p_{T} away-side', ptBins[0], ptBins[1], ptBins[2]))
+            self['pt_near'] = Histo(ROOT.TH1D('%s_pt_near' % (name,), \
+                'track p_{T} near-side', ptBins[0], ptBins[1], ptBins[2]))
             
-            self['pt_bg'] = ROOT.TH1D('%s_pt_bg' % name, 'track p_{T} for PID bg', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+            self['pt_bg'] = Histo(ROOT.TH1D('%s_pt_bg' % name, \
+                'track p_{T} for PID bg', ptBins[0], ptBins[1], ptBins[2]))
             
-            # http://www.star.bnl.gov/protected/spin/rfatemi/Jet_2005/Binning/BIN.html
-            jet_et_bins = [5.0, 6.15, 7.5645, 9.30434, 11.4443, 14.0765, 17.3141, 21.2964, 
-                26.1945, 32.2193, 39.6297, 48.7446, 59.9558]
+            # www.star.bnl.gov/protected/spin/rfatemi/Jet_2005/Binning/BIN.html
+            jet_et_bins = [5.0, 6.15, 7.5645, 9.30434, 11.4443, 14.0765, 
+                17.3141, 21.2964, 26.1945, 32.2193, 39.6297, 48.7446, 59.9558]
             ar = array('d', jet_et_bins)
-            self['z_jet'] = ROOT.TH2D('%s_z_jet' % name, 'z vs. jet E_{T}', \
-                len(jet_et_bins)-1, ar, 50, 0., 1.)
-            self['z_away_jet'] = ROOT.TH2D('%s_z_away_jet' % name, 'z vs. away jet E_{T}', \
-                len(jet_et_bins)-1, ar, 50, 0., 1.)
-            self['xi'] = ROOT.TH2D('%s_xi' % name, '#Xi', len(jet_et_bins)-1, ar, 50, 0., 4.)
-            self['xi_away'] = ROOT.TH2D('%s_xi_away' % name, '#Xi for away-side tracks', len(jet_et_bins)-1, ar, \
-                50, 0., 4.)
+            self['z_jet'] = Histo(ROOT.TH2D('%s_z_jet' % name, \
+                'z vs. jet E_{T}', len(jet_et_bins)-1, ar, 50, 0., 1.))
+            self['z_away_jet'] = Histo(ROOT.TH2D('%s_z_away_jet' % name, \
+                'z vs. away jet E_{T}', len(jet_et_bins)-1, ar, 50, 0., 1.))
+            self['xi'] = Histo(ROOT.TH2D('%s_xi' % name, '#Xi', \
+                len(jet_et_bins)-1, ar, 50, 0., 4.))
+            self['xi_away'] = Histo(ROOT.TH2D('%s_xi_away' % name, \
+                '#Xi for away-side tracks', len(jet_et_bins)-1, ar, 50, 0., 4.))
                 
-            self['away_mult'] = ROOT.TH1D('%s_away_mult' % name, \
-                '# of pions on away-side', 10, -0.5, 9.5)
-            self['near_mult'] = ROOT.TH1D('%s_near_mult' % name, \
-                '# of pions on near-side', 10, -0.5, 9.5)
+            self['away_mult'] = Histo(ROOT.TH1D('%s_away_mult' % name, \
+                '# of pions on away-side', 10, -0.5, 9.5))
+            self['near_mult'] = Histo(ROOT.TH1D('%s_near_mult' % name, \
+                '# of pions on near-side', 10, -0.5, 9.5))
             
-            self['away_lead_pt'] = ROOT.TH1D('%s_away_lead_pt' % name, \
-                'p_{T} of leading pion on away-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-            self['near_lead_pt'] = ROOT.TH1D('%s_near_lead_pt' % name, \
-                'p_{T} of leading pion on near-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+            self['away_lead_pt'] = Histo(ROOT.TH1D('%s_away_lead_pt' % name, \
+                'p_{T} of leading pion on away-side', \
+                ptBins[0], ptBins[1], ptBins[2]))
+            self['near_lead_pt'] = Histo(ROOT.TH1D('%s_near_lead_pt' % name, \
+                'p_{T} of leading pion on near-side', \
+                ptBins[0], ptBins[1], ptBins[2]))
             
-            self['lead_matched'] = ROOT.TH1D('%s_lead_matched' % name, \
-                'p_{T} of leading pion on away-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-            self['lead_cutfail'] = ROOT.TH1D('%s_lead_cutfail' % name, \
-                'p_{T} of leading pion on away-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-            self['lead_nomatch'] = ROOT.TH1D('%s_lead_nomatch' % name, \
-                'p_{T} of leading pion on away-side', self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+            self['lead_matched'] = Histo(ROOT.TH1D('%s_lead_matched' % name, \
+                'p_{T} of leading pion on away-side', \
+                ptBins[0], ptBins[1], ptBins[2]))
+            self['lead_cutfail'] = Histo(ROOT.TH1D('%s_lead_cutfail' % name, \
+                'p_{T} of leading pion on away-side', \
+                ptBins[0], ptBins[1], ptBins[2]))
+            self['lead_nomatch'] = Histo(ROOT.TH1D('%s_lead_nomatch' % name, \
+                'p_{T} of leading pion on away-side', \
+                ptBins[0], ptBins[1], ptBins[2]))
             
-            self['z_away2'] = ROOT.TH1D('%s_z_away2' % name, '', 40, 0., 1.0)
+            self['z_away2'] = Histo(ROOT.TH1D('%s_z_away2' % name, '', \
+                40, 0., 1.0))
             self['z_away2'].SetXTitle('p_{T}(#pi)/p_{T}(trigger jet)')
             
-            self['z_away3'] = ROOT.TH1D('%s_z_away3' % name, '', 40, 0., 1.0)
-            self['z_away3'].SetXTitle('fraction of non-trigger jet p carried by #pi')
+            self['z_away3'] = Histo(ROOT.TH1D('%s_z_away3' % name, '', \
+                40, 0., 1.0))
+            self['z_away3'].SetXTitle(\
+                'fraction of non-trigger jet p carried by #pi')
             
-            self['z_away4'] = ROOT.TH1D('%s_z_away4' % name, \
-                'inclusive if separate z-bins', 40, 0., 1.0)
+            self['z_away4'] = Histo(ROOT.TH1D('%s_z_away4' % name, \
+                'inclusive if separate z-bins', 40, 0., 1.0))
             self['z_away4'].SetXTitle('p_{T}(#pi)/p_{T}(trigger jet)')
             
-            self['away2_eta'] = ROOT.TH1D('%s_away2_eta' % (name,), 'away-side #eta', \
-                self.mcEtaBins[0], self.mcEtaBins[1], self.mcEtaBins[2])
-            self['away2_dcaG'] = ROOT.TH1D('%s_away2_dcaG' % (name,), 'away-side |dcaG|', \
-                self.mcDcaGBins[0], self.mcDcaGBins[1], self.mcDcaGBins[2])
-            self['away2_nHitsFit'] = ROOT.TH1D('%s_away2_nHitsFit' % (name,), 'away-side nHitsFit', \
-                self.mcNFitBins[0], self.mcNFitBins[1], self.mcNFitBins[2])
-            self['away2_nSigmaPion'] = ROOT.TH1D('%s_away2_nSigmaPion' % (name,), \
-                'away-side n#sigma(#pi)', 240, -6.0, 6.0)
+            self['away2_eta'] = Histo(ROOT.TH1D('%s_away2_eta' % (name,), \
+                'away-side #eta', etaBins[0], etaBins[1], etaBins[2]))
+            self['away2_dcaG'] = Histo(ROOT.TH1D('%s_away2_dcaG' % (name,), \
+                'away-side |dcaG|', dcaGBins[0], dcaGBins[1], dcaGBins[2]))
+            self['away2_nHitsFit'] = Histo(ROOT.TH1D('%s_away2_nHitsFit'% name,\
+                'away-side nHitsFit', nFitBins[0], nFitBins[1], nFitBins[2]))
+            self['away2_nSigmaPion'] = Histo(ROOT.TH1D('%s_away2_nSigmaPion' \
+                % (name,), 'away-side n#sigma(#pi)', 240, -6.0, 6.0))
             
-            self['z_away2_bg'] = ROOT.TH1D('%s_z_away2_bg' % name, '', 40, 0., 1.0)
+            self['z_away2_bg'] = Histo(ROOT.TH1D('%s_z_away2_bg' % name, '', \
+                40, 0., 1.0))
             self['z_away2_bg'].SetXTitle('p_{T}(#pi)/p_{T}(trigger jet)')
             
-            self['distortedPt'] = ROOT.TH1D('%s_distortedPt' % name, \
+            self['distortedPt'] = Histo(ROOT.TH1D('%s_distortedPt' % name, \
                 'pT corrected for space charge distortion', \
-                self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
+                ptBins[0], ptBins[1], ptBins[2]))
     
     
     def fillMcTrack(self, track):
@@ -548,7 +630,11 @@ class TrackHistogramCollection(dict):
         self.near_lead_pt = 0.0
         
     def Add(self, other):
-        [ h.Add(other[key]) for key, h in self.items() ]
+        [ h.Add(other[key].h) for key, h in self.items() ]
+    
+    
+    def Flush(self):
+        [ h.Flush() for h in self.values() ]
     
     
     def Write(self):
@@ -642,12 +728,14 @@ class TrackHistogramCollection(dict):
 
 
 class HistogramCollection(dict):
-    """convenience class for dealing with multiple histos all filled the same way"""
+    """
+    convenience class for dealing with multiple histos all filled the same way
+    """
     mcVzBins         = minimc.MiniMcHistos.vzBins
     mcPtBins         = minimc.MiniMcHistos.ptBins
     
     allKeys = ['nVertices', 'vx_vy', 'vz', 'vzBBC', 'spinBit', 'bx7', 'bbc', 
-        'jet_pt_balance', 'jet_p_balance', 'jet_eta_balance', 'jet_phi_balance', 
+        'jet_pt_balance', 'jet_p_balance', 'jet_eta_balance', 'jet_phi_balance',
         'cosTheta', 'hardP', 'x1','x2','x1_x2', 
         'jet_pt', 'lead_neutral', 'inclusive_jet_mult', 'dijet_mult']
     
@@ -659,36 +747,52 @@ class HistogramCollection(dict):
                     self[key] = tfile.Get('%s_%s' % (name,key))
         else:
             if simu:
-                self['cosTheta'] = ROOT.TH1D('%s_cosTheta' % name, 'cos(#Theta)', 200, -1.0, 1.0)
-                self['hardP'] = ROOT.TH1D('%s_hardP' % name, 'partonic p_{T}', 280, 0.0, 70.0)
-                self['x1'] = ROOT.TH1D('%s_x1' % name, 'x1', 200, 0., 1.)
-                self['x2'] = ROOT.TH1D('%s_x2' % name, 'x2', 200, 0., 1.)
-                self['x1_x2'] = ROOT.TH2D('%s_x1_x2' % name, 'x1 vs. x2', 200, 0., 1., 200, 0., 1.) 
+                self['cosTheta'] = Histo(ROOT.TH1D('%s_cosTheta' % name, \
+                    'cos(#Theta)', 200, -1.0, 1.0))
+                self['hardP'] = Histo(ROOT.TH1D('%s_hardP' % name, \
+                    'partonic p_{T}', 280, 0.0, 70.0))
+                self['x1'] = Histo(ROOT.TH1D('%s_x1' % name, 'x1', 200, 0., 1.))
+                self['x2'] = Histo(ROOT.TH1D('%s_x2' % name, 'x2', 200, 0., 1.))
+                self['x1_x2'] = Histo(ROOT.TH2D('%s_x1_x2' % name, \
+                    'x1 vs. x2', 200, 0., 1., 200, 0., 1.))
             
-            self['nVertices'] = ROOT.TH1D('%s_nVertices' % (name,),'',15,-0.5,14.5)
-            self['vx_vy'] = ROOT.TH2D('%s_vx_vy' % (name,),'',400,-2.0,2.0, 400,-2.0,2.0)
-            self['vz'] = ROOT.TH1D('%s_vz' % (name,),'',self.mcVzBins[0], self.mcVzBins[1], self.mcVzBins[2])
-            self['vzBBC'] = ROOT.TH1D('%s_vzBBC' % (name,),'',self.mcVzBins[0], self.mcVzBins[1], self.mcVzBins[2])
-            self['spinBit'] = ROOT.TH1D('%s_spinBit' % (name,),'',17,0.5,16.5)
-            self['bx7'] = ROOT.TH1D('%s_bx7' % (name,),'',128,-0.5,127.5)
-            self['bbc'] = ROOT.TH1D('%s_bbc' % (name,),'',400,-0.5,399.5)
-            self['jet_pt_balance'] = ROOT.TH2D('%s_jet_pt_balance' % name,'',200,0.0,50.0, 200,0.0,50.0)
-            self['jet_p_balance'] = ROOT.TH2D('%s_jet_p_balance' % name,'',200,0.0,50.0, 200,0.0,50.0)
-            self['jet_eta_balance'] = ROOT.TH2D('%s_jet_eta_balance' % name,'',100,-2.0,2.0, 100,-2.0,2.0)
-            self['jet_phi_balance'] = ROOT.TH2D('%s_jet_phi_balance' % name,'',100,-math.pi,math.pi, 100,-math.pi,math.pi)
-            self['jet_pt'] = ROOT.TH1D('%s_jet_pt' % name, '', 200, 0.0, 50.0)
-            self['lead_neutral'] = ROOT.TH1D('%s_lead_neutral' % name, \
+            self['nVertices'] = Histo(ROOT.TH1D('%s_nVertices' % (name,),'', \
+                15,-0.5,14.5))
+            self['vx_vy'] = Histo(ROOT.TH2D('%s_vx_vy' % (name,),'', \
+                400,-2.0,2.0, 400,-2.0,2.0))
+            self['vz'] = Histo(ROOT.TH1D('%s_vz' % (name,),'', \
+                vzBins[0], vzBins[1], vzBins[2]))
+            self['vzBBC'] = Histo(ROOT.TH1D('%s_vzBBC' % (name,),'', \
+                vzBins[0], vzBins[1], vzBins[2]))
+            self['spinBit'] = Histo(ROOT.TH1D('%s_spinBit' % (name,),'', \
+                17,0.5,16.5))
+            self['bx7'] = Histo(ROOT.TH1D('%s_bx7' % (name,),'',128,-0.5,127.5))
+            self['bbc'] = Histo(ROOT.TH1D('%s_bbc' % (name,),'',400,-0.5,399.5))
+            self['jet_pt_balance'] = Histo(ROOT.TH2D('%s_jet_pt_balance' \
+                % name,'',200,0.0,50.0, 200,0.0,50.0))
+            self['jet_p_balance'] = Histo(ROOT.TH2D('%s_jet_p_balance' \
+                % name,'',200,0.0,50.0, 200,0.0,50.0))
+            self['jet_eta_balance'] = Histo(ROOT.TH2D('%s_jet_eta_balance' \
+                % name,'',100,-2.0,2.0, 100,-2.0,2.0))
+            self['jet_phi_balance'] = Histo(ROOT.TH2D('%s_jet_phi_balance' \
+                % name,'',100,-math.pi,math.pi, 100,-math.pi,math.pi))
+            self['jet_pt'] = Histo(ROOT.TH1D('%s_jet_pt' % name, '', \
+                200, 0.0, 50.0))
+            self['lead_neutral'] = Histo(ROOT.TH1D('%s_lead_neutral' % name, \
                 'pT spectrum for neutral leading particles', \
-                self.mcPtBins[0], self.mcPtBins[1], self.mcPtBins[2])
-            self['inclusive_jet_mult'] = ROOT.TH1D('%s_inclusive_jet_mult' % name, '',\
-                15, -0.5, 14.5)
-            self['dijet_mult'] = ROOT.TH1D('%s_dijet_mult' % name, '', \
-                15, -0.5, 14.5)
+                ptBins[0], ptBins[1], ptBins[2]))
+            self['inclusive_jet_mult'] = Histo(ROOT.TH1D('%s_inclusive_jet_mult'\
+                % name, '', 15, -0.5, 14.5))
+            self['dijet_mult'] = Histo(ROOT.TH1D('%s_dijet_mult' % name, '', \
+                15, -0.5, 14.5))
             
         
-        self.tracks_plus = TrackHistogramCollection('%s_plus' % (name,), tfile, keys)
-        self.tracks_minus = TrackHistogramCollection('%s_minus' % (name,), tfile, keys)
-        self.tracks_sum = TrackHistogramCollection('%s_sum' % (name,), tfile, keys)
+        self.tracks_plus = TrackHistogramCollection('%s_plus' % (name,), \
+            tfile, keys)
+        self.tracks_minus = TrackHistogramCollection('%s_minus' % (name,), \
+            tfile, keys)
+        self.tracks_sum = TrackHistogramCollection('%s_sum' % (name,), \
+            tfile, keys)
     
     
     def fillEvent(self, event, ecuts):
@@ -737,10 +841,17 @@ class HistogramCollection(dict):
     
     
     def Add(self, other):
-        [ h.Add(other[key]) for key, h in self.items() ]
+        [ h.Add(other[key].h) for key, h in self.items() ]
         self.tracks_plus.Add( other.tracks_plus )
         self.tracks_minus.Add( other.tracks_minus )
         self.tracks_sum.Add( other.tracks_sum )
+    
+    
+    def Flush(self):
+        [ h.Flush() for h in self.values() ]
+        self.tracks_plus.Flush()
+        self.tracks_minus.Flush()
+        self.tracks_sum.Flush()
     
     
     def Write(self):
@@ -819,10 +930,13 @@ class HistogramCollection(dict):
 
 
 class HistogramManager(dict):
-    """generates histograms from StChargedPionEvent trees and reads them back from disk"""
+    """
+    generates histograms from StChargedPionEvent trees and reads them back 
+    from disk
+    """
     spinKeys = {5:'uu', 6:'du', 9:'ud', 10:'dd'}
-    trigSetups = ('96011','96201','96211','96221','96233','hightower','jetpatch', 'alltrigs',\
-          '117001','137221','137222','137611','137622')
+    trigSetups = ('96011','96201','96211','96221','96233','hightower',
+        'jetpatch', 'alltrigs','117001','137221','137222','137611','137622')
     
     
     def __init__(self, tfile=None, keys=None, triggers=None):
@@ -848,7 +962,8 @@ class HistogramManager(dict):
                 for trig in self.trigSetups:
                     if triggers is None or trig in triggers:
                         self.mytriggers.append(trig)
-                        self.allHistos.append( HistogramCollection('_%s_%s' % (trig, spin), tfile, keys) )
+                        self.allHistos.append( HistogramCollection('_%s_%s' \
+                            % (trig, spin), tfile, keys) )
                         self[spin][trig] = self.allHistos[-1]
         else:
             self.spinlist = ('uu','ud','du','dd','other','anyspin')
@@ -858,7 +973,8 @@ class HistogramManager(dict):
                 for trig in self.trigSetups:
                     if triggers is None or trig in triggers:
                         self.mytriggers.append(trig)
-                        self.allHistos.append( HistogramCollection('_%s_%s' % (trig, spin), tfile, keys) )
+                        self.allHistos.append( HistogramCollection('_%s_%s' \
+                            % (trig, spin), tfile, keys) )
                         self[spin][trig] = self.allHistos[-1]
         self.mytriggers = analysis.uniqify(self.mytriggers)
     
@@ -899,37 +1015,51 @@ class HistogramManager(dict):
                 triggerOk['hightower'] = t['96011'] and t['96201']
                 triggerOk['jetpatch'] = t['96011'] and t['96221']
                 triggerOk['alltrigs'] = t['hightower'] or t['jetpatch']
-                activeTriggers = ('96011', '96201', '96211', '96221', '96233', \
+                activeTriggers = ('96011', '96201', '96211', '96221', '96233',
                     'hightower', 'jetpatch', 'alltrigs')
             elif year == 2006:
                 triggerOk['jetpatch'] = t['117001'] and t['137221']
                 triggerOk['alltrigs'] = t['jetpatch']
-                activeTriggers = ('117001', '137221', '137222', '137611', '137622', \
-                    'jetpatch', 'alltrigs')
+                activeTriggers = ('117001', '137221', '137222', '137611',
+                    '137622', 'jetpatch', 'alltrigs')
         elif event.runId() < 7000000:
             if event.isPolLong():
                 for trigId in (96011, 96201, 96211, 96221, 96233):
-                    triggerOk[str(trigId)] = event.isTrigger(trigId) and event.isSimuTrigger(trigId)
+                    triggerOk[str(trigId)] = event.isTrigger(trigId) and \
+                        event.isSimuTrigger(trigId)
                     triggerOk['%d_hw' % (trigId,)] = event.isTrigger(trigId)
             elif event.isPolTrans():
                 for trigId in (106011, 106201, 106211, 106221, 106233):
-                    triggerOk[str(trigId-10000)] = event.isTrigger(trigId) and event.isSimuTrigger(trigId)
-                    triggerOk['%d_hw' % (trigId-10000,)] = event.isTrigger(trigId)
-            triggerOk['hightower'] = triggerOk['96011'] or triggerOk['96201'] or triggerOk['96211']
-            triggerOk['jetpatch']  = triggerOk['96011'] or triggerOk['96221'] or triggerOk['96233']
-            triggerOk['alltrigs']  = triggerOk['96011'] or triggerOk['96201'] or triggerOk['96211'] or triggerOk['96221'] or triggerOk['96233']
-            activeTriggers = ('96011','96201','96211','96221','96233','hightower','jetpatch', 'alltrigs')
+                    triggerOk[str(trigId-10000)] = event.isTrigger(trigId) \
+                        and event.isSimuTrigger(trigId)
+                    triggerOk['%d_hw' % (trigId-10000,)]=event.isTrigger(trigId)
+            triggerOk['hightower'] = triggerOk['96011'] or triggerOk['96201'] \
+                or triggerOk['96211']
+            triggerOk['jetpatch']  = triggerOk['96011'] or triggerOk['96221'] \
+                or triggerOk['96233']
+            triggerOk['alltrigs']  = triggerOk['96011'] or triggerOk['96201'] \
+                or triggerOk['96211'] or triggerOk['96221'] \
+                or triggerOk['96233']
+            activeTriggers = ('96011','96201','96211','96221','96233',
+                'hightower','jetpatch', 'alltrigs')
         else:
             if event.isPolLong():
-                triggerOk['137611'] = event.isTrigger(137611) and event.isSimuTrigger(137611)
-                triggerOk['137622'] = event.isTrigger(137622) and event.isSimuTrigger(137622)
-                triggerOk['jetpatch'] = (event.isTrigger(137221) and event.isSimuTrigger(137221)) or \
-                                        (event.isTrigger(137222) and event.isSimuTrigger(137222))
+                triggerOk['137611'] = event.isTrigger(137611) \
+                    and event.isSimuTrigger(137611)
+                triggerOk['137622'] = event.isTrigger(137622) \
+                    and event.isSimuTrigger(137622)
+                triggerOk['jetpatch'] = (event.isTrigger(137221) \
+                    and event.isSimuTrigger(137221)) or \
+                    (event.isTrigger(137222) and event.isSimuTrigger(137222))
             elif event.isPolTrans():
-                triggerOk['137611'] = event.isTrigger(127611) and event.isSimuTrigger(127611)
-                triggerOk['137622'] = event.isTrigger(127622) and event.isSimuTrigger(127622)
-                triggerOk['jetpatch'] = event.isTrigger(127221) and event.isSimuTrigger(127221)
-            triggerOk['alltrigs'] = triggerOk['jetpatch'] or triggerOk['137611'] or triggerOk['137622']
+                triggerOk['137611'] = event.isTrigger(127611) \
+                    and event.isSimuTrigger(127611)
+                triggerOk['137622'] = event.isTrigger(127622) \
+                    and event.isSimuTrigger(127622)
+                triggerOk['jetpatch'] = event.isTrigger(127221) \
+                    and event.isSimuTrigger(127221)
+            triggerOk['alltrigs'] = triggerOk['jetpatch'] or \
+                triggerOk['137611'] or triggerOk['137622']
             activeTriggers = ('137611', '137622', 'jetpatch', 'alltrigs')
           
         ## event-wise histograms
@@ -953,7 +1083,8 @@ class HistogramManager(dict):
         if simu:
             for track in event.matchedPairs():
                 for trig in activeTriggers:
-                    if not triggerOk[trig] or trig not in self.mytriggers: continue
+                    if not triggerOk[trig] or trig not in self.mytriggers: 
+                        continue
                     tcoll = self[spin][trig].trackHistograms(track.charge())
                     tcoll.fillMatchedPair(track)
                     
@@ -965,8 +1096,9 @@ class HistogramManager(dict):
                 itrig = int(trig)
             except ValueError:
                 if trig == 'jetpatch':
-                    ## use lower-threshold triggers since they're a superset here
-                    if (not simu and event.runId() < 7000000) or (simu and year == 2005):
+                    ## use lower-threshold triggers since they're a superset
+                    if (not simu and event.runId() < 7000000) or \
+                       (simu and year == 2005):
                         itrig = 96221
                     else:
                         itrig = 137221
@@ -1072,13 +1204,15 @@ class HistogramManager(dict):
                                 c['away2_nHitsFit'].Fill(track.nHitsFit())
                             if tcuts.eta and tcuts.dca and tcuts.fit:
                                 c['away2_nSigmaPion'].Fill(track.nSigmaPion())
-                            if tcuts.eta and tcuts.dca and tcuts.fit and tcuts.pid_bg:
+                            if tcuts.eta and tcuts.dca and tcuts.fit \
+                                and tcuts.pid_bg:
                                 c['z_away2_bg'].Fill(z)
                             if tcuts.all:
                                 c['z_away2'].Fill(z)
                                 var = year==2006 and z or track.Pt()
-                                for scenario in ('STD','MIN','MAX','ZERO','GS_NLOC'):
-                                    c[scenario].Fill(var, mcasym.num(scenario, event))
+                                if not simu: break
+                                for a in ('STD','MIN','MAX','ZERO','GS_NLOC'):
+                                    c[a].Fill(var, mcasym.num(a, event))
                                 c['denom'].Fill(var, mcasym.denom('NLO', event))
                             break
             
@@ -1094,30 +1228,27 @@ class HistogramManager(dict):
                                 if bin not in used_bins_plus:
                                     tp['z_away4'].Fill(track.Pt()/jet.Pt())
                                     used_bins_plus.append(bin)
-                                # else:
-                                #     print 'Duplicate pi+ bin:', event.eventId(), bin
                             else:
                                 if bin not in used_bins_minus:
                                     tm['z_away4'].Fill(track.Pt()/jet.Pt())
                                     used_bins_minus.append(bin)
-                                # else:
-                                #     print 'Duplicate pi- bin:', event.eventId(), bin
             
-            for jet, awayJet in diJets:
+            for jet, awayJ in diJets:
                 if 10.0 < jet.Pt() < 30.0:
                     for track in sortedTracks:
                         tcuts.set(track)
                         if tcuts.all and math.fabs(track.DeltaPhi(jet)) > 2.0:
-                            z = track.Vect().Dot(awayJet.Vect()) / awayJet.P()**2
+                            z = track.Vect().Dot(awayJ.Vect()) / awayJ.P()**2
                             if track.charge() > 0:
                                 tp['z_away3'].Fill(z)
                             else:
                                 tm['z_away3'].Fill(z)
                             break
             
-            
             tp.Clear()
             tm.Clear()
+        
+        [ collection.Flush() for collection in self.allHistos ]
     
     
     def histos(self):
@@ -1156,8 +1287,10 @@ class HistogramManager(dict):
         ## create charge-summed histos
         for spin in spinlist:
             for trig in self.mytriggers:
-                self[spin][trig].trackHistograms(0).Add( self[spin][trig].trackHistograms(1)  )
-                self[spin][trig].trackHistograms(0).Add( self[spin][trig].trackHistograms(-1) )
+                self[spin][trig].trackHistograms(0).Add( \
+                    self[spin][trig].trackHistograms(1)  )
+                self[spin][trig].trackHistograms(0).Add( \
+                    self[spin][trig].trackHistograms(-1) )
         
         ## create spin-integrated histos
         if simu:
@@ -1235,14 +1368,18 @@ def matched(t1, t2):
 
 
 def zbin(zval):
-    """return bin index for this track -- used so that we take at most 1 track/bin/jet"""
+    """
+    return bin index for this track -- so that we take at most 1 track/bin/jet
+    """
     zmax = [0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 1.0]
     for i,z in enumerate(zmax):
         if zval < z: return i+1
 
 
 def distortedPt(track):
-    """correct track momentum in simulations for space charge distortion"""
+    """
+    correct track momentum in simulations for space charge distortion
+    """
     A = 8.597E-04
     pT = track.Pt()
     if not simu: return pT
@@ -1252,7 +1389,8 @@ def distortedPt(track):
         return (pT + A*pT*pT)
 
 
-def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist',useLSF=False,fillList=None):
+def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist',useLSF=False,\
+    fillList=None):
     """uses hadd to make histogram files for each fill instead of each run"""
     import analysis
     allFiles = os.listdir(histDir)
@@ -1284,13 +1422,15 @@ def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist',useLSF=False,fill
             cmd = 'hadd chargedPions_%d.hist.root ' % (fill,)
             if len(runlist) == 1:
                 print 'no need for hadd here!', fill, runlist[0]
-                os.system('cp %s/chargedPions_%d.hist.root chargedPions_%d.hist.root' %
-                    (histDir, runlist[0], fill))
+                os.system(\
+                    'cp %s/chargedPions_%d.hist.root chargedPions_%d.hist.root'\
+                     % (histDir, runlist[0], fill))
             else:
                 for run in runlist:
                     cmd += '%s/chargedPions_%d.hist.root ' % (histDir,run)
                 if useLSF:
-                    cmd = 'bsub -q star_cas_short -e err/%d.err -o out/%d.out ' % (fill,fill) + cmd
+                    cmd = 'bsub -q star_cas_short -e err/%d.err -o out/%d.out '\
+                     % (fill,fill) + cmd
                 os.system(cmd)
 
 
@@ -1333,7 +1473,8 @@ def combineSamples(outFileName, inputFileList):
     
     tfile = [ ROOT.TFile(path,'read') for path in inputFileList ]
     nevents = [ f.Get('eventCounter').GetBinContent(1) for f in tfile ]
-    weight = [ xsec[os.path.basename(path).split('.')[0]] for path in inputFileList ]
+    weight = [ xsec[os.path.basename(path).split('.')[0]] \
+        for path in inputFileList ]
     
     out = analysis.HistogramManager()
     for index,fname in enumerate(inputFileList):
@@ -1360,7 +1501,9 @@ def combineSamples(outFileName, inputFileList):
 
 def bsub(treeDir, runList=None, trigList=None):
     import analysis
-    """submits a single writeHistograms job to LSF for each ROOT file in treeDir"""
+    """
+    submits a single writeHistograms job to LSF for each ROOT file in treeDir
+    """
     allfiles = os.listdir(treeDir)
     try:
         os.mkdir('out')
@@ -1371,16 +1514,18 @@ def bsub(treeDir, runList=None, trigList=None):
         run = analysis.getRun(fname)
         if runList is None or run in runList:
             os.sys.stderr.write('%s ' % run)
-            os.system('bsub -q star_cas_short -e err/%s.err -o out/%s.out python -c \
-                "import analysis; analysis.histos.writeHistograms(\'%s\',globber=\'*%s*\', \
-                trigList=%s)"' \
+            os.system('bsub -q star_cas_short -e err/%s.err -o out/%s.out \
+                python -c "import analysis; analysis.histos.writeHistograms\
+                (\'%s\',globber=\'*%s*\', trigList=%s)"' \
                 % (run, run, treeDir, run, trigList))
             time.sleep(0.2)
 
 
 def condor(treeDir, runList=None, trigList=None):
     import analysis
-    """submits a single writeHistograms job to Condor for each ROOT file in treeDir"""
+    """
+    submits a single writeHistograms job to Condor for each ROOT file in treeDir
+    """
     allfiles = os.listdir(treeDir)
     try:
         os.mkdir('out')
@@ -1393,7 +1538,8 @@ def condor(treeDir, runList=None, trigList=None):
     f = open('job.py', 'w')
     f.write('import sys\n')
     f.write('import analysis\n')
-    f.write('analysis.histos.writeHistograms(\'%s\', globber=\'*%%s*\' %% sys.argv[1], trigList=%s)\n' % (treeDir, trigList))
+    f.write('analysis.histos.writeHistograms(\'%s\', globber=\'*%%s*\' %% \
+        sys.argv[1], trigList=%s)\n' % (treeDir, trigList))
     
     ## build the submit.condor file
     f = open('submit.condor', 'w')
@@ -1442,7 +1588,8 @@ def hadd_simu(histDir='./'):
         f.write('output = hadd/%s.out\n' % elem)
         f.write('error = hadd/%s.err\n' % elem)
         f.write('log = hadd/%s.condor.log\n' % elem)
-        f.write('arguments = %s.cphist.root %s/%s_*.root\n' % (elem, os.getcwd(), elem))
+        f.write('arguments = %s.cphist.root %s/%s_*.root\n' % \
+            (elem, os.getcwd(), elem))
         f.write('queue\n\n')
     
     f.close()
@@ -1475,7 +1622,8 @@ def condor_simu(treeDir, trigList=None, year=2006):
     f.write('import analysis\n')
     f.write('analysis.histos.simu = True\n')
     f.write('analysis.histos.year = %d\n' % year)
-    f.write('analysis.histos.writeHistograms(\'%s\', globber=\'*%%s*\' %% sys.argv[1], trigList=%s)\n' % (treeDir, trigList))
+    f.write('analysis.histos.writeHistograms(\'%s\', globber=\'*%%s*\' %% \
+        sys.argv[1], trigList=%s)\n' % (treeDir, trigList))
     
     ## build the submit.condor file
     f = open('submit.condor', 'w')
