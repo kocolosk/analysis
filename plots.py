@@ -431,7 +431,7 @@ def asymmetries_for_publication_run5(runlist=None):
     c3.Print('.eps')
 
 
-def jet_correlations_run5():
+def jet_correlations_run5(runlist=None):
     """3-D deta-dphi plot -- possible paper plot at one time. \
     Also plots the uncorrected pion momentum fraction for near-side
     and away-side
@@ -442,8 +442,6 @@ def jet_correlations_run5():
     style.SetLabelSize(0.035,'xy')
     style.SetTitleOffset(1.2,'y')
     style.cd()
-    
-    runlist = None
     
     h1 = None
     h2 = None
@@ -1188,7 +1186,7 @@ def spinInfoForFrank():
     f.Close()
 
 
-def ssa_by_fill(asym_key='ly', runlist=analysis.final_runlist_run5):
+def ssa_by_fill(asym_key='ly', runlist=analysis.final_runlist_run5, variable='pt', year=2006, bins=None):
     """generates canvas for asym_key (ly,lb,ls,us). Each data point is the SSA for a fill"""
     tuples = analysis.getAllFills(runlist)
     fills = []
@@ -1207,8 +1205,8 @@ def ssa_by_fill(asym_key='ly', runlist=analysis.final_runlist_run5):
     asym_plus = {}
     asym_minus = {}
     for f in fills:
-        asym_plus[f] = analysis.AsymmetryGenerator(name='F%s_plus' % f, bins=[1,2.0,10.0])
-        asym_minus[f] = analysis.AsymmetryGenerator(name='F%s_minus' % f, bins=[1,2.0,10.0])
+        asym_plus[f] = analysis.AsymmetryGenerator(name='F%s_plus' % f, bins=bins or [1,0.0,1.0], key=variable)
+        asym_minus[f] = analysis.AsymmetryGenerator(name='F%s_minus' % f, bins=bins or [1,0.0,1.0], key=variable)
     
     scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run5.txt'
     scalars = analysis.ScalarCounts(scalar_path)
@@ -1983,3 +1981,445 @@ def z_slope_run5(trig='jetpatch', runlist=None, charge=0):
     raw_input('wait here:')
     ps.Close()
 
+def x1b(v1, v2):
+    return 0.005 * (v1.Pt() * math.exp(v1.Eta()) + v2.Pt() * math.exp(v2.Eta()))
+
+def x2b(v1, v2):
+    return 0.005 * (v1.Pt() * math.exp(-v1.Eta()) + v2.Pt() * math.exp(-v2.Eta()))
+
+def g2t_kinematics():
+    f = ROOT.TFile('small2.root')
+    h2 = ROOT.TH2D('h2','Recalculated (x1,x2) versus g2t record', 200, -0.1, 0.1, 200, -0.1, 0.1)
+    h2.SetXTitle('x1(reco)-x1(g2t)')
+    h2.SetYTitle('x2(reco)-x2(g2t)')
+    
+    h2pre = ROOT.TH2D('h2pre','Reco (x1,x2) before ISR vs g2t record', 200, -0.1, 0.1, 200, -0.1, 0.1)
+    h2pre.SetXTitle('x1b(reco)-x1(g2t)')
+    h2pre.SetYTitle('x2b(reco)-x2(g2t)')
+    
+    h2e = ROOT.TH2D('h2e','Partonic E_after/E_before ISR', 200, 0.5, 1.1, 200, 0.5, 1.1)
+    h2e.SetXTitle('E1_after/E1_before')
+    h2e.SetYTitle('E2_after/E2_before')
+    
+    i = 0
+    for entry in f.tree:
+        ev = f.tree.event
+        h2.Fill(ev.x1()-ev.mX1, ev.x2()-ev.mX2)
+        h2pre.Fill(x1b(ev.preISR1, ev.preISR2)-ev.mX1, x2b(ev.preISR1, ev.preISR2)-ev.mX2)
+        h2e.Fill(ev.parton1().E()/ev.preISR1.E(), ev.parton2().E()/ev.preISR2.E())
+        
+        print '=== Summary for entry %03d, event %04d ====================' % (i, ev.eventId())
+        print 'v1b %(x) .3f %(y) .3f %(z) .3f %(e) .3f' % {'x':ev.preISR1.X(), 'y':ev.preISR1.Y(), 'z':ev.preISR1.Z(), 'e':ev.preISR1.E()}
+        print 'v1a %(x) .3f %(y) .3f %(z) .3f %(e) .3f' % {'x':ev.parton1().X(), 'y':ev.parton1().Y(), 'z':ev.parton1().Z(), 'e':ev.parton1().E()}
+        print ''
+        print 'v2b %(x) .3f %(y) .3f %(z) .3f %(e) .3f' % {'x':ev.preISR2.X(), 'y':ev.preISR2.Y(), 'z':ev.preISR2.Z(), 'e':ev.preISR2.E()}
+        print 'v2a %(x) .3f %(y) .3f %(z) .3f %(e) .3f' % {'x':ev.parton2().X(), 'y':ev.parton2().Y(), 'z':ev.parton2().Z(), 'e':ev.parton2().E()}
+        print ''
+        print 'x1b %.4f  x1() %.4f mX1 %.4f' % (x1b(ev.preISR1, ev.preISR2), ev.x1(), ev.mX1)
+        print 'x2b %.4f  x2() %.4f mX2 %.4f' % (x2b(ev.preISR1, ev.preISR2), ev.x2(), ev.mX2)        
+        print ''
+        print 'shat = ', ev.s(), 'x1x2s = ', ev.mX1*ev.mX2*200*200
+        print '=========================================================='
+        
+        
+        i += 1
+        
+    h2.Draw()
+    c = ROOT.TCanvas()
+    h2pre.Draw()
+    c2 = ROOT.TCanvas()
+    h2e.Draw()
+    raw_input('wait here:')
+    
+
+def away_side_asymmetries_run6(runlist):
+    asym_plus = analysis.AsymmetryGenerator('asym_plus', key='away_lead_pt')
+    asym_minus = analysis.AsymmetryGenerator('asym_minus', key='away_lead_pt')
+    
+    scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run6.txt'
+    scalars = analysis.ScalarCounts(scalar_path)
+    
+    polarizations = analysis.Polarizations.Final
+    
+    ## generate the asymmetries
+    allFiles = glob(run6_hist_dir + '/chargedPions_*.hist.root')[:]
+    for fname in allFiles:
+        run = analysis.getRun(fname)
+        if runlist is None or run in runlist:
+            print fname, run
+            tfile = ROOT.TFile(fname)
+            mgr = analysis.HistogramManager(tfile,['away_lead_pt'])
+            
+            try:
+                bin6 = scalars.get(str(run) + '-5-6') or scalars[str(run) + '-6-6']
+                bin7 = scalars.get(str(run) + '-5-7') or scalars[str(run) + '-6-7']
+                bin8 = scalars.get(str(run) + '-5-8') or scalars[str(run) + '-6-8']
+                bin9 = scalars.get(str(run) + '-5-9') or scalars[str(run) + '-6-9']
+            except KeyError:
+                print run, 'is not in the scalars database'
+                continue
+            uu = bin6.uu + bin7.uu + bin8.uu + bin9.uu
+            ud = bin6.ud + bin7.ud + bin8.ud + bin9.ud
+            du = bin6.du + bin7.du + bin8.du + bin9.du
+            dd = bin6.dd + bin7.dd + bin8.dd + bin9.dd
+            
+            try:
+                pol = polarizations[bin7.fill]
+            except KeyError:
+                print bin7.fill, 'has no final polarization values'
+                continue
+            
+            asym_plus.FillFromHistogramManager(mgr, 'jetpatch', 1, uu, ud, du,
+                                               dd, pol.py, pol.pb)
+            asym_minus.FillFromHistogramManager(mgr, 'jetpatch', -1, uu, ud, du,
+                                                dd, pol.py, pol.pb)
+            tfile.Close()
+    
+    line = ROOT.TLine(2.0, 0.0, 10.0, 0.0)
+    line.SetLineStyle(2)
+            
+    c1 = ROOT.TCanvas()
+    h1 = asym_plus.GetAsymmetry('ll')
+    h1.GetYaxis().SetRangeUser(-0.1, 0.1)
+    h1.SetTitle('Run 6 away-side A_{LL} BJP1 #pi^{+}')
+    h1.SetXTitle('p_{T}')
+    h1.SetMarkerStyle(21)
+    h1.Draw('e1')
+    line.Draw('same')
+    
+    c2 = ROOT.TCanvas()
+    h2 = asym_minus.GetAsymmetry('ll')
+    h2.GetYaxis().SetRangeUser(-0.1, 0.1)
+    h2.SetTitle('Run 6 away-side A_{LL} BJP1 #pi^{-}')
+    h2.SetXTitle('p_{T}')
+    h2.SetMarkerStyle(20)
+    h2.Draw('e1')
+    line.Draw('same')
+    
+    raw_input('wait here:')
+
+
+def ssa_by_run(asym_key='ly', runlist=analysis.final_runlist_run5, variable='pt', year=2006, bins=[1,2.0,10.0]):
+    """generates canvas for asym_key (ly,lb,ls,us). Each data point is the SSA for a fill"""
+    
+    asym_plus = {}
+    asym_minus = {}
+    # if variable == 'jet_pt':
+    #     bins = [1,5.0,50.0]
+    # else:
+    #     bins = [1,2.0,10.0]
+    for f in runlist:
+        asym_plus[f] = analysis.AsymmetryGenerator(name='R%s_plus' % f, bins=bins, key=variable, useR123=True)
+        asym_minus[f] = analysis.AsymmetryGenerator(name='R%s_minus' % f, bins=bins, key=variable, useR123=True)
+    
+    if year == 2005:
+        scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run5.txt'
+        allFiles = glob(run5_hist_dir + '/chargedPions_*.hist.root')
+    else:
+        scalar_path = os.environ['STAR'] + '/StRoot/StSpinPool/StTamuRelLum/inputs/run6.txt'        
+        allFiles = glob(run6_hist_dir + '/chargedPions_*.hist.root')
+    
+    scalars = analysis.ScalarCounts(scalar_path)
+    polarizations = analysis.Polarizations.Final
+    
+    for fname in allFiles:
+        run = analysis.getRun(fname)
+        if runlist is None or run in runlist:
+            print fname, run
+            tfile = ROOT.TFile(fname)
+            mgr = analysis.HistogramManager(tfile,(variable,))
+            
+            try:
+                bin6 = scalars.get(str(run) + '-5-6') or scalars[str(run) + '-6-6']
+                bin7 = scalars.get(str(run) + '-5-7') or scalars[str(run) + '-6-7']
+                bin8 = scalars.get(str(run) + '-5-8') or scalars[str(run) + '-6-8']
+                bin9 = scalars.get(str(run) + '-5-9') or scalars[str(run) + '-6-9']
+            except KeyError:
+                print run, 'is not in the scalars database'
+                continue
+            uu = bin7.uu + bin8.uu + bin9.uu
+            ud = bin7.ud + bin8.ud + bin9.ud
+            du = bin7.du + bin8.du + bin9.du
+            dd = bin7.dd + bin8.dd + bin9.dd
+            if year == 2006:
+                uu += bin6.uu
+                ud += bin6.ud
+                du += bin6.du
+                dd += bin6.dd
+            try:
+                pol = polarizations[bin7.fill]
+            except KeyError:
+                print bin7.fill, 'has no final polarization values'
+                continue
+            
+            asym_plus[run].FillFromHistogramManager(mgr, 'jetpatch', 1, uu, ud, du, dd, pol.py, pol.pb)
+            asym_minus[run].FillFromHistogramManager(mgr, 'jetpatch', -1, uu, ud, du, dd, pol.py, pol.pb)
+            tfile.Close()
+    
+    title = {'ll': 'Double Spin', 'ly':'Yellow Beam', 'lb':'Blue Beam', 'ls':'Like-Sign', 'us':'Unlike-Sign'}
+    final_hist_plus = ROOT.TH1D('final_hist_plus','#pi^{+} %s SSA' % title[asym_key], len(runlist), 0.5, len(runlist)+0.5)
+    final_hist_minus = ROOT.TH1D('final_hist_minus','#pi^{-} %s SSA' % title[asym_key], len(runlist), 0.5, len(runlist)+0.5)
+    sigma_plus = ROOT.TH1D('sigma_plus', '#pi^{+} %s SSA Deviation Per Run' % \
+        title[asym_key], 50, -7.0, 7.0)
+    sigma_minus = ROOT.TH1D('sigma_minus', '#pi^{-} %s SSA Deviation Per Run' % \
+        title[asym_key], 50, -7.0, 7.0)
+    if variable == 'jet_pt':
+        [h.SetTitle('Jet %s SSA' % title[asym_key]) for h in (final_hist_minus,final_hist_plus)]
+    marker_color = {'ll': ROOT.kBlack, 'ly':ROOT.kYellow, 'lb':ROOT.kBlue, 'ls':ROOT.kRed, 'us':ROOT.kBlack}
+    for h in (final_hist_plus, final_hist_minus):
+        h.SetMarkerColor( marker_color[asym_key] )
+        h.GetYaxis().SetRangeUser(-0.2, 0.2)
+        h.SetXTitle('run index')
+    final_hist_plus.SetMarkerStyle(21)
+    final_hist_minus.SetMarkerStyle(20)
+    for h in (sigma_plus, sigma_minus):
+        h.SetXTitle('n#sigma')
+    for i,f in enumerate(runlist):
+        hplus = asym_plus[f].GetAsymmetry(asym_key)
+        try:
+            sigma_plus.Fill(hplus.GetBinContent(1)/hplus.GetBinError(1))
+            final_hist_plus.SetBinContent( i+1, hplus.GetBinContent(1) )
+            final_hist_plus.SetBinError( i+1, hplus.GetBinError(1) )
+            print '%d % .4f % .4f % .4f' % (f, hplus.GetBinContent(1), hplus.GetBinError(1), hplus.GetBinContent(1)/hplus.GetBinError(1))
+        except ZeroDivisionError:
+            print 'ACK', f, hplus.GetBinContent(1), hplus.GetBinError(1)
+        
+        hplus.Delete()
+        
+        hminus = asym_minus[f].GetAsymmetry(asym_key)
+        try:
+            sigma_minus.Fill(hminus.GetBinContent(1)/hminus.GetBinError(1))
+            final_hist_minus.SetBinContent( i+1, hminus.GetBinContent(1) )
+            final_hist_minus.SetBinError( i+1, hminus.GetBinError(1) )
+        except ZeroDivisionError:
+            print 'ACK', f, hminus.GetBinContent(1), hminus.GetBinError(1)
+        
+        hminus.Delete()
+    
+    ROOT.gStyle.SetOptStat('oume')
+    ROOT.gStyle.SetOptFit(111)
+    
+    c1 = ROOT.TCanvas()
+    sigma_minus.Fit('gaus')
+    c2 = ROOT.TCanvas()
+    sigma_plus.Fit('gaus')
+    
+    ROOT.gStyle.SetOptStat(0)
+    ROOT.gStyle.SetErrorX(0.0)
+    ROOT.gStyle.SetOptFit(111)
+    
+    cp = ROOT.TCanvas('%s_ssa_run_plus' % asym_key)
+    final_hist_plus.Draw('e1')
+    final_hist_plus.Fit('pol0')
+    print ROOT.gROOT.GetFunction('pol0').GetProb()
+    cm = ROOT.TCanvas('%s_ssa_run_minus' % asym_key)
+    final_hist_minus.Draw('e1')
+    final_hist_minus.Fit('pol0')
+    print ROOT.gROOT.GetFunction('pol0').GetProb()
+    raw_input('wait here')
+    cp.Print('.png')
+    cm.Print('.png')
+
+
+def datamc(simuFile, dataDir, runlist, trigger):
+    fsimu = ROOT.TFile(simuFile)
+    simu = analysis.HistogramManager(fsimu)
+    
+    # event_keys = ['vz', 'vzBBC', 'jet_pt', 'lead_neutral', 'inclusive_jet_mult',
+    #     'dijet_mult']
+    event_keys = []
+    
+    # track_keys = ['pt', 'eta', 'phi', 'nHitsFit', 'dEdx', 'dcaG', 'nSigmaPion',
+    #     'pt_near', 'pt_away', 'pt_bg', 
+    #     'away_mult', 'near_mult', 'away_lead_pt', 'near_lead_pt',
+    #     'lead_matched', 'lead_cutfail', 'z_away2', 'z_away3', 'z_away4',
+    #     'away2_eta', 'away2_nHitsFit', 'away2_dcaG', 'vz', 'distortedPt']
+    track_keys = ['pt', 'distortedPt']
+    
+    log_scale = ('lead_neutral', 'inclusive_jet_mult', 'dijet_mult', 'pt', 'dcaG',
+        'pt_near', 'pt_away', 'pt_bg', 'away_mult', 'near_mult', 'away_lead_pt', 
+        'near_lead_pt', 'lead_matched', 'lead_cutfail', 'z_away2', 'z_away3', 'z_away4',
+        'away2_dcaG', 'jet_pt', 'distortedPt')
+    
+    ## normalize based on integrated luminosity in mb
+    ## lumi for long2_run6, 2008-08-28: 5.43 pb^-1
+    norm = 5.43E+09    
+    ## lumi for final_runlist_run5, 2008-09-04: 2.11 pb^-1
+    # norm = 2.11E+09
+    print 'normalization factor for simulations: %.2E' % norm
+    
+    ## scale normalization down to account for PID efficiency (but neglecting contam)
+    track_norm = norm * 0.82
+    
+    ## if I include p/k/e contamination this factor is approximately
+    # track_norm = norm * 0.93
+    
+    rebin = ('vz', 'vzBBC', 'jet_pt')
+    
+    keepme = []
+    for key in event_keys:
+        c = analysis.graphics.canvas1e(key)
+        cpad = c.cd(1)
+        epad = c.cd(2)
+        if key in log_scale: cpad.SetLogy()
+        
+        d = analysis.hadd_interactive(dataDir, runlist, trigger, 'anyspin', None, key)
+        if d.GetTitle() == '': d.SetTitle(key)
+        
+        s = simu.anyspin[trigger][key]
+        s.Scale(norm)
+        s.SetLineColor(ROOT.kRed)
+        s.SetMarkerColor(ROOT.kRed)
+        
+        if key in rebin: 
+            d.Rebin()
+            s.Rebin()
+        
+        cpad.cd()
+        d.Draw('e')
+        s.Draw('hist same')
+        
+        ## time for the ratios
+        line = ROOT.TLine(d.GetBinLowEdge(1), 0.0, \
+                          d.GetBinLowEdge(d.GetNbinsX()+1), 0.0)
+        line.SetLineStyle(4)
+        
+        epad.cd()
+        ratio = d.Clone()
+        ratio.Add(s, -1.0)
+        ratio.Divide(d)
+        ratio.SetTitle('')
+        ratio.GetYaxis().SetTitle('(data-simu)/data')
+        ratio.GetYaxis().SetRangeUser(-1.0, 1.0)
+        ratio.Draw()
+        line.Draw('same')
+        
+        c.Update()
+        
+        keepme.extend([c,d,s])
+    
+    for key in track_keys:
+        c = analysis.graphics.canvas3('track ' + key)
+        mpad = c.cd(1)
+        ppad = c.cd(2)
+        empad = c.cd(3)
+        eppad = c.cd(4)
+        c2 = analysis.graphics.canvas1e('track sum ' + key)
+        pad = c2.cd(1)
+        epad = c2.cd(2)
+        
+        pads = (mpad, ppad, pad)
+        if key in log_scale:
+            [p.SetLogy() for p in pads]
+        
+        dkey = key=='distortedPt' and 'pt' or key
+        
+        da = analysis.hadd_interactive(dataDir, runlist, trigger, 'anyspin', 'sum', dkey)
+        dm = analysis.hadd_interactive(dataDir, runlist, trigger, 'anyspin', 'minus', dkey)
+        dp = analysis.hadd_interactive(dataDir, runlist, trigger, 'anyspin', 'plus', dkey)
+        d2 = (da, dm, dp)
+        da.SetTitle(key + ' for #pi^{-} + #pi^{+}')
+        dm.SetTitle(key + ' for #pi^{-}')
+        dp.SetTitle(key + ' for #pi^{+}')
+        
+        
+        sa = simu.anyspin[trigger].tracks_sum[key]
+        sm = simu.anyspin[trigger].tracks_minus[key]
+        sp = simu.anyspin[trigger].tracks_plus[key]
+        s2 = (sa, sm, sp)
+        for s in s2:
+            s.SetLineColor(ROOT.kRed)
+            s.SetMarkerColor(ROOT.kRed)
+            s.Scale(track_norm)
+        
+        if key in rebin:
+            [h.Rebin() for h in d2+s2]
+        
+        pad.cd()
+        da.Draw('e')
+        sa.Draw('hist same')
+        
+        mpad.cd()
+        dm.Draw('e')
+        sm.Draw('hist same')
+        
+        ppad.cd()
+        dp.Draw('e')
+        sp.Draw('hist same')
+        
+        ## time for the ratios
+        line = ROOT.TLine(dm.GetBinLowEdge(1), 0.0, \
+                          dm.GetBinLowEdge(dm.GetNbinsX()+1), 0.0)
+        line.SetLineStyle(4)
+        
+        epad.cd()
+        ratio = da.Clone()
+        ratio.Add(sa, -1.0)
+        ratio.Divide(da)
+        ratio.Draw()
+        line.Draw('same')
+        
+        empad.cd()
+        mratio = dm.Clone()
+        mratio.Add(sm, -1.0)
+        mratio.Divide(dm)
+        mratio.Draw()
+        line.Draw('same')
+        
+        eppad.cd()
+        pratio = dp.Clone()
+        pratio.Add(sp, -1.0)
+        pratio.Divide(dp)
+        pratio.Draw()
+        line.Draw('same')
+        
+        ratios = (ratio, mratio, pratio)
+        for h in ratios:
+            h.SetTitle('')
+            h.GetYaxis().SetTitle('(data-simu)/data')
+            h.GetYaxis().SetRangeUser(-1.0, 1.0)
+            
+        c.Update()
+        c2.Update()
+        keepme.extend([c, da, dm, dp, sa, sm, sp, ratio, mratio, pratio])
+    
+    save = raw_input('save these histograms? (y/N): ')
+    if save == 'y':
+        for item in keepme:
+            if item.ClassName() == 'TCanvas':
+                item.Print(item.GetTitle().replace(' ', '_') + '.png')
+    
+    [o.Delete() for o in keepme]
+
+def mcasym(fname, trigger='jetpatch', keys=None):
+    f = ROOT.TFile(fname)
+    keys = keys or ['STD','MAX','MIN','ZERO','GS_NLOC']
+    print keys
+    mgr = analysis.HistogramManager(f, keys = keys+['denom'])
+    keepme = []
+    color = {
+        'STD': ROOT.kBlack,
+        'MAX': ROOT.kRed,
+        'MIN': ROOT.kGreen,
+        'ZERO': ROOT.kBlue,
+        'GS_NLOC': ROOT.kMagenta
+    }
+    c = analysis.graphics.canvas2()
+    for i,key in enumerate(keys):
+        opt = i>0 and 'same' or ''
+        c.cd(1)
+        minus = mgr.anyspin[trigger].tracks_minus[key].Clone()
+        minus.GetYaxis().SetRangeUser(-0.2,0.2)
+        minus.SetLineColor(color[key])
+        minus.SetTitle('#pi^{-}')
+        minus.GetXaxis().SetTitle('z')
+        minus.Draw(opt)
+        c.cd(2)
+        plus = mgr.anyspin[trigger].tracks_plus[key].Clone()
+        plus.GetYaxis().SetRangeUser(-0.2,0.2)
+        plus.SetLineColor(color[key])
+        plus.SetTitle('#pi^{+}')
+        plus.GetXaxis().SetTitle('z')
+        plus.Draw(opt)
+        keepme.extend([c,minus,plus])
+    raw_input('wait:')
