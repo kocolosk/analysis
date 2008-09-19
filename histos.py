@@ -263,13 +263,20 @@ class TrackCuts:
 
 
 class JetCuts:
-    triggerThresholds = { 96201:13, 96211:17, 96221:66, 96233:83, 137221:58, 137222:60 }
+    triggerThresholds = { 
+        96201:13, 
+        96211:17, 
+        96221:66, 
+        96233:83, 
+        137221:58, 
+        137222:60 
+    }
     minPhi2005 = 40
     maxPhi2005 = 320
-    patchPhi2005 = [90., 30., -30., -90., -150., 150.]
+    patchPhi2005 = [90.,30.,-30.,-90.,-150.,150.]
     minPhi2006 = 36
     maxPhi2006 = 324
-    patchPhi2006 = [150., 90., 30., -30., -90., -150., 150., 90., 30., -30., -90., -150.]
+    patchPhi2006 = [150.,90.,30.,-30.,-90.,-150.,150.,90.,30.,-30.,-90.,-150.]
     
     
     def __init__(self, jet=None, event=None):
@@ -285,7 +292,7 @@ class JetCuts:
         if (not simu and event.runId() < 7000000) or (simu and year == 2005):
             self.eta = 0.2 < jet.detectorEta() < 0.8
             self.rt = 0.1 < (jet.tpcEtSum() / jet.Et()) < 0.9
-            self.trig = ['96011']
+            self.trig = [96011]
             
             ## HT geometric trigger condition
             for particle in jet.particles():
@@ -301,23 +308,21 @@ class JetCuts:
             for patchId in range(6):
                 adc = event.jetPatchAdc(patchId)
                 if adc > self.triggerThresholds[96221]:
-                    dPhi = math.fabs( math.degrees(jet.Phi()) - self.patchPhi2005[patchId] )
+                    dPhi=abs(math.degrees(jet.Phi())-self.patchPhi2005[patchId])
                     if dPhi < self.minPhi2005 or dPhi > self.maxPhi2005:
                         self.trig.append(96221)
                         if adc > self.triggerThresholds[96233]:
                             self.trig.append(96233)
         else:
             self.eta = -0.7 < jet.detectorEta() < 0.9
-            #### WRONG!!!
-            # self.rt = (jet.tpcEtSum() / jet.Et()) < 0.85
             self.rt = (jet.tpcEtSum() / jet.Et()) > 0.08
-            self.trig = ['117001']
+            self.trig = [117001]
         
             ## JP geometric trigger condition
             for patchId in range(12):
                 adc = event.jetPatchAdc(patchId)
                 if adc > self.triggerThresholds[137221]:
-                    dPhi = math.fabs( math.degrees(jet.Phi()) - self.patchPhi2006[patchId] )
+                    dPhi=abs(math.degrees(jet.Phi())-self.patchPhi2006[patchId])
                     if dPhi < self.minPhi2006 or dPhi > self.maxPhi2006:
                         self.trig.append(137221)
                         if adc > self.triggerThresholds[137222]:
@@ -982,6 +987,8 @@ class HistogramManager(dict):
                 tcuts.set(track)
                 tcoll = self[spin][trig].trackHistograms(track.charge())
                 
+                # WRONG!!! Looping over monoJets + diJets is NOT the same as
+                # looping over inclusive jets
                 for jet in monoJets:
                     tcoll.fillTrackJetPair(track, tcuts, jet)
                 
