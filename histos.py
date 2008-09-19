@@ -1112,22 +1112,6 @@ class HistogramManager(dict):
         return h
     
     
-    def Add(self, other, xsec, nevents):
-        minCounts = 0
-        for h in other.histos():
-            tokens = h.GetName().split('_')
-            spin = tokens[1]
-            trig = tokens[2]
-            name = tokens[3]
-            if name in ('STD','MAX','MIN','ZERO','GS_NLOC','denom'): continue
-            try:
-                me = self[spin][trig]
-            except KeyError, msg:
-                raise KeyError, msg
-                
-            combineSampledHists(me, h, xsec, nevents)
-    
-    
     def Write(self,):
         """make it persistent in the current tfile"""
         self.eventCounter.Write()
