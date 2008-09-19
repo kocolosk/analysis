@@ -315,10 +315,13 @@ class MiniMcHistos(dict):
             #asymCheck = key.split('_')[0]
             if key in asymKeys or key == 'denom': continue
             
+            if key not in other.keys(): continue
+            
             nbins = self[key].GetBin(self[key].GetNbinsX(),self[key].GetNbinsY(),self[key].GetNbinsZ())
             for i in range(nbins):
                 content = self[key].GetBinContent(i+1)
                 error   = self[key].GetBinError(i+1)**2
+                if other[key] is None: continue
                 nparticles = other[key].GetBinContent(i+1)
                 if nparticles >= minCounts:
                     wp = weight / nevents
@@ -1696,11 +1699,13 @@ def asymmetries(histFile='/Users/kocolosk/data/simu/combined.hist.root'):
     """plots all triggers for an asmmyetry on a single canvas"""
     tfile = ROOT.TFile(histFile,'read')
     
-    minimc = [ MiniMcHistos(key, tfile) for key in miniKeys ]
+    minimc = [ MiniMcHistos(key, '', tfile) for key in miniKeys ]
                     
     c = [ ROOT.TCanvas('c0'), ROOT.TCanvas('c1'), ROOT.TCanvas('c2'), ROOT.TCanvas('c3'), ROOT.TCanvas('c4') ]
     
     keys = ['lo', 'nlo', 'max', 'min', 'zero']
+    
+    [ minimc[0][key].GetXaxis().SetRangeUser(2.0, 10.0) for key in keys ]
     
     [ minimc[0][key].SetLineColor(ROOT.kRed) for key in keys ]
     [ minimc[1][key].SetLineColor(ROOT.kGreen) for key in keys ]
@@ -1740,7 +1745,7 @@ def asymmetries(histFile='/Users/kocolosk/data/simu/combined.hist.root'):
 def asymmetries2(histFile='./combined.plus.hist.root', trigKey='notrig'):
     """plots all asymmetries for trig on one canvas"""
     f = ROOT.TFile(histFile)
-    minimc = MiniMcHistos(trigKey, f)
+    minimc = MiniMcHistos(trigKey, '', f)
     
     c1 = ROOT.TCanvas('c1')
     bg = ROOT.TH2D('bg','Raw #pi^{-} Asymmetries for All Scenarios ',1,1.0,15.0,1,-0.04,0.08)
@@ -1778,7 +1783,7 @@ def asymmetries3(histFile='./combined.plus.hist.root', trigger='96233', scenario
     """plots deviation from raw A_{LL} v. p_T"""
     f = ROOT.TFile(histFile)
     m = {}
-    for key in trigKeys: m[key] = MiniMcHistos(key, f)
+    for key in trigKeys: m[key] = MiniMcHistos(key, '', f)
     
     if 'plus' in histFile: charge = '+'
     else: charge = '-'
@@ -1788,7 +1793,7 @@ def asymmetries3(histFile='./combined.plus.hist.root', trigger='96233', scenario
     else:
         c1 = canvas
     
-    bg = ROOT.TH2D('bg_%s_%s' % (trigger, scenario),scenario, 1,1.0,13.0, 1,-0.05,0.05)
+    bg = ROOT.TH2D('bg_%s_%s' % (trigger, scenario),scenario, 1,2.0,10.0, 1,-0.05,0.05)
     bg.SetTitle('A_{LL}(%s) - A_{LL}(no trigger) for #pi^{%s} in %s scenario' % (trigger, charge, scenario))
     bg.SetXTitle('#pi reco p_{T}')
     
@@ -1809,8 +1814,8 @@ def asymmetries3(histFile='./combined.plus.hist.root', trigger='96233', scenario
         
     bg.Draw()
     m[trigger][scenario].Draw('p same')
-    return [f, bg, m[trigger][scenario]]
     #raw_input('what do you think?')
+    return [f, bg, m[trigger][scenario]]
 
 
 def asymmetries4(histFile='./combined.plus.hist.root'):
@@ -1864,9 +1869,12 @@ def validateAsymmetries(histFile='combined.plus.hist.root', subprocess=''):
         [ miniHist[key].SetMarkerStyle(21) for key in asymKeys ]        
         miniHist[ asymKeys[0] ].SetTitle('A_{LL} for #pi^{-} in Pythia and GRSV')
     
+    [ miniHist[ a ].SetFillStyle( 3004 ) for a in asymKeys ]
+    
     miniHist[ asymKeys[0] ].SetLineColor( ROOT.kBlack ) 
     miniHist[ asymKeys[0] ].SetMarkerColor( ROOT.kBlack )   
-    miniHist[ asymKeys[0] ].Draw('e')
+    miniHist[ asymKeys[0] ].SetFillColor( ROOT.kBlack )   
+    miniHist[ asymKeys[0] ].Draw('e4')
     
     miniHist[ asymKeys[0] ].GetYaxis().SetRangeUser(-0.04, 0.08)
     miniHist[ asymKeys[0] ].GetXaxis().SetRangeUser(1.25, 11.0)
@@ -1874,15 +1882,18 @@ def validateAsymmetries(histFile='combined.plus.hist.root', subprocess=''):
     
     miniHist[ asymKeys[1] ].SetLineColor( ROOT.kRed )
     miniHist[ asymKeys[1] ].SetMarkerColor( ROOT.kRed )
-    miniHist[ asymKeys[1] ].Draw('e same')
+    miniHist[ asymKeys[1] ].SetFillColor( ROOT.kRed )
+    miniHist[ asymKeys[1] ].Draw('e4 same')
     
     miniHist[ asymKeys[2] ].SetLineColor( ROOT.kGreen )
     miniHist[ asymKeys[2] ].SetMarkerColor( ROOT.kGreen )
-    miniHist[ asymKeys[2] ].Draw('e same')
+    miniHist[ asymKeys[2] ].SetFillColor( ROOT.kGreen )
+    miniHist[ asymKeys[2] ].Draw('e4 same')
     
     miniHist[ asymKeys[3] ].SetLineColor( ROOT.kBlue )
     miniHist[ asymKeys[3] ].SetMarkerColor( ROOT.kBlue )
-    miniHist[ asymKeys[3] ].Draw('e same')
+    miniHist[ asymKeys[3] ].SetFillColor( ROOT.kBlue )
+    miniHist[ asymKeys[3] ].Draw('e4 same')
     
     # now draw theory curves
     if subprocess == '':
