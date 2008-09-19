@@ -1,7 +1,6 @@
 import math
 import os
 import sys
-##import uuid 
 import time
 import sets
 from array import array
@@ -343,10 +342,10 @@ class Histo(object):
         fall back to ROOT method if I didn't define a replacement
         """
         return getattr(self.h, name)
-        
+    
     def Fill(self, x, y=None, z=None):
         self.vals.append((x,y,z))
-        
+    
     def Flush(self):
         """
         Ends the event and actually fills the ROOT histogram, taking multi-
@@ -369,6 +368,7 @@ class Histo(object):
         self.vals = []
     
 
+
 class TrackHistogramCollection(dict):
     """histograms filled for each track"""
     allKeys = ['pt', 'eta', 'phi', 'nHitsFit', 'dEdx', 'dcaG', 'nSigmaPion',
@@ -379,6 +379,7 @@ class TrackHistogramCollection(dict):
         'z_away2', 'z_away3', 'z_away4', 'away2_eta', 'away2_nHitsFit', 
         'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg', 'vz', 'distortedPt', 
         'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom']
+    
     
     def __init__(self, name, tfile=None, keys=None):
         self.away_mult = 0
@@ -1389,8 +1390,7 @@ def distortedPt(track):
         return (pT + A*pT*pT)
 
 
-def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist',useLSF=False,\
-    fillList=None):
+def condenseIntoFills(histDir, useLSF=False,fillList=None):
     """uses hadd to make histogram files for each fill instead of each run"""
     import analysis
     allFiles = os.listdir(histDir)
@@ -1432,71 +1432,6 @@ def condenseIntoFills(histDir='/Users/kocolosk/data/run5/hist',useLSF=False,\
                     cmd = 'bsub -q star_cas_short -e err/%d.err -o out/%d.out '\
                      % (fill,fill) + cmd
                 os.system(cmd)
-
-
-def combineSampledHists(h1, h2, xsec, nevents):
-    nbins = h1.GetBin(h1.GetNbinsX(), h1.GetNbinsY(), h1.GetNbinsZ())
-    for i in range(nbins):
-        content = h1.GetBinContent(i+1)
-        error   = h1.GetBinError(i+1)**2
-        if h2 is None: continue
-        nparticles = h2.GetBinContent(i+1)
-        if nparticles >= minCounts:
-            wp = weight / nevents
-            content += nparticles * wp
-            error   += wp * wp * nparticles * (1+nparticles/nevents)
-        h1.SetBinContent(i+1,content)
-        h1.SetBinError(i+1, math.sqrt(error))
-    return h1
-
-
-def combineSamples(outFileName, inputFileList):
-    """filenames in fileList must be of the form /blah/2_3.hist.root, i.e. 
-    the xsec weight must encoded in the name
-    """
-    assert(simu == True)
-    
-    xsec = { 
-        '2_3'       : 8.150,
-        '3_4'       : 1.302,
-        '4_5'       : 3.158E-01,
-        '5_7'       : 1.372E-01,
-        '7_9'       : 2.290E-02,
-        '9_11'      : 5.495E-03,
-        '11_15'     : 2.220E-03,
-        '15_25'     : 3.907E-04,
-        '25_35'     : 1.074E-05,
-        'above_35'  : 5.300E-07,
-        '45_55'     : 2.857E-08,
-        '55_65'     : 1.451E-09
-    }
-    
-    tfile = [ ROOT.TFile(path,'read') for path in inputFileList ]
-    nevents = [ f.Get('eventCounter').GetBinContent(1) for f in tfile ]
-    weight = [ xsec[os.path.basename(path).split('.')[0]] \
-        for path in inputFileList ]
-    
-    out = analysis.HistogramManager()
-    for index,fname in enumerate(inputFileList):
-        print 'adding', fname
-        mgr = analysis.HistogramManager(tfile[index])
-        
-        for i in range(len(outHists)):
-            out.Add(mgr, xsec_weight[index], nevents[index])
-    
-    #now calculate A_LL    
-    #for trig in range(len(sampleHists[0])):
-    #    for key in asymKeys:
-    #        num = [sample[trig][key] for sample in sampleHists]
-    #        denom = [sample[trig]['denom'] for sample in sampleHists]
-    #        outHists[trig][key].Delete()
-    #        outHists[trig][key] = calculateALL(num, denom, nevents, xsec_weight)
-    
-    outFile = ROOT.TFile(outFileName, 'recreate')
-    out.Write()
-    outFile.Close()
-        
-    [f.Close() for f in tfile]
 
 
 def bsub(treeDir, runList=None, trigList=None):
@@ -1649,8 +1584,3 @@ def condor_simu(treeDir, trigList=None, year=2006):
     ## and off we go
     os.system('condor_submit submit.condor')
 
-
-if __name__ == '__main__':
-    directory = sys.argv[1]
-    run = sys.argv[2]
-    writeHistograms(directory, run)
