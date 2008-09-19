@@ -1035,60 +1035,60 @@ class HistogramManager(dict):
             
             ## non-inclusive definitions for "z_away"
             for jet in inclusiveJets:
-                if 10.0 < jet.Pt() < 30.0:
-                    for track in sortedTracks:
-                        tcuts.set(track)
-                        if math.fabs(track.DeltaPhi(jet)) > 2.0:
-                            c = (track.charge() > 0) and tp or tm
-                            z = track.Pt()/jet.Pt()
-                            if tcuts.dca and tcuts.fit and tcuts.pid:
-                                c['away2_eta'].Fill(track.eta())
-                            if tcuts.eta and tcuts.fit and tcuts.pid:
-                                c['away2_dcaG'].Fill(track.globalDca().mag())
-                            if tcuts.eta and tcuts.dca and tcuts.pid:
-                                c['away2_nHitsFit'].Fill(track.nHitsFit())
-                            if tcuts.eta and tcuts.dca and tcuts.fit:
-                                c['away2_nSigmaPion'].Fill(track.nSigmaPion())
-                            if tcuts.eta and tcuts.dca and tcuts.fit \
-                                and tcuts.pid_bg:
-                                c['z_away2_bg'].Fill(z)
-                            if tcuts.all:
-                                c['z_away2'].Fill(z)
-                                var = year==2006 and z or track.Pt()
-                                if not simu: break
-                                for a in ('STD','MIN','MAX','ZERO','GS_NLOC'):
-                                    c[a].Fill(var, mcasym.num(a, event))
-                                c['denom'].Fill(var, mcasym.denom('NLO', event))
-                            break
+                if not (10.0 < jet.Pt() < 30.0): continue
+                for track in sortedTracks:
+                    tcuts.set(track)
+                    if abs(track.DeltaPhi(jet)) > 2.0:
+                        c = (track.charge() > 0) and tp or tm
+                        z = track.Pt()/jet.Pt()
+                        if tcuts.dca and tcuts.fit and tcuts.pid:
+                            c['away2_eta'].Fill(track.eta())
+                        if tcuts.eta and tcuts.fit and tcuts.pid:
+                            c['away2_dcaG'].Fill(track.globalDca().mag())
+                        if tcuts.eta and tcuts.dca and tcuts.pid:
+                            c['away2_nHitsFit'].Fill(track.nHitsFit())
+                        if tcuts.eta and tcuts.dca and tcuts.fit:
+                            c['away2_nSigmaPion'].Fill(track.nSigmaPion())
+                        if tcuts.eta and tcuts.dca and tcuts.fit \
+                            and tcuts.pid_bg:
+                            c['z_away2_bg'].Fill(z)
+                        if tcuts.all:
+                            c['z_away2'].Fill(z)
+                            var = year==2006 and z or track.Pt()
+                            if not simu: break
+                            for a in ('STD','MIN','MAX','ZERO','GS_NLOC'):
+                                c[a].Fill(var, mcasym.num(a, event))
+                            c['denom'].Fill(var, mcasym.denom('NLO', event))
+                        break
             
             for jet in inclusiveJets:
-                if 10.0 < jet.Pt() < 30.0:
-                    used_bins_plus = []
-                    used_bins_minus = []
-                    for track in sortedTracks:
-                        tcuts.set(track)
-                        if tcuts.all and math.fabs(track.DeltaPhi(jet)) > 2.0:
-                            bin = zbin(track.Pt()/jet.Pt())
-                            if track.charge() > 0:
-                                if bin not in used_bins_plus:
-                                    tp['z_away4'].Fill(track.Pt()/jet.Pt())
-                                    used_bins_plus.append(bin)
-                            else:
-                                if bin not in used_bins_minus:
-                                    tm['z_away4'].Fill(track.Pt()/jet.Pt())
-                                    used_bins_minus.append(bin)
+                if not (10.0 < jet.Pt() < 30.0): continue
+                used_bins_plus = []
+                used_bins_minus = []
+                for track in sortedTracks:
+                    tcuts.set(track)
+                    if tcuts.all and math.fabs(track.DeltaPhi(jet)) > 2.0:
+                        bin = zbin(track.Pt()/jet.Pt())
+                        if track.charge() > 0:
+                            if bin not in used_bins_plus:
+                                tp['z_away4'].Fill(track.Pt()/jet.Pt())
+                                used_bins_plus.append(bin)
+                        else:
+                            if bin not in used_bins_minus:
+                                tm['z_away4'].Fill(track.Pt()/jet.Pt())
+                                used_bins_minus.append(bin)
             
             for jet, awayJ in diJets:
-                if 10.0 < jet.Pt() < 30.0:
-                    for track in sortedTracks:
-                        tcuts.set(track)
-                        if tcuts.all and math.fabs(track.DeltaPhi(jet)) > 2.0:
-                            z = track.Vect().Dot(awayJ.Vect()) / awayJ.P()**2
-                            if track.charge() > 0:
-                                tp['z_away3'].Fill(z)
-                            else:
-                                tm['z_away3'].Fill(z)
-                            break
+                if not (10.0 < jet.Pt() < 30.0): continue
+                for track in sortedTracks:
+                    tcuts.set(track)
+                    if tcuts.all and math.fabs(track.DeltaPhi(jet)) > 2.0:
+                        z = track.Vect().Dot(awayJ.Vect()) / awayJ.P()**2
+                        if track.charge() > 0:
+                            tp['z_away3'].Fill(z)
+                        else:
+                            tm['z_away3'].Fill(z)
+                        break
             
             tp.Clear()
             tm.Clear()
