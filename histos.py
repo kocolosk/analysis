@@ -832,109 +832,103 @@ class HistogramManager(dict):
         self.mytriggers = analysis.uniqify(self.mytriggers)
     
     
-    def processEvent(self, event):
+    def processEvent(self, ev):
         """fill histograms with info from event"""
         self.eventCounter.Fill(0)
         
         if sys.version_info[1] >= 4:
-            sortedTracks =  sorted(event.tracks(), \
+            sortedTracks =  sorted(ev.tracks(), \
                 lambda t1,t2: t1.Pt()<t2.Pt() and 1 or -1)
         else:
-            sortedTracks = [track for track in event.tracks()]
+            sortedTracks = [track for track in ev.tracks()]
             sortedTracks.sort(lambda t1,t2: t1.Pt()<t2.Pt() and 1 or -1)
         
         ## spin sorting
         spin = 'other'
-        if not simu and event.isSpinValid():
-            try: spin = self.spinKeys[event.spinBit()]
+        if not simu and ev.isSpinValid():
+            try: spin = self.spinKeys[ev.spinBit()]
             except KeyError: pass
         elif simu:
-            if event.processId() == 68:
+            if ev.processId() == 68:
                 spin = 'gg'
-            elif event.processId() == 28:
+            elif ev.processId() == 28:
                 spin = 'qg'
-            elif event.processId() == 11:
+            elif ev.processId() == 11:
                 spin = 'qq'
         
         ## trigger selection -- convert transverse trigger IDs to longitudinal
         triggerOk = {}
-        if simu:
-            for trigId in (96011, 96201, 96211, 96221, 96233, \
-                    117001, 137221, 137222, 137611, 137622):
-                triggerOk[str(trigId)] = event.isSimuTrigger(trigId)
+        t = triggerOk
+        if simu and year == 2005:
+            for trigId in (96011, 96201, 96211, 96221, 96233):
+                triggerOk[str(trigId)] = ev.isSimuTrigger(trigId)
                 triggerOk['%d_hw' % (trigId,)] = False
-            t = triggerOk
-            if year == 2005:
-                triggerOk['hightower'] = t['96011'] and t['96201']
-                triggerOk['jetpatch'] = t['96011'] and t['96221']
-                triggerOk['alltrigs'] = t['hightower'] or t['jetpatch']
-                activeTriggers = ('96011', '96201', '96211', '96221', '96233',
-                    'hightower', 'jetpatch', 'alltrigs')
-            elif year == 2006:
-                triggerOk['jetpatch'] = t['117001'] and t['137221']
-                triggerOk['alltrigs'] = t['jetpatch']
-                activeTriggers = ('117001', '137221', '137222', '137611',
-                    '137622', 'jetpatch', 'alltrigs')
-        elif event.runId() < 7000000:
-            if event.isPolLong():
+            t['hightower'] = t['96011'] and t['96201']
+            t['jetpatch'] = t['96011'] and t['96221']
+            t['alltrigs'] = t['hightower'] or t['jetpatch']
+            activeTriggers = ('96011', '96201', '96211', '96221', '96233',
+                'hightower', 'jetpatch', 'alltrigs')
+        elif simu and year == 2006:
+            for trigId in (117001, 137221, 137222, 137611, 137622):
+                triggerOk[str(trigId)] = ev.isSimuTrigger(trigId)
+                triggerOk['%d_hw' % (trigId,)] = False
+            t['jetpatch'] = t['117001'] and t['137221']
+            t['alltrigs'] = t['jetpatch'] or t['137611'] or t['137622']
+            activeTriggers = ('117001', '137221', '137222', '137611', '137622', 
+                'jetpatch', 'alltrigs')
+        elif ev.runId() < 7000000:
+            if ev.isPolLong():
                 for trigId in (96011, 96201, 96211, 96221, 96233):
-                    triggerOk[str(trigId)] = event.isTrigger(trigId) and \
-                        event.isSimuTrigger(trigId)
-                    triggerOk['%d_hw' % (trigId,)] = event.isTrigger(trigId)
-            elif event.isPolTrans():
+                    t[str(trigId)] = ev.isTrigger(trigId) and \
+                        ev.isSimuTrigger(trigId)
+                    t['%d_hw' % (trigId,)] = ev.isTrigger(trigId)
+            elif ev.isPolTrans():
                 for trigId in (106011, 106201, 106211, 106221, 106233):
-                    triggerOk[str(trigId-10000)] = event.isTrigger(trigId) \
-                        and event.isSimuTrigger(trigId)
-                    triggerOk['%d_hw' % (trigId-10000,)]=event.isTrigger(trigId)
-            triggerOk['hightower'] = triggerOk['96011'] or triggerOk['96201'] \
-                or triggerOk['96211']
-            triggerOk['jetpatch']  = triggerOk['96011'] or triggerOk['96221'] \
-                or triggerOk['96233']
-            triggerOk['alltrigs']  = triggerOk['96011'] or triggerOk['96201'] \
-                or triggerOk['96211'] or triggerOk['96221'] \
-                or triggerOk['96233']
+                    t[str(trigId-10000)] = ev.isTrigger(trigId) \
+                        and ev.isSimuTrigger(trigId)
+                    t['%d_hw' % (trigId-10000,)]=ev.isTrigger(trigId)
+            t['hightower'] = t['96011'] or t['96201'] or t['96211']
+            t['jetpatch']  = t['96011'] or t['96221'] or t['96233']
+            t['alltrigs']  = t['hightower'] or t['jetpatch']
             activeTriggers = ('96011','96201','96211','96221','96233',
                 'hightower','jetpatch', 'alltrigs')
         else:
-            if event.isPolLong():
-                triggerOk['137611'] = event.isTrigger(137611) \
-                    and event.isSimuTrigger(137611)
-                triggerOk['137622'] = event.isTrigger(137622) \
-                    and event.isSimuTrigger(137622)
-                triggerOk['jetpatch'] = (event.isTrigger(137221) \
-                    and event.isSimuTrigger(137221)) or \
-                    (event.isTrigger(137222) and event.isSimuTrigger(137222))
-            elif event.isPolTrans():
-                triggerOk['137611'] = event.isTrigger(127611) \
-                    and event.isSimuTrigger(127611)
-                triggerOk['137622'] = event.isTrigger(127622) \
-                    and event.isSimuTrigger(127622)
-                triggerOk['jetpatch'] = event.isTrigger(127221) \
-                    and event.isSimuTrigger(127221)
-            triggerOk['alltrigs'] = triggerOk['jetpatch'] or \
-                triggerOk['137611'] or triggerOk['137622']
-            activeTriggers = ('137611', '137622', 'jetpatch', 'alltrigs')
+            t['117001'] = ev.isTrigger(117001) and ev.isSimuTrigger(117001)
+            if ev.isPolLong():
+                t['137611'] = ev.isTrigger(137611) and ev.isSimuTrigger(137611)
+                t['137622'] = ev.isTrigger(137622) and ev.isSimuTrigger(137622)
+                t['jetpatch'] = \
+                    (ev.isTrigger(137221) and ev.isSimuTrigger(137221)) or \
+                    (ev.isTrigger(137222) and ev.isSimuTrigger(137222))
+            elif ev.isPolTrans():
+                t['137611'] = ev.isTrigger(127611) and ev.isSimuTrigger(127611)
+                t['137622'] = ev.isTrigger(127622) and ev.isSimuTrigger(127622)
+                t['jetpatch']= ev.isTrigger(127221) and ev.isSimuTrigger(127221)
+            t['alltrigs'] = t['117001'] or t['jetpatch'] or \
+                            t['137611'] or t['137622']
+            activeTriggers = ('117001', '137611', '137622', 'jetpatch', 
+                'alltrigs')
           
         ## event-wise histograms
         ecuts = EventCuts(event)
         for trig in activeTriggers:
-            if not triggerOk[trig] or trig not in self.mytriggers: continue
-            self[spin][trig].fillEvent(event, ecuts)
+            if triggerOk[trig] and trig in self.mytriggers: 
+                self[spin][trig].fillEvent(event, ecuts)
         
         ## track-wise histograms
         if not ecuts.all: return
         tcuts = TrackCuts(self.fill)
-        for track in event.tracks():
+        for track in ev.tracks():
             tcuts.set(track)
             for trig in activeTriggers:
-                if not triggerOk[trig] or trig not in self.mytriggers: continue
-                tcoll = self[spin][trig].trackHistograms(track.charge())
-                tcoll.fillTrack(track, tcuts)
-                if tcuts.all:
-                    tcoll['vz'].Fill(event.vertex(0).z())
+                if triggerOk[trig] and trig in self.mytriggers:
+                    tcoll = self[spin][trig].trackHistograms(track.charge())
+                    tcoll.fillTrack(track, tcuts)
+                    if tcuts.all:
+                        tcoll['vz'].Fill(ev.vertex(0).z())
         
         if simu:
-            for track in event.matchedPairs():
+            for track in ev.matchedPairs():
                 for trig in activeTriggers:
                     if not triggerOk[trig] or trig not in self.mytriggers: 
                         continue
@@ -942,7 +936,7 @@ class HistogramManager(dict):
                     tcoll.fillMatchedPair(track)
                     
         ## jet studies
-        jcuts = [JetCuts(jet, event) for jet in event.jets()]
+        jcuts = [JetCuts(jet, event) for jet in ev.jets()]
         for trig in activeTriggers:
             if not triggerOk[trig] or trig not in self.mytriggers: continue
             try:
@@ -950,7 +944,7 @@ class HistogramManager(dict):
             except ValueError:
                 if trig == 'jetpatch':
                     ## use lower-threshold triggers since they're a superset
-                    if (not simu and event.runId() < 7000000) or \
+                    if (not simu and ev.runId() < 7000000) or \
                        (simu and year == 2005):
                         itrig = 96221
                     else:
@@ -962,24 +956,16 @@ class HistogramManager(dict):
             inclusiveJets = []
             monoJets = []
             
-            for i,jet in enumerate(event.jets()):
+            for i,jet in enumerate(ev.jets()):
                 if jcuts[i].eta and jcuts[i].rt and itrig in jcuts[i].trig:
                     inclusiveJets.append(jet)
                     
                     ## now look for away-side partner
                     diJetFound = False
-                    for j,jet2 in enumerate(event.jets()):
+                    for j,jet2 in enumerate(ev.jets()):
                         if jet2 is jet: continue
                         if jcuts[j].eta and jcuts[j].rt:
-                            dphi = jet.Phi() - jet2.Phi()
-                            
-                            #normalize dphi
-                            if dphi < -math.pi:
-                                dphi = dphi + 2*math.pi
-                            if dphi > math.pi:
-                                dphi = dphi - 2*math.pi
-                            
-                            if dphi > 2.0:
+                            if jet.DeltaPhi(jet2) > 2.0:
                                 diJets.append( (jet, jet2) )
                                 self[spin][trig].fillJets(jet, jet2)
                                 diJetFound = True
@@ -992,7 +978,7 @@ class HistogramManager(dict):
             self[spin][trig]['dijet_mult'].Fill(len(diJets))
             
             ## time to fill the correlation histos
-            for track in event.tracks():
+            for track in ev.tracks():
                 tcuts.set(track)
                 tcoll = self[spin][trig].trackHistograms(track.charge())
                 
@@ -1024,7 +1010,7 @@ class HistogramManager(dict):
                 lead = awayJet.leadingParticle()
                 if lead.detectorId() == ROOT.kTpcId:
                     found_match = False
-                    for track in event.tracks():
+                    for track in ev.tracks():
                         if matched(track, lead):
                             tcuts.set(track)
                             coll = track.charge() > 0 and tp or tm
@@ -1040,8 +1026,7 @@ class HistogramManager(dict):
                 else:
                     self[spin][trig]['lead_neutral'].Fill(lead.Pt())
             
-            ## new definitions for "z_away"
-            
+            ## non-inclusive definitions for "z_away"
             for jet in inclusiveJets:
                 if 10.0 < jet.Pt() < 30.0:
                     for track in sortedTracks:
