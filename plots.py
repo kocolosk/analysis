@@ -1981,56 +1981,6 @@ def z_slope_run5(trig='jetpatch', runlist=None, charge=0):
     raw_input('wait here:')
     ps.Close()
 
-def x1b(v1, v2):
-    return 0.005 * (v1.Pt() * math.exp(v1.Eta()) + v2.Pt() * math.exp(v2.Eta()))
-
-def x2b(v1, v2):
-    return 0.005 * (v1.Pt() * math.exp(-v1.Eta()) + v2.Pt() * math.exp(-v2.Eta()))
-
-def g2t_kinematics():
-    f = ROOT.TFile('small2.root')
-    h2 = ROOT.TH2D('h2','Recalculated (x1,x2) versus g2t record', 200, -0.1, 0.1, 200, -0.1, 0.1)
-    h2.SetXTitle('x1(reco)-x1(g2t)')
-    h2.SetYTitle('x2(reco)-x2(g2t)')
-    
-    h2pre = ROOT.TH2D('h2pre','Reco (x1,x2) before ISR vs g2t record', 200, -0.1, 0.1, 200, -0.1, 0.1)
-    h2pre.SetXTitle('x1b(reco)-x1(g2t)')
-    h2pre.SetYTitle('x2b(reco)-x2(g2t)')
-    
-    h2e = ROOT.TH2D('h2e','Partonic E_after/E_before ISR', 200, 0.5, 1.1, 200, 0.5, 1.1)
-    h2e.SetXTitle('E1_after/E1_before')
-    h2e.SetYTitle('E2_after/E2_before')
-    
-    i = 0
-    for entry in f.tree:
-        ev = f.tree.event
-        h2.Fill(ev.x1()-ev.mX1, ev.x2()-ev.mX2)
-        h2pre.Fill(x1b(ev.preISR1, ev.preISR2)-ev.mX1, x2b(ev.preISR1, ev.preISR2)-ev.mX2)
-        h2e.Fill(ev.parton1().E()/ev.preISR1.E(), ev.parton2().E()/ev.preISR2.E())
-        
-        print '=== Summary for entry %03d, event %04d ====================' % (i, ev.eventId())
-        print 'v1b %(x) .3f %(y) .3f %(z) .3f %(e) .3f' % {'x':ev.preISR1.X(), 'y':ev.preISR1.Y(), 'z':ev.preISR1.Z(), 'e':ev.preISR1.E()}
-        print 'v1a %(x) .3f %(y) .3f %(z) .3f %(e) .3f' % {'x':ev.parton1().X(), 'y':ev.parton1().Y(), 'z':ev.parton1().Z(), 'e':ev.parton1().E()}
-        print ''
-        print 'v2b %(x) .3f %(y) .3f %(z) .3f %(e) .3f' % {'x':ev.preISR2.X(), 'y':ev.preISR2.Y(), 'z':ev.preISR2.Z(), 'e':ev.preISR2.E()}
-        print 'v2a %(x) .3f %(y) .3f %(z) .3f %(e) .3f' % {'x':ev.parton2().X(), 'y':ev.parton2().Y(), 'z':ev.parton2().Z(), 'e':ev.parton2().E()}
-        print ''
-        print 'x1b %.4f  x1() %.4f mX1 %.4f' % (x1b(ev.preISR1, ev.preISR2), ev.x1(), ev.mX1)
-        print 'x2b %.4f  x2() %.4f mX2 %.4f' % (x2b(ev.preISR1, ev.preISR2), ev.x2(), ev.mX2)        
-        print ''
-        print 'shat = ', ev.s(), 'x1x2s = ', ev.mX1*ev.mX2*200*200
-        print '=========================================================='
-        
-        
-        i += 1
-        
-    h2.Draw()
-    c = ROOT.TCanvas()
-    h2pre.Draw()
-    c2 = ROOT.TCanvas()
-    h2e.Draw()
-    raw_input('wait here:')
-    
 
 def away_side_asymmetries_run6(runlist):
     asym_plus = analysis.AsymmetryGenerator('asym_plus', key='away_lead_pt')
@@ -2391,6 +2341,7 @@ def datamc(simuFile, dataDir, runlist, trigger):
     
     [o.Delete() for o in keepme]
 
+
 def mcasym(fname, trigger='jetpatch', keys=None):
     f = ROOT.TFile(fname)
     keys = keys or ['STD','MAX','MIN','ZERO','GS_NLOC']
@@ -2423,3 +2374,4 @@ def mcasym(fname, trigger='jetpatch', keys=None):
         plus.Draw(opt)
         keepme.extend([c,minus,plus])
     raw_input('wait:')
+
