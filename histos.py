@@ -326,8 +326,6 @@ class JetCuts:
     
 
 
-## wow, I can inherit from ROOT.TH1 here too ... but then ROOT's weird 
-## class structure becomes more of a hindrance than a help
 class Histo(object):
     """
     wrapper around a ROOT histogram so I can add a few convenience methods
@@ -371,15 +369,16 @@ class Histo(object):
 
 class TrackHistogramCollection(dict):
     """histograms filled for each track"""
-    allKeys = ['pt', 'eta', 'phi', 'nHitsFit', 'dEdx', 'dcaG', 'nSigmaPion',
+    allKeys = [
+        'pt', 'eta', 'phi', 'nHitsFit', 'dEdx', 'dcaG', 'nSigmaPion',
         'dphi_deta', 'z', 'z_away', 'pt_near', 'pt_away', 'pt_bg', 'z_jet',
         'z_away_jet', 'xi', 'xi_away', 'ptMc_ptPr', 'ptMc_ptGl', 'etaMc_etaPr',
         'etaMc_etaGl', 'ptMc', 'away_mult', 'near_mult', 'away_lead_pt', 
         'near_lead_pt', 'lead_matched', 'lead_cutfail', 'lead_nomatch', 
         'z_away2', 'z_away3', 'z_away4', 'away2_eta', 'away2_nHitsFit', 
         'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg', 'vz', 'distortedPt', 
-        'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom']
-    
+        'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom'
+    ]
     
     def __init__(self, name, tfile=None, keys=None):
         self.away_mult = 0
@@ -624,12 +623,14 @@ class TrackHistogramCollection(dict):
         val = self.values()
         return [v for v in val if v is not None]
     
+    
     def Clear(self):
         self.away_mult = 0
         self.near_mult = 0
         self.away_lead_pt = 0.0
         self.near_lead_pt = 0.0
-        
+    
+    
     def Add(self, other):
         [ h.Add(other[key].h) for key, h in self.items() ]
     
@@ -642,89 +643,6 @@ class TrackHistogramCollection(dict):
         """make it persistent"""
         [ h.Write() for h in self.values() ]
     
-    
-    def Draw(self):
-        c = ROOT.TCanvas('c','TrackHistogramCollection summary',100,100,1400,800)
-        c.Divide(5,4)
-        
-        pad = c.cd(1)
-        self['pt'].Draw()
-        pad.SetLogy()
-        
-        pad = c.cd(2)
-        self['eta'].Draw()
-        pad.SetLogy()
-        
-        pad = c.cd(3)
-        self['phi'].Draw()
-        
-        pad = c.cd(4)
-        self['nHitsFit'].Draw()
-        
-        pad = c.cd(5)
-        self['dEdx'].Draw()
-        
-        pad = c.cd(6)
-        self['dcaG'].Draw()
-        pad.SetLogy()
-        
-        pad = c.cd(7)
-        self['nSigmaPion'].Draw()
-        
-        pad = c.cd(8)
-        self['dphi_deta'].Draw('colz')
-        
-        pad = c.cd(9)
-        self['z'].Draw()
-        
-        pad = c.cd(10)
-        self['z_away'].Draw()
-        
-        pad = c.cd(11)                                    
-        self['pt_away'].Draw()
-        pad.SetLogy()
-        
-        pad = c.cd(12)
-        self['pt_near'].Draw()
-        pad.SetLogy()
-        
-        pad = c.cd(13)
-        self['pt_bg'].Draw()
-        pad.SetLogy()
-                                            
-        pad = c.cd(14)
-        self['z_jet'].Draw()
-        
-        pad = c.cd(15)
-        self['z_away_jet'].Draw()
-        
-        pad = c.cd(16)
-        self['xi'].Draw()
-        
-        pad = c.cd(17)
-        self['xi_away'].Draw()
-        
-        c2 = ROOT.TCanvas('c2','Monte Carlo TrackHistogramCollection', 100,100,1400,800)
-        c2.Divide(5,4)
-        
-        pad = c2.cd(1)
-        self['ptMc_ptPr'].Draw('colz')
-        pad.SetLogz()
-        
-        pad = c2.cd(2)
-        self['ptMc_ptGl'].Draw('colz')
-        pad.SetLogz()
-        
-        pad = c2.cd(3)
-        self['etaMc_etaPr'].Draw('colz')
-        pad.SetLogz()
-        
-        pad = c2.cd(4)
-        self['etaMc_etaGl'].Draw('colz')
-        pad.SetLogz()
-        
-        return (c,c2)
-        
     
 
 
@@ -863,71 +781,6 @@ class HistogramCollection(dict):
         self.tracks_sum.Write()
     
     
-    def Draw(self):
-        c = ROOT.TCanvas('c','HistogramCollection',100,100,600,800)
-        c.Divide(3,5)
-        
-        pad = c.cd(1)
-        self['nVertices'].SetXTitle('nVertices')
-        self['nVertices'].Draw()
-        pad.SetLogy()
-        
-        pad = c.cd(2)
-        self['vx_vy'].SetXTitle('vx')
-        self['vx_vy'].SetXTitle('vy')
-        self['vx_vy'].Draw()
-        
-        pad = c.cd(3)
-        self['vz'].SetXTitle('vz')
-        self['vz'].Draw()
-        
-        pad = c.cd(4)
-        self['vzBBC'].SetXTitle('vzBBC')
-        self['vzBBC'].Draw()
-        
-        pad = c.cd(5)
-        self['spinBit'].SetXTitle('spinBit')
-        self['spinBit'].Draw()
-        
-        pad = c.cd(6)
-        self['bx7'].SetXTitle('bx7')
-        self['bx7'].Draw()
-        
-        pad = c.cd(7)
-        self['bbc'].SetXTitle('bbc')
-        self['bbc'].Draw()
-        
-        pad = c.cd(8)
-        self['jet_pt_balance'].SetXTitle('jet_pt_balance')
-        self['jet_pt_balance'].Draw('colz')
-        pad = c.cd(9)
-        self['jet_p_balance'].SetXTitle('jet_p_balance')
-        self['jet_p_balance'].Draw('colz')
-        pad = c.cd(10)
-        self['jet_eta_balance'].SetXTitle('jet_eta_balance')
-        self['jet_eta_balance'].Draw('colz')
-        pad = c.cd(11)
-        self['jet_phi_balance'].SetXTitle('jet_phi_balance')
-        self['jet_phi_balance'].Draw()
-        
-        if simu:
-            c2 = ROOT.TCanvas('c2','MC HistogramCollection',100,100,600,800)
-            c2.Divide(3,5)
-            
-            pad = c2.cd(1)
-            self['hardP'].Draw()
-            pad.SetLogy()
-            
-            pad = c2.cd(2)
-            self['x1_x2'].Draw()
-            
-            pad = c2.cd(3)
-            self['cosTheta'].Draw()
-            
-            return c,c2
-        
-        return c
-    
 
 
 class HistogramManager(dict):
@@ -938,7 +791,6 @@ class HistogramManager(dict):
     spinKeys = {5:'uu', 6:'du', 9:'ud', 10:'dd'}
     trigSetups = ('96011','96201','96211','96221','96233','hightower',
         'jetpatch', 'alltrigs','117001','137221','137222','137611','137622')
-    
     
     def __init__(self, tfile=None, keys=None, triggers=None):
         super(HistogramManager, self).__init__()
