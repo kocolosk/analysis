@@ -365,7 +365,11 @@ class Histo(object):
             if z:
                 self.h.Fill(x,y,z,w)
             elif y:
-                self.h.Fill(x,y,w)
+                try:
+                    self.h.Fill(x,y,w)
+                except TypeError:
+                    # assume this is an mcasym histo which has its own weight
+                    self.h.Fill(x,y)
             else:
                 self.h.Fill(x,w)
         self.vals = []
@@ -803,6 +807,8 @@ class HistogramManager(dict):
     
     def __init__(self, tfile=None, keys=None, triggers=None):
         super(HistogramManager, self).__init__()
+        
+        self.tfile = tfile
         
         if tfile is not None:
             self.name = os.path.basename(tfile.GetName())
