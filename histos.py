@@ -382,7 +382,7 @@ class TrackHistogramCollection(dict):
         'near_lead_pt', 'lead_matched', 'lead_cutfail', 'lead_nomatch', 
         'z_away2', 'z_away3', 'z_away4', 'away2_eta', 'away2_nHitsFit', 
         'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg', 'vz', 'distortedPt', 
-        'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom'
+        'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom', 'dphi'
     ]
     
     def __init__(self, name, tfile=None, keys=None):
@@ -547,6 +547,10 @@ class TrackHistogramCollection(dict):
             self['distortedPt'] = Histo(ROOT.TH1D('%s_distortedPt' % name, \
                 'pT corrected for space charge distortion', \
                 ptBins[0], ptBins[1], ptBins[2]))
+            
+            self['dphi'] = Histo(ROOT.TH1D('%s_dphi' % name, \
+                '#delta#phi relative to trigger jet', \
+                phiBins[0], phiBins[1], phiBins[2]))
     
     
     def fillMcTrack(self, track):
@@ -1038,8 +1042,11 @@ class HistogramManager(dict):
                 if not (10.0 < jet.Pt() < 30.0): continue
                 for track in sortedTracks:
                     tcuts.set(track)
-                    if abs(track.DeltaPhi(jet)) > 2.0:
-                        c = (track.charge() > 0) and tp or tm
+                    c = (track.charge() > 0) and tp or tm
+                    dphi = track.DeltaPhi(jet)
+                    if tcuts.all:
+                        c['dphi'].Fill(dphi)                    
+                    if abs(dphi) > 2.0:
                         z = track.Pt()/jet.Pt()
                         if tcuts.dca and tcuts.fit and tcuts.pid:
                             c['away2_eta'].Fill(track.eta())
@@ -1055,11 +1062,11 @@ class HistogramManager(dict):
                         if tcuts.all:
                             c['z_away2'].Fill(z)
                             var = year==2006 and z or track.Pt()
-                            if not simu: break
+                            if not simu: continue
                             for a in ('STD','MIN','MAX','ZERO','GS_NLOC'):
                                 c[a].Fill(var, mcasym.num(a, event))
                             c['denom'].Fill(var, mcasym.denom('NLO', event))
-                        break
+                        # break
             
             for jet in inclusiveJets:
                 if not (10.0 < jet.Pt() < 30.0): continue
