@@ -386,7 +386,7 @@ class TrackHistogramCollection(dict):
         'near_lead_pt', 'lead_matched', 'lead_cutfail', 'lead_nomatch', 
         'z_away2', 'z_away3', 'z_away4', 'away2_eta', 'away2_nHitsFit', 
         'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg', 'vz', 'distortedPt', 
-        'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom', 'dphi'
+        'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom', 'dphi', 'one'
     ]
     
     def __init__(self, name, tfile=None, keys=None):
@@ -447,6 +447,8 @@ class TrackHistogramCollection(dict):
                         'GS Set C', 20, 0.0, 1.0))
                     self['denom'] = Histo(ROOT.TH1D('%s_denom' % name, \
                         'Asymmetry denominator', 20, 0.0, 1.0))
+            
+            self['one'] = Histo(ROOT.TH1D('%s_one' % name, '', 1, -0.5, 0.5))
             
             self['pt'] = Histo(ROOT.TH1D('%s_pt' % (name,), 'track p_{T}', \
                 ptBins[0], ptBins[1], ptBins[2]))
@@ -941,6 +943,8 @@ class HistogramManager(dict):
                     tcoll.fillTrack(track, tcuts)
                     if tcuts.all:
                         tcoll['vz'].Fill(ev.vertex(0).z())
+                        if ev.runId() < 7000000:
+                            tcoll['one'].Fill(0)
         
         if simu:
             for track in ev.matchedPairs():
@@ -1066,6 +1070,8 @@ class HistogramManager(dict):
                             c['z_away2_bg'].Fill(z)
                         if tcuts.all:
                             c['z_away2'].Fill(z)
+                            if ev.runId() > 7000000:
+                                c['one'].Fill(0)
                             var = year==2006 and z or track.Pt()
                             if not simu: continue
                             for a in ('STD','MIN','MAX','ZERO','GS_NLOC'):
