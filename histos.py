@@ -549,8 +549,8 @@ class TrackHistogramCollection(dict):
                 ptBins[0], ptBins[1], ptBins[2]))
             
             self['dphi'] = Histo(ROOT.TH1D('%s_dphi' % name, \
-                '#delta#phi relative to trigger jet', \
-                phiBins[0], phiBins[1], phiBins[2]))
+                '#Delta#phi relative to trigger jet', \
+                2*phiBins[0], phiBins[1], phiBins[2]))
     
     
     def fillMcTrack(self, track):
@@ -919,10 +919,10 @@ class HistogramManager(dict):
                 'alltrigs')
           
         ## event-wise histograms
-        ecuts = EventCuts(event)
+        ecuts = EventCuts(ev)
         for trig in activeTriggers:
             if triggerOk[trig] and trig in self.mytriggers: 
-                self[spin][trig].fillEvent(event, ecuts)
+                self[spin][trig].fillEvent(ev, ecuts)
         
         ## track-wise histograms
         if not ecuts.all: return
@@ -945,7 +945,7 @@ class HistogramManager(dict):
                     tcoll.fillMatchedPair(track)
                     
         ## jet studies
-        jcuts = [JetCuts(jet, event) for jet in ev.jets()]
+        jcuts = [JetCuts(jet, ev) for jet in ev.jets()]
         for trig in activeTriggers:
             if not triggerOk[trig] or trig not in self.mytriggers: continue
             try:
@@ -1037,7 +1037,6 @@ class HistogramManager(dict):
                 else:
                     self[spin][trig]['lead_neutral'].Fill(lead.Pt())
             
-            ## non-inclusive definitions for "z_away"
             for jet in inclusiveJets:
                 if not (10.0 < jet.Pt() < 30.0): continue
                 for track in sortedTracks:
@@ -1064,8 +1063,8 @@ class HistogramManager(dict):
                             var = year==2006 and z or track.Pt()
                             if not simu: continue
                             for a in ('STD','MIN','MAX','ZERO','GS_NLOC'):
-                                c[a].Fill(var, mcasym.num(a, event))
-                            c['denom'].Fill(var, mcasym.denom('NLO', event))
+                                c[a].Fill(var, mcasym.num(a, ev))
+                            c['denom'].Fill(var, mcasym.denom('NLO', ev))
                         # break
             
             for jet in inclusiveJets:
