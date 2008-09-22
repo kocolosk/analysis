@@ -446,17 +446,17 @@ class TrackHistogramCollection(dict):
                         ptBins[0], ptBins[1], ptBins[2]))
                 else:
                     self['STD'] = Histo(ROOT.TH1D('%s_STD' % name, \
-                        'GRSV-STD', 20, 0.0, 1.0))
+                        'GRSV-STD', len(zbins)-1, zar))
                     self['MAX'] = Histo(ROOT.TH1D('%s_MAX' % name, \
-                        'GRSV-MAX', 20, 0.0, 1.0))
+                        'GRSV-MAX', len(zbins)-1, zar))
                     self['MIN'] = Histo(ROOT.TH1D('%s_MIN' % name, \
-                        'GRSV-MIN', 20, 0.0, 1.0))
+                        'GRSV-MIN', len(zbins)-1, zar))
                     self['ZERO'] = Histo(ROOT.TH1D('%s_ZERO' % name, \
-                        'GRSV-ZERO', 20, 0.0, 1.0))
+                        'GRSV-ZERO', len(zbins)-1, zar))
                     self['GS_NLOC'] = Histo(ROOT.TH1D('%s_GS_NLOC' % name, \
-                        'GS Set C', 20, 0.0, 1.0))
+                        'GS Set C', len(zbins)-1, zar))
                     self['denom'] = Histo(ROOT.TH1D('%s_denom' % name, \
-                        'Asymmetry denominator', 20, 0.0, 1.0))
+                        'Asymmetry denominator', len(zbins)-1, zar))
             
             self['one'] = Histo(ROOT.TH1D('%s_one' % name, '', 1, -0.5, 0.5))
             
