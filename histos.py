@@ -23,6 +23,9 @@ dEdxBins    = minimc.MiniMcHistos.dEdxBins
 dcaGBins    = minimc.MiniMcHistos.dcaGBins
 vzBins      = minimc.MiniMcHistos.vzBins
 
+zbins       = [0.0, 0.075, 0.125, 0.2, 0.3, 0.45, 0.65, 1.0]
+zar = array('d', zbins)
+
 pidCalibration = {
 6988 : ( 0.066608, 0.889596),
 6990 : ( 0.028513, 0.872612),
@@ -337,7 +340,9 @@ class Histo(object):
     """
     def __init__(self, hist):
         self.h = hist
-        self.h.Sumw2()
+        self.profile = (type(hist) == ROOT.TProfile)
+        if not self.profile:
+            self.h.Sumw2()
         self.vals = []
     
     def __getattr__(self, name):
@@ -347,13 +352,17 @@ class Histo(object):
         return getattr(self.h, name)
     
     def Fill(self, x, y=None, z=None):
-        self.vals.append((x,y,z))
+        if self.profile:
+            self.h.Fill(x,y)
+        else:
+            self.vals.append((x,y,z))
     
     def Flush(self):
         """
         Ends the event and actually fills the ROOT histogram, taking multi-
         particle statistics into account.
         """
+        if self.profile: return
         weight = {}
         keep = {}
         for x,y,z in self.vals:
@@ -386,7 +395,8 @@ class TrackHistogramCollection(dict):
         'near_lead_pt', 'lead_matched', 'lead_cutfail', 'lead_nomatch', 
         'z_away2', 'z_away3', 'z_away4', 'away2_eta', 'away2_nHitsFit', 
         'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg', 'vz', 'distortedPt', 
-        'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom', 'dphi', 'one'
+        'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom', 'dphi', 'one', 
+        'meanpt', 'meanjetpt'
     ]
     
     def __init__(self, name, tfile=None, keys=None):
@@ -525,16 +535,21 @@ class TrackHistogramCollection(dict):
                 ptBins[0], ptBins[1], ptBins[2]))
             
             self['z_away2'] = Histo(ROOT.TH1D('%s_z_away2' % name, '', \
-                40, 0., 1.0))
+                len(zbins)-1, zar))
             self['z_away2'].SetXTitle('p_{T}(#pi)/p_{T}(trigger jet)')
             
+            self['meanpt'] = Histo(ROOT.TProfile('%s_meanpt' % name, '', \
+                len(zbins)-1, zar))
+            self['meanjetpt'] = Histo(ROOT.TProfile('%s_meanjetpt' % name, '', \
+                len(zbins)-1, zar))
+            
             self['z_away3'] = Histo(ROOT.TH1D('%s_z_away3' % name, '', \
-                40, 0., 1.0))
+                len(zbins)-1, zar))
             self['z_away3'].SetXTitle(\
                 'fraction of non-trigger jet p carried by #pi')
             
             self['z_away4'] = Histo(ROOT.TH1D('%s_z_away4' % name, \
-                'inclusive if separate z-bins', 40, 0., 1.0))
+                'inclusive if separate z-bins', len(zbins)-1, zar))
             self['z_away4'].SetXTitle('p_{T}(#pi)/p_{T}(trigger jet)')
             
             self['away2_eta'] = Histo(ROOT.TH1D('%s_away2_eta' % (name,), \
@@ -547,7 +562,7 @@ class TrackHistogramCollection(dict):
                 % (name,), 'away-side n#sigma(#pi)', 240, -6.0, 6.0))
             
             self['z_away2_bg'] = Histo(ROOT.TH1D('%s_z_away2_bg' % name, '', \
-                40, 0., 1.0))
+                len(zbins)-1, zar))
             self['z_away2_bg'].SetXTitle('p_{T}(#pi)/p_{T}(trigger jet)')
             
             self['distortedPt'] = Histo(ROOT.TH1D('%s_distortedPt' % name, \
@@ -1070,6 +1085,8 @@ class HistogramManager(dict):
                             c['z_away2_bg'].Fill(z)
                         if tcuts.all:
                             c['z_away2'].Fill(z)
+                            c['meanpt'].Fill(z, track.Pt())
+                            c['meanjetpt'].Fill(z, jet.Pt())
                             if ev.runId() > 7000000:
                                 c['one'].Fill(0)
                             var = year==2006 and z or track.Pt()
