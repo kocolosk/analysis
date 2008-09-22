@@ -396,7 +396,7 @@ class TrackHistogramCollection(dict):
         'z_away2', 'z_away3', 'z_away4', 'away2_eta', 'away2_nHitsFit', 
         'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg', 'vz', 'distortedPt', 
         'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom', 'dphi', 'one', 
-        'meanpt', 'meanjetpt'
+        'meanpt', 'meanjetpt', 'z_noshift'
     ]
     
     def __init__(self, name, tfile=None, keys=None):
@@ -534,6 +534,8 @@ class TrackHistogramCollection(dict):
                 'p_{T} of leading pion on away-side', \
                 ptBins[0], ptBins[1], ptBins[2]))
             
+            self['z_noshift'] = Histo(ROOT.TH1D('%s_z_noshift' % name, '', \
+                len(zbins)-1, zar))            
             self['z_away2'] = Histo(ROOT.TH1D('%s_z_away2' % name, '', \
                 len(zbins)-1, zar))
             self['z_away2'].SetXTitle('p_{T}(#pi)/p_{T}(trigger jet)')
@@ -1071,7 +1073,8 @@ class HistogramManager(dict):
                     if tcuts.all:
                         c['dphi'].Fill(dphi)                    
                     if abs(dphi) > 2.0:
-                        z = track.Pt()/jet.Pt()
+                        z_noshift = track.Pt()/jet.Pt()
+                        z = track.Pt()/shifted(jet.Pt())
                         if tcuts.dca and tcuts.fit and tcuts.pid:
                             c['away2_eta'].Fill(track.eta())
                         if tcuts.eta and tcuts.fit and tcuts.pid:
@@ -1084,6 +1087,7 @@ class HistogramManager(dict):
                             and tcuts.pid_bg:
                             c['z_away2_bg'].Fill(z)
                         if tcuts.all:
+                            c['z_noshift'].Fill(z_noshift)
                             c['z_away2'].Fill(z)
                             c['meanpt'].Fill(z, track.Pt())
                             c['meanjetpt'].Fill(z, jet.Pt())
@@ -1251,6 +1255,16 @@ def distortedPt(track):
         return (pT - A*pT*pT)
     else:
         return (pT + A*pT*pT)
+
+
+def shifted(jetpt):
+    """applies pT shift to correct measured jet pT back to particle level"""
+    if year == 2006:
+        ## /STAR/node/12022 for details
+        shift = (-1.538 + 0.1561*jetpt + 0.001691*jetpt*jetpt)
+        return (jetpt - shift)
+    else:
+        return jetpt
 
 
 def condenseIntoFills(histDir, useLSF=False,fillList=None):
