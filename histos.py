@@ -412,8 +412,8 @@ class TrackHistogramCollection(dict):
             if simu:
                 self['ptMc_ptPr'] = Histo(ROOT.TH2D('%s_ptMc_ptPr' % name, \
                     'prim reco p_{T} vs. true p_{T}', \
-                    ptBins[0], ptBins[1], ptBins[2], \
-                    ptBins[0], ptBins[1], ptBins[2]))
+                    5*ptBins[0], ptBins[1], ptBins[2], \
+                    5*ptBins[0], ptBins[1], ptBins[2]))
                 self['ptMc_ptGl'] = Histo(ROOT.TH2D('%s_ptMc_ptGl' % name, \
                     'glob reco p_{T} vs. true p_{T}', \
                     ptBins[0], ptBins[1], ptBins[2], \
