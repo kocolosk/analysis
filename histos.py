@@ -1342,7 +1342,9 @@ def condor(treeDir, runList=None, trigList=None):
             f.write('log = log/%s.condor.log\n' % run)
             f.write('arguments = %s/job.py %s\n' % (os.getcwd(), run))
             f.write('queue\n\n')
-            
+    
+    f.close()
+    
     ## and off we go
     os.system('condor_submit submit.condor')
 
