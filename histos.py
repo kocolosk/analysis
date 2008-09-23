@@ -396,7 +396,8 @@ class TrackHistogramCollection(dict):
         'z_away2', 'z_away3', 'z_away4', 'away2_eta', 'away2_nHitsFit', 
         'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg', 'vz', 'distortedPt', 
         'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom', 'dphi', 'one', 
-        'meanpt', 'meanjetpt', 'z_noshift'
+        'meanpt', 'meanjetpt', 'z_noshift', 'STDf', 'MAXf', 'MINf', 'ZEROf', 
+        'GS_NLOCf', 'denomf'
     ]
     
     def __init__(self, name, tfile=None, keys=None):
@@ -447,16 +448,28 @@ class TrackHistogramCollection(dict):
                 else:
                     self['STD'] = Histo(ROOT.TH1D('%s_STD' % name, \
                         'GRSV-STD', len(zbins)-1, zar))
+                    self['STDf'] = Histo(ROOT.TH1D('%s_STDf' % name, \
+                        'GRSV-STD', 20, 0., 1.))
                     self['MAX'] = Histo(ROOT.TH1D('%s_MAX' % name, \
                         'GRSV-MAX', len(zbins)-1, zar))
+                    self['MAXf'] = Histo(ROOT.TH1D('%s_MAXf' % name, \
+                        'GRSV-MAX', 20, 0., 1.))
                     self['MIN'] = Histo(ROOT.TH1D('%s_MIN' % name, \
                         'GRSV-MIN', len(zbins)-1, zar))
+                    self['MINf'] = Histo(ROOT.TH1D('%s_MINf' % name, \
+                        'GRSV-MIN', 20, 0., 1.))
                     self['ZERO'] = Histo(ROOT.TH1D('%s_ZERO' % name, \
                         'GRSV-ZERO', len(zbins)-1, zar))
+                    self['ZEROf'] = Histo(ROOT.TH1D('%s_ZEROf' % name, \
+                        'GRSV-ZERO', 20, 0., 1.))
                     self['GS_NLOC'] = Histo(ROOT.TH1D('%s_GS_NLOC' % name, \
                         'GS Set C', len(zbins)-1, zar))
+                    self['GS_NLOCf'] = Histo(ROOT.TH1D('%s_GS_NLOCf' % name, \
+                        'GS Set C', 20, 0., 1.))
                     self['denom'] = Histo(ROOT.TH1D('%s_denom' % name, \
                         'Asymmetry denominator', len(zbins)-1, zar))
+                    self['denomf'] = Histo(ROOT.TH1D('%s_denomf' % name, \
+                        'Asymmetry denominator', 20, 0., 1.))
             
             self['one'] = Histo(ROOT.TH1D('%s_one' % name, '', 1, -0.5, 0.5))
             
@@ -1096,8 +1109,12 @@ class HistogramManager(dict):
                             var = year==2006 and z or track.Pt()
                             if not simu: continue
                             for a in ('STD','MIN','MAX','ZERO','GS_NLOC'):
-                                c[a].Fill(var, mcasym.num(a, ev))
-                            c['denom'].Fill(var, mcasym.denom('NLO', ev))
+                                num = mcasym.num('NLO', ev)
+                                c[a].Fill(var, num)
+                                c[a+'f'].Fill(var, num)
+                            denom = mcasym.denom('NLO', ev)
+                            c['denom'].Fill(var, denom)
+                            c['denomf'].Fill(var, denom)
                         # break
             
             for jet in inclusiveJets:
