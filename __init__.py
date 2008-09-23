@@ -33,6 +33,8 @@ import histos
 import tree
 import simu
 import graphics
+import spin2008
+import ff
 
 ## classes
 from asym   import AsymmetryGenerator, ScalarCounts, Polarizations
