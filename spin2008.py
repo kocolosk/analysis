@@ -4,6 +4,7 @@
 
 import os
 from glob import glob
+from math import pow
 
 import ROOT
 
@@ -126,6 +127,69 @@ def result():
     
     raw_input('wait here:')
     
+
+
+def systematic_uncertainties():
+    """tabulates sources of uncertainty and sums them in quadrature"""
+    
+    pid_contamination = 0.10
+    pid_asym_m = [
+        1.549,      # [0.00-0.07]   0.958 ± 1.549
+        0.189,      # [0.07-0.12]  -0.113 ± 0.189
+        0.102,      # [0.12-0.20]  -0.091 ± 0.102
+        0.111,      # [0.20-0.30]  -0.110 ± 0.111
+        0.166,      # [0.30-0.45]  -0.004 ± 0.166
+        0.402,      # [0.45-0.65]   0.402 ± 0.315
+        0.943       # [0.65-1.00]  -0.943 ± 0.819
+    ]
+    pid_asym_p = [
+        1.766,      # [0.00-0.07]   0.021 ± 1.766
+        0.181,      # [0.07-0.12]  -0.175 ± 0.181
+        0.095,      # [0.12-0.20]  -0.003 ± 0.095
+        0.103,      # [0.20-0.30]  -0.001 ± 0.103
+        0.264,      # [0.30-0.45]  -0.264 ± 0.144
+        0.241,      # [0.45-0.65]   0.161 ± 0.241
+        0.531       # [0.65-1.00]  -0.531 ± 0.439
+    ]
+    
+    beam_vector = 0.0102
+    asigma_m = [
+        1.115,      # [0.00-0.07]   0.961 ± 1.115
+        0.107,      # [0.07-0.12]   0.107 ± 0.099
+        0.056,      # [0.12-0.20]   0.039 ± 0.056
+        0.067,      # [0.20-0.30]   0.050 ± 0.067
+        0.102,      # [0.30-0.45]  -0.059 ± 0.102
+        0.266,      # [0.45-0.65]  -0.266 ± 0.179
+        0.313       # [0.65-1.00]   0.030 ± 0.313
+    ]
+    asigma_p = [
+        0.694,      # [0.00-0.07]  -0.448 ± 0.694
+        0.099,      # [0.07-0.12]  -0.094 ± 0.099
+        0.055,      # [0.12-0.20]   0.037 ± 0.055
+        0.065,      # [0.20-0.30]   0.007 ± 0.065
+        0.096,      # [0.30-0.45]  -0.033 ± 0.096
+        0.161,      # [0.45-0.65]   0.096 ± 0.161
+        0.287       # [0.65-1.00]  -0.168 ± 0.287
+    ]
+    
+    relative_luminosity = 9.4e-4
+    
+    minus = [0.0 for bin in zbins]
+    plus = [0.0 for bin in zbins]
+    
+    for i in range(len(zbins)):
+        minus[i] = math.sqrt(
+            pow(relative_luminosity, 2) + 
+            pow(pid_contamination*pid_asym_m[i], 2) +
+            pow(beam_vector*asigma_m[i], 2)
+        )
+        plus[i] = math.sqrt(
+            pow(relative_luminosity, 2) +
+            pow(pid_contamination*pid_asym_p[i], 2) + 
+            pow(beam_vector*asigma_p[i], 2)
+        )
+    
+    return {'minus':minus, 'plus':plus}
 
 
 def ssa():
@@ -304,14 +368,14 @@ def pid_background_asymmetry():
     hm = asym_m.GetAsymmetry('ll')
     hm.SetMarkerStyle(20)
     hm.SetTitle('Background A_{LL} #pi^{-}')
-    hm.Fit('pol0')
+    hm.Fit('pol0', 'q')
     hm.Draw('e1')
     
     c.cd(2)
     hp = asym_p.GetAsymmetry('ll')
     hp.SetTitle('Background A_{LL} #pi^{+}')
     hp.SetMarkerStyle(21)
-    hp.Fit('pol0')
+    hp.Fit('pol0', 'q')
     hp.Draw('e1')
     
     for h in (hm,hp):
@@ -322,13 +386,13 @@ def pid_background_asymmetry():
     c.Print('pid_background_asymmetry.png')
     
     print '\nπ- Background Asymmetry'
-    for bin in range(1, hm.GetNbinsX()):
-        print '[%.2f-%.2f]  % .2f ± %.2f' % (hm.GetBinLowEdge(bin), 
+    for bin in range(1, hm.GetNbinsX()+1):
+        print '[%.2f-%.2f]  % .3f ± %.3f' % (hm.GetBinLowEdge(bin), 
             hm.GetBinLowEdge(bin+1), hm.GetBinContent(bin), hm.GetBinError(bin))
     
     print '\nπ+ Background Asymmetry'
-    for bin in range(1, hp.GetNbinsX()):
-        print '[%.2f-%.2f]  % .2f ± %.2f' % (hp.GetBinLowEdge(bin), 
+    for bin in range(1, hp.GetNbinsX()+1):
+        print '[%.2f-%.2f]  % .3f ± %.3f' % (hp.GetBinLowEdge(bin), 
             hp.GetBinLowEdge(bin+1), hp.GetBinContent(bin), hp.GetBinError(bin))
     
 
@@ -359,6 +423,83 @@ def pid_background_fraction():
     
     raw_input('wait here:')
     c.Print('pid_background_fraction.png')
+
+
+def asigma():
+    asym_p = AsymmetryGenerator('asym_p', bins=zbins, key='z_away2')
+    asym_m = AsymmetryGenerator('asym_m', bins=zbins, key='z_away2')
+    
+    scalars = ScalarCounts(os.environ['STAR'] + 
+        '/StRoot/StSpinPool/StTamuRelLum/inputs/run6.txt')
+    
+    polarizations = Polarizations.Final
+    
+    ## generate the asymmetries
+    allFiles = glob(transHistDir + '/chargedPions_*.hist.root')
+    for fname in allFiles[:10]:
+        run = getRun(fname)
+        if run in runlist:
+            print fname, run
+            mgr = HistogramManager(ROOT.TFile(fname), ['z_away2'])
+            
+            try:
+                bin6 = scalars[str(run) + '-5-6']
+                bin7 = scalars[str(run) + '-5-7']
+                bin8 = scalars[str(run) + '-5-8']
+                bin9 = scalars[str(run) + '-5-9']
+            except KeyError:
+                bin6 = scalars[str(run) + '-6-6']
+                bin7 = scalars[str(run) + '-6-7']
+                bin8 = scalars[str(run) + '-6-8']
+                bin9 = scalars[str(run) + '-6-9']
+            uu = bin6.uu + bin7.uu + bin8.uu + bin9.uu
+            ud = bin6.ud + bin7.ud + bin8.ud + bin9.ud
+            du = bin6.du + bin7.du + bin8.du + bin9.du
+            dd = bin6.dd + bin7.dd + bin8.dd + bin9.dd
+            
+            pol = polarizations[bin7.fill]
+            
+            asym_p.FillFromHistogramManager(mgr, 'jetpatch', 1, uu,ud,du,dd, \
+                pol.py,pol.pb)
+            asym_m.FillFromHistogramManager(mgr, 'jetpatch', -1, uu,ud,du,dd, \
+                pol.py,pol.pb)
+    
+    c = graphics.canvas2()
+    c.SetLogy(0)
+    ROOT.gStyle.SetErrorX(0.0)
+    
+    c.cd(1)
+    hm = asym_m.GetAsymmetry('ll')
+    hm.SetMarkerStyle(20)
+    hm.SetTitle('A_{#sigma} #pi^{-}')
+    hm.Fit('pol0', 'q')
+    hm.Draw('e1')
+    
+    c.cd(2)
+    hp = asym_p.GetAsymmetry('ll')
+    hp.SetTitle('A_{#sigma} #pi^{+}')
+    hp.SetMarkerStyle(21)
+    hp.Fit('pol0', 'q')
+    hp.Draw('e1')
+    
+    for h in (hm,hp):
+        h.GetXaxis().SetTitle('p_{T}(#pi)/p_{T}(jet)')
+        h.GetYaxis().SetRangeUser(-0.1, 0.1)
+    
+    raw_input('wait here:')
+    c.Print('asigma.png')
+    
+    print '\nπ- A_{σ}'
+    for bin in range(1, hm.GetNbinsX()+1):
+        print '[%.2f-%.2f]  % .3f ± %.3f' % (hm.GetBinLowEdge(bin), 
+            hm.GetBinLowEdge(bin+1), hm.GetBinContent(bin), hm.GetBinError(bin))
+    
+    print '\nπ+ A_{σ}'
+    for bin in range(1, hp.GetNbinsX()+1):
+        print '[%.2f-%.2f]  % .3f ± %.3f' % (hp.GetBinLowEdge(bin), 
+            hp.GetBinLowEdge(bin+1), hp.GetBinContent(bin), hp.GetBinError(bin))
+    
+    ## conservative estimate of |tan(θY)tan(θB)cos(ϕY-ϕB)| = 0.0102 ± 0.0002
 
 
 def ffcomp():
