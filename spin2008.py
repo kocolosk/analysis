@@ -9,8 +9,9 @@ import ROOT
 
 from .asym import AsymmetryGenerator, ScalarCounts, Polarizations
 from .histos import HistogramManager
+from .plots import pid_calibration
 from .runlists import long2_run6 as runlist
-from .util import getRun, fillList
+from .util import getRun, fillList, hadd_interactive
 from . import graphics
 
 histDir = '/Users/kocolosk/data/run6/spin2008/hist'
@@ -330,6 +331,34 @@ def pid_background_asymmetry():
         print '[%.2f-%.2f]  % .2f ± %.2f' % (hp.GetBinLowEdge(bin), 
             hp.GetBinLowEdge(bin+1), hp.GetBinContent(bin), hp.GetBinError(bin))
     
+
+
+def pid_background_fraction():
+    """simplistic calculation of background contamination fraction"""
+    nsig_p = hadd_interactive(histDir, runlist, 'jetpatch', 'anyspin', 'plus', 
+        'away2_nSigmaPion')
+    nsig_m = hadd_interactive(histDir, runlist, 'jetpatch', 'anyspin', 'minus', 
+        'away2_nSigmaPion')
+    
+    nsig_p.SetTitle('n#sigma(#pi) for #pi^{+}')
+    nsig_m.SetTitle('n#sigma(#pi) for #pi^{-}')
+    
+    print 'Fit summary for π+'
+    pfits = pid_calibration(nsig_p)
+    print 'Fit summary for π-'
+    mfits = pid_calibration(nsig_m)
+    c = graphics.canvas2()
+    
+    c.cd(1)
+    nsig_p.Draw()
+    [fit.Draw('same') for fit in pfits[1:]]
+    
+    c.cd(2)
+    nsig_m.Draw()
+    [fit.Draw('same') for fit in mfits[1:]]
+    
+    raw_input('wait here:')
+    c.Print('pid_background_fraction.png')
 
 
 def ffcomp():
