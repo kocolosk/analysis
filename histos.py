@@ -919,7 +919,7 @@ class HistogramManager(dict):
             for trigId in (117001, 137221, 137222, 137611, 137622):
                 triggerOk[str(trigId)] = ev.isSimuTrigger(trigId)
                 triggerOk['%d_hw' % (trigId,)] = False
-            t['jetpatch'] = t['117001'] and t['137221']
+            t['jetpatch'] = t['117001'] and t['137222']
             t['alltrigs'] = t['jetpatch'] or t['137611'] or t['137622']
             activeTriggers = ('117001', '137221', '137222', '137611', '137622', 
                 'jetpatch', 'alltrigs')
