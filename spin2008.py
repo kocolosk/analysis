@@ -3,8 +3,8 @@
 # this module is supposed to collect all the plots i'll be showing at SPIN 2008
 
 import os
+import math
 from glob import glob
-from math import pow
 
 import ROOT
 
@@ -17,7 +17,10 @@ from . import graphics
 
 histDir = '/Users/kocolosk/data/run6/spin2008/hist'
 transHistDir = '/Users/kocolosk/data/run6/spin2008/hist-transverse'
-zbins = [0.0, 0.075, 0.125, 0.2, 0.3, 0.45, 0.65, 1.0]
+zbins = [
+    0.075, 0.125, ## these two are biased b/c of the track pT cut
+    0.2, 0.3, 0.45, 0.65, 1.0
+]
 
 def result():
     """
@@ -134,27 +137,24 @@ def systematic_uncertainties():
     
     pid_contamination = 0.10
     pid_asym_m = [
-        1.549,      # [0.00-0.07]   0.958 ± 1.549
-        0.189,      # [0.07-0.12]  -0.113 ± 0.189
-        0.102,      # [0.12-0.20]  -0.091 ± 0.102
-        0.111,      # [0.20-0.30]  -0.110 ± 0.111
-        0.166,      # [0.30-0.45]  -0.004 ± 0.166
-        0.402,      # [0.45-0.65]   0.402 ± 0.315
-        0.943       # [0.65-1.00]  -0.943 ± 0.819
+        0.051,      # [0.07-0.12]   0.051 ± 0.038
+        0.017,      # [0.12-0.20]  -0.017 ± 0.016
+        0.032,      # [0.20-0.30]  -0.032 ± 0.016
+        0.023,      # [0.30-0.45]  -0.006 ± 0.023
+        0.042,      # [0.45-0.65]  -0.031 ± 0.042
+        0.089       # [0.65-1.00]   0.089 ± 0.085
     ]
     pid_asym_p = [
-        1.766,      # [0.00-0.07]   0.021 ± 1.766
-        0.181,      # [0.07-0.12]  -0.175 ± 0.181
-        0.095,      # [0.12-0.20]  -0.003 ± 0.095
-        0.103,      # [0.20-0.30]  -0.001 ± 0.103
-        0.264,      # [0.30-0.45]  -0.264 ± 0.144
-        0.241,      # [0.45-0.65]   0.161 ± 0.241
-        0.531       # [0.65-1.00]  -0.531 ± 0.439
+        0.036,      # [0.07-0.12]   0.005 ± 0.036
+        0.015,      # [0.12-0.20]   0.006 ± 0.015
+        0.015,      # [0.20-0.30]  -0.006 ± 0.015
+        0.020,      # [0.30-0.45]   0.018 ± 0.020
+        0.038,      # [0.45-0.65]  -0.038 ± 0.032
+        0.142       # [0.65-1.00]   0.142 ± 0.059
     ]
     
     beam_vector = 0.0102
     asigma_m = [
-        1.115,      # [0.00-0.07]   0.961 ± 1.115
         0.107,      # [0.07-0.12]   0.107 ± 0.099
         0.056,      # [0.12-0.20]   0.039 ± 0.056
         0.067,      # [0.20-0.30]   0.050 ± 0.067
@@ -163,7 +163,6 @@ def systematic_uncertainties():
         0.313       # [0.65-1.00]   0.030 ± 0.313
     ]
     asigma_p = [
-        0.694,      # [0.00-0.07]  -0.448 ± 0.694
         0.099,      # [0.07-0.12]  -0.094 ± 0.099
         0.055,      # [0.12-0.20]   0.037 ± 0.055
         0.065,      # [0.20-0.30]   0.007 ± 0.065
@@ -174,10 +173,10 @@ def systematic_uncertainties():
     
     relative_luminosity = 9.4e-4
     
-    minus = [0.0 for bin in zbins]
-    plus = [0.0 for bin in zbins]
+    minus = [0.0 for bin in zbins[:-1]]
+    plus = [0.0 for bin in zbins[:-1]]
     
-    for i in range(len(zbins)):
+    for i in range(len(zbins)-1):
         minus[i] = math.sqrt(
             pow(relative_luminosity, 2) + 
             pow(pid_contamination*pid_asym_m[i], 2) +
@@ -332,7 +331,7 @@ def pid_background_asymmetry():
     
     ## generate the asymmetries
     allFiles = glob(histDir + '/chargedPions_*.hist.root')
-    for fname in allFiles[:10]:
+    for fname in allFiles[:]:
         run = getRun(fname)
         if run in runlist:
             print fname, run
