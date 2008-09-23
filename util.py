@@ -51,6 +51,11 @@ def getAllFills2(runlist):
     return d
 
 
+def fillList(runlist):
+    tuples = getAllFills(runlist)
+    return uniqify([fill for run,fill in tuples])
+
+
 def uniqify(seq, idfun=None):
     # order-preserving method to return unique elements in list
     if idfun is None: 
@@ -119,3 +124,12 @@ def hadd_interactive(histDir, runlist, trig, spin, charge, key):
             tmp.Close()
     stdout.write(' done\n\n')
     return h
+
+
+def tf1(fun, rangeMin, rangeMax, **kw):
+    """
+    returns a TF1 after applying kwargs to the supplied function
+    """
+    from uuid import uuid1 as uuid
+    from ROOT import TF1
+    return TF1(str(uuid()), lambda x: fun(x[0], **kw), rangeMin, rangeMax)
