@@ -33,8 +33,10 @@ import histos
 import tree
 import simu
 import graphics
-import spin2008
 import ff
+
+if sys.version_info[1] >= 4:
+    import spin2008
 
 ## classes
 from asym   import AsymmetryGenerator, ScalarCounts, Polarizations
