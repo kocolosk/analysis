@@ -1,3 +1,4 @@
+# encoding: utf-8
 # i need a better header template :-/
 # this module is supposed to collect all the plots i'll be showing at SPIN 2008
 
@@ -12,7 +13,8 @@ from .runlists import long2_run6 as runlist
 from .util import getRun, fillList
 from . import graphics
 
-histDir = '/Users/kocolosk/data/run6/hist'
+histDir = '/Users/kocolosk/data/run6/spin2008/hist'
+transHistDir = '/Users/kocolosk/data/run6/spin2008/hist-transverse'
 zbins = [0.0, 0.075, 0.125, 0.2, 0.3, 0.45, 0.65, 1.0]
 
 def result():
@@ -249,6 +251,85 @@ def ssa():
             c.Print('%s_ssa_%s.png' % (key, var))
     
     raw_input('wait here:')
+
+
+def pid_background_asymmetry():
+    """
+    calculate A_{LL} for particles in the p/K sideband of the dE/dx window
+    """
+    asym_p = AsymmetryGenerator('asym_p', bins=zbins, key='z_away2_bg')
+    asym_m = AsymmetryGenerator('asym_m', bins=zbins, key='z_away2_bg')
+    
+    scalars = ScalarCounts(os.environ['STAR'] + 
+        '/StRoot/StSpinPool/StTamuRelLum/inputs/run6.txt')
+    
+    polarizations = Polarizations.Final
+    
+    ## generate the asymmetries
+    allFiles = glob(histDir + '/chargedPions_*.hist.root')
+    for fname in allFiles[:10]:
+        run = getRun(fname)
+        if run in runlist:
+            print fname, run
+            mgr = HistogramManager(ROOT.TFile(fname), ['z_away2_bg'])
+            
+            try:
+                bin6 = scalars[str(run) + '-5-6']
+                bin7 = scalars[str(run) + '-5-7']
+                bin8 = scalars[str(run) + '-5-8']
+                bin9 = scalars[str(run) + '-5-9']
+            except KeyError:
+                bin6 = scalars[str(run) + '-6-6']
+                bin7 = scalars[str(run) + '-6-7']
+                bin8 = scalars[str(run) + '-6-8']
+                bin9 = scalars[str(run) + '-6-9']
+            uu = bin6.uu + bin7.uu + bin8.uu + bin9.uu
+            ud = bin6.ud + bin7.ud + bin8.ud + bin9.ud
+            du = bin6.du + bin7.du + bin8.du + bin9.du
+            dd = bin6.dd + bin7.dd + bin8.dd + bin9.dd
+            
+            pol = polarizations[bin7.fill]
+            
+            asym_p.FillFromHistogramManager(mgr, 'jetpatch', 1, uu,ud,du,dd, \
+                pol.py,pol.pb)
+            asym_m.FillFromHistogramManager(mgr, 'jetpatch', -1, uu,ud,du,dd, \
+                pol.py,pol.pb)
+    
+    c = graphics.canvas2()
+    c.SetLogy(0)
+    ROOT.gStyle.SetErrorX(0.0)
+    
+    c.cd(1)
+    hm = asym_m.GetAsymmetry('ll')
+    hm.SetMarkerStyle(20)
+    hm.SetTitle('Background A_{LL} #pi^{-}')
+    hm.Fit('pol0')
+    hm.Draw('e1')
+    
+    c.cd(2)
+    hp = asym_p.GetAsymmetry('ll')
+    hp.SetTitle('Background A_{LL} #pi^{+}')
+    hp.SetMarkerStyle(21)
+    hp.Fit('pol0')
+    hp.Draw('e1')
+    
+    for h in (hm,hp):
+        h.GetXaxis().SetTitle('p_{T}(#pi)/p_{T}(jet)')
+        h.GetYaxis().SetRangeUser(-0.1, 0.1)
+    
+    raw_input('wait here:')
+    c.Print('pid_background_asymmetry.png')
+    
+    print '\nπ- Background Asymmetry'
+    for bin in range(1, hm.GetNbinsX()):
+        print '[%.2f-%.2f]  % .2f ± %.2f' % (hm.GetBinLowEdge(bin), 
+            hm.GetBinLowEdge(bin+1), hm.GetBinContent(bin), hm.GetBinError(bin))
+    
+    print '\nπ+ Background Asymmetry'
+    for bin in range(1, hp.GetNbinsX()):
+        print '[%.2f-%.2f]  % .2f ± %.2f' % (hp.GetBinLowEdge(bin), 
+            hp.GetBinLowEdge(bin+1), hp.GetBinContent(bin), hp.GetBinError(bin))
+    
 
 
 def ffcomp():
