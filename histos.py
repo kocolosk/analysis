@@ -397,7 +397,7 @@ class TrackHistogramCollection(dict):
         'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg', 'vz', 'distortedPt', 
         'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom', 'dphi', 'one', 
         'meanpt', 'meanjetpt', 'z_noshift', 'STDf', 'MAXf', 'MINf', 'ZEROf', 
-        'GS_NLOCf', 'denomf'
+        'GS_NLOCf', 'denomf', 'zf'
     ]
     
     def __init__(self, name, tfile=None, keys=None):
@@ -587,6 +587,9 @@ class TrackHistogramCollection(dict):
             self['dphi'] = Histo(ROOT.TH1D('%s_dphi' % name, \
                 '#Delta#phi relative to trigger jet', \
                 2*phiBins[0], phiBins[1], phiBins[2]))
+            
+            self['zf'] = Histo(ROOT.TH1D('%s_zf' % name,
+                'finely binned for mcasym comparison', 20, 0., 1.))
     
     
     def fillMcTrack(self, track):
@@ -1109,7 +1112,7 @@ class HistogramManager(dict):
                             var = year==2006 and z or track.Pt()
                             if not simu: continue
                             for a in ('STD','MIN','MAX','ZERO','GS_NLOC'):
-                                num = mcasym.num('NLO', ev)
+                                num = mcasym.num(a, ev)
                                 c[a].Fill(var, num)
                                 c[a+'f'].Fill(var, num)
                             denom = mcasym.denom('NLO', ev)
@@ -1444,7 +1447,7 @@ def condor_simu(treeDir, trigList=None, year=2006):
         pass
         
     files = os.listdir(treeDir)
-    prefixes = [os.path.basename(f)[:7] for f in files if f.endswith('.root')]
+    prefixes = [os.path.basename(f)[:9] for f in files if f.endswith('.root')]
     uniq = sets.Set(prefixes)
     
     ## build the script that we will run -- note trick with sys.argv
