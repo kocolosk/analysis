@@ -2175,16 +2175,14 @@ def datamc(simuFile, dataDir, runlist, trigger):
     fsimu = ROOT.TFile(simuFile)
     simu = analysis.HistogramManager(fsimu)
     
-    # event_keys = ['vz', 'vzBBC', 'jet_pt', 'lead_neutral', 'inclusive_jet_mult',
-    #     'dijet_mult']
-    event_keys = []
+    event_keys = ['vz', 'vzBBC', 'jet_pt', 'lead_neutral', 'inclusive_jet_mult',
+        'dijet_mult']
     
-    # track_keys = ['pt', 'eta', 'phi', 'nHitsFit', 'dEdx', 'dcaG', 'nSigmaPion',
-    #     'pt_near', 'pt_away', 'pt_bg', 
-    #     'away_mult', 'near_mult', 'away_lead_pt', 'near_lead_pt',
-    #     'lead_matched', 'lead_cutfail', 'z_away2', 'z_away3', 'z_away4',
-    #     'away2_eta', 'away2_nHitsFit', 'away2_dcaG', 'vz', 'distortedPt']
-    track_keys = ['pt', 'distortedPt']
+    track_keys = ['pt', 'eta', 'phi', 'nHitsFit', 'dEdx', 'dcaG', 'nSigmaPion',
+        'pt_near', 'pt_away', 'pt_bg', 
+        'away_mult', 'near_mult', 'away_lead_pt', 'near_lead_pt',
+        'lead_matched', 'lead_cutfail', 'z_away2', 'z_away3', 'z_away4',
+        'away2_eta', 'away2_nHitsFit', 'away2_dcaG', 'vz', 'distortedPt']
     
     log_scale = ('lead_neutral', 'inclusive_jet_mult', 'dijet_mult', 'pt', 'dcaG',
         'pt_near', 'pt_away', 'pt_bg', 'away_mult', 'near_mult', 'away_lead_pt', 
@@ -2198,11 +2196,11 @@ def datamc(simuFile, dataDir, runlist, trigger):
     # norm = 2.11E+09
     print 'normalization factor for simulations: %.2E' % norm
     
-    ## scale normalization down to account for PID efficiency (but neglecting contam)
-    track_norm = norm * 0.82
+    ## scale normalization down to PID efficiency (but neglecting contam)
+    # track_norm = norm * 0.82
     
     ## if I include p/k/e contamination this factor is approximately
-    # track_norm = norm * 0.93
+    track_norm = norm * 0.93
     
     rebin = ('vz', 'vzBBC', 'jet_pt')
     
@@ -2348,6 +2346,8 @@ def mcasym(fname, trigger='jetpatch', keys=None):
     print keys
     mgr = analysis.HistogramManager(f, keys = keys+['denom'])
     keepme = []
+    line = ROOT.TLine(0,0,1,0)
+    line.SetLineStyle(2)
     color = {
         'STD': ROOT.kBlack,
         'MAX': ROOT.kRed,
@@ -2357,18 +2357,24 @@ def mcasym(fname, trigger='jetpatch', keys=None):
     }
     c = analysis.graphics.canvas2()
     for i,key in enumerate(keys):
-        opt = i>0 and 'same' or ''
+        opt = i>0 and 'e2 same' or 'e2'
         c.cd(1)
+        line.Draw()
         minus = mgr.anyspin[trigger].tracks_minus[key].Clone()
-        minus.GetYaxis().SetRangeUser(-0.2,0.2)
+        # minus.GetXaxis().SetRangeUser(0.1, 0.8)
+        minus.GetYaxis().SetRangeUser(-0.05,0.05)
         minus.SetLineColor(color[key])
+        minus.SetFillColor(color[key])
         minus.SetTitle('#pi^{-}')
         minus.GetXaxis().SetTitle('z')
         minus.Draw(opt)
         c.cd(2)
+        line.Draw()
         plus = mgr.anyspin[trigger].tracks_plus[key].Clone()
-        plus.GetYaxis().SetRangeUser(-0.2,0.2)
+        # plus.GetXaxis().SetRangeUser(0.1, 0.8)
+        plus.GetYaxis().SetRangeUser(-0.05,0.05)
         plus.SetLineColor(color[key])
+        plus.SetFillColor(color[key])
         plus.SetTitle('#pi^{+}')
         plus.GetXaxis().SetTitle('z')
         plus.Draw(opt)
