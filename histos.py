@@ -1212,7 +1212,7 @@ def writeHistograms(treeDir='~/data/run5/tree', globber='*', trigList=None):
     chain.GetEntry(0)
     fname = chain.GetCurrentFile().GetName()
     if simu:
-        outname = os.path.basename(fname)[:7] + '.cphist.root'
+        outname = os.path.basename(fname)[:9] + '.cphist.root'
     else:
         outname = os.path.basename(fname).replace('.tree.','.hist.')
     outFile = ROOT.TFile(outname, 'recreate')
