@@ -52,19 +52,23 @@ samples = {
 def mergeHistos(histos, eventCounts, sampleIds):
     out = histos[0].Clone()
     out.Reset('ice')
+    isProfile = out.ClassName().startswith('TProfile')
     nbins = out.GetBin(out.GetNbinsX(), out.GetNbinsY(), out.GetNbinsZ())
     for h,nevents,sample in zip(histos, eventCounts, sampleIds):
         if sample == 'minbias': continue
         wp = xsec[sample] / nevents
-        # print sample, nevents, wp
-        for bin in range(1, nbins+1):
-            content = out.GetBinContent(bin)
-            error = out.GetBinError(bin)**2
-            nparticles = h.GetBinContent(bin)
-            content += nparticles * wp
-            error   += wp * wp * nparticles * (1+nparticles/nevents)
-            out.SetBinContent(bin,content)
-            out.SetBinError(bin, math.sqrt(error))
+        if isProfile:
+            out.Add(h, wp)
+        else:
+            # print sample, nevents, wp
+            for bin in range(1, nbins+1):
+                content = out.GetBinContent(bin)
+                error = out.GetBinError(bin)**2
+                nparticles = h.GetBinContent(bin)
+                content += nparticles * wp
+                error   += wp * wp * nparticles * (1+nparticles/nevents)
+                out.SetBinContent(bin,content)
+                out.SetBinError(bin, math.sqrt(error))
     return out
 
 def mergeSamples(outName, inputFileNames):
@@ -82,7 +86,7 @@ def mergeSamples(outName, inputFileNames):
         if histos[0].ClassName().startswith('TH2'): 
             ## but keep 'z', 'z_away'
             keepMe = False
-            for name in ('_z', '_z_away'):
+            for name in ('_z', '_z_away', 'ptMc_ptPr'):
                 if name in histos[0].GetName():
                     keepMe = True
             if not keepMe:
@@ -97,7 +101,7 @@ def mergeSamples(outName, inputFileNames):
     
     outFile.Close()
     
-def mcasym(outName, inputFileNames, trigger='jetpatch', keys=None):
+def mcasym(outName, inputFileNames, triggers=('jetpatch','117001'), keys=None):
     """
     caveats:
     select different nparticles histos for 05(pt) and 06(z_away2.Rebin())
@@ -105,33 +109,33 @@ def mcasym(outName, inputFileNames, trigger='jetpatch', keys=None):
     outFile = ROOT.TFile(outName, 'recreate')
     inputFiles = [ROOT.TFile(n) for n in inputFileNames]
     keys = keys or ['STD','MAX','MIN','ZERO','GS_NLOC']
-    for key in keys:
-        minus_inputs = map(lambda f: \
-        {
-            'id': samples[os.path.basename(f.GetName())[:7]],
-            'xsec': xsec[samples[os.path.basename(f.GetName())[:7]]],
-            'nevents': f.Get('eventCounter').GetEntries(),
-            'num': f.Get('_%s_anyspin_minus_%s' % (trigger, key)),
-            'denom': f.Get('_%s_anyspin_minus_denom' % trigger),
-            'nparticles': f.Get('_%s_anyspin_minus_pt' % trigger)
-            # 'nparticles': f.Get('_%s_anyspin_minus_z_away2' % trigger).Rebin()
-        }, inputFiles)
-        plus_inputs = map(lambda f: \
-        {
-            'id': samples[os.path.basename(f.GetName())[:7]],
-            'xsec': xsec[samples[os.path.basename(f.GetName())[:7]]],
-            'nevents': f.Get('eventCounter').GetEntries(),
-            'num': f.Get('_%s_anyspin_plus_%s' % (trigger, key)),
-            'denom': f.Get('_%s_anyspin_plus_denom' % trigger),
-            'nparticles': f.Get('_%s_anyspin_plus_pt' % trigger)
-            # 'nparticles': f.Get('_%s_anyspin_plus_z_away2' % trigger).Rebin()
-        }, inputFiles)
-        for m in minus_inputs:
-            print m['id'], m['xsec'], m['nevents'], m['nparticles'].GetEntries()
-        outFile.cd()
-        _mcasym_merge(minus_inputs).Write()
-        _mcasym_merge(plus_inputs).Write()
-    outFile.Close()
+    for sub in ('anyspin', 'gg', 'qg', 'qq'):
+        for trigger in triggers:
+            for key in keys:
+                minus_inputs = map(lambda f: \
+                {
+                    'id': samples[os.path.basename(f.GetName())[:7]],
+                    'xsec': xsec[samples[os.path.basename(f.GetName())[:7]]],
+                    'nevents': f.Get('eventCounter').GetEntries(),
+                    'num': f.Get('_%s_%s_minus_%s' % (trigger, sub, key)),
+                    'denom': f.Get('_%s_%s_minus_denom' % (trigger, sub)),
+                    # 'nparticles': f.Get('_%s_%s_minus_pt' % (trigger, sub))
+                    'nparticles': f.Get('_%s_%s_minus_z_away2' % (trigger, sub))
+                }, inputFiles)
+                plus_inputs = map(lambda f: \
+                {
+                    'id': samples[os.path.basename(f.GetName())[:7]],
+                    'xsec': xsec[samples[os.path.basename(f.GetName())[:7]]],
+                    'nevents': f.Get('eventCounter').GetEntries(),
+                    'num': f.Get('_%s_%s_plus_%s' % (trigger, sub, key)),
+                    'denom': f.Get('_%s_%s_plus_denom' % (trigger, sub)),
+                    # 'nparticles': f.Get('_%s_%s_plus_pt' % (trigger, sub))
+                    'nparticles': f.Get('_%s_%s_plus_z_away2' % (trigger, sub))
+                }, inputFiles)
+                outFile.cd()
+                _mcasym_merge(minus_inputs).Write()
+                _mcasym_merge(plus_inputs).Write()
+        outFile.Close()
         
 def _mcasym_merge(inputs):
     out = inputs[0]['num'].Clone()
@@ -139,11 +143,11 @@ def _mcasym_merge(inputs):
     
     ## don't include a bin from an individual sample in content or error
     ## if it has fewer than this # of particles
-    minParticlesToAccept = 10
+    minParticlesToAccept = 1
     
     ## first do the bin contents
     bottom = []
-    for bin in range(1, out.GetNbinsX()):
+    for bin in range(1, out.GetNbinsX()+1):
         top = 0.0
         bot = 0.0
         error = 0.0
@@ -159,7 +163,7 @@ def _mcasym_merge(inputs):
         out.SetBinContent(bin, content)
     
     ## now do the errors
-    for bin in range(1, out.GetNbinsX()):
+    for bin in range(1, out.GetNbinsX()+1):
         error = 0.0
         
         for sample in inputs:
