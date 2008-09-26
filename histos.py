@@ -450,54 +450,54 @@ class TrackHistogramCollection(dict):
                         'GRSV-STD', len(zbins)-1, zar))
                     self['STDf'] = Histo(ROOT.TH1D('%s_STDf' % name, \
                         'GRSV-STD', 20, 0., 1.))
-                    self['STDw'] = Histo(ROOT.TH1D('%s_STD' % name, \
+                    self['STDw'] = Histo(ROOT.TH1D('%s_STDw' % name, \
                         'GRSV-STD', len(zbins)-1, zar))
-                    self['STDwf'] = Histo(ROOT.TH1D('%s_STDf' % name, \
+                    self['STDwf'] = Histo(ROOT.TH1D('%s_STDwf' % name, \
                         'GRSV-STD', 20, 0., 1.))
                     
                     self['MAX'] = Histo(ROOT.TH1D('%s_MAX' % name, \
                         'GRSV-MAX', len(zbins)-1, zar))
                     self['MAXf'] = Histo(ROOT.TH1D('%s_MAXf' % name, \
                         'GRSV-MAX', 20, 0., 1.))
-                    self['MAXw'] = Histo(ROOT.TH1D('%s_MAX' % name, \
+                    self['MAXw'] = Histo(ROOT.TH1D('%s_MAXw' % name, \
                         'GRSV-MAX', len(zbins)-1, zar))
-                    self['MAXwf'] = Histo(ROOT.TH1D('%s_MAXf' % name, \
+                    self['MAXwf'] = Histo(ROOT.TH1D('%s_MAXwf' % name, \
                         'GRSV-MAX', 20, 0., 1.))
                     
                     self['MIN'] = Histo(ROOT.TH1D('%s_MIN' % name, \
                         'GRSV-MIN', len(zbins)-1, zar))
                     self['MINf'] = Histo(ROOT.TH1D('%s_MINf' % name, \
                         'GRSV-MIN', 20, 0., 1.))
-                    self['MINw'] = Histo(ROOT.TH1D('%s_MIN' % name, \
+                    self['MINw'] = Histo(ROOT.TH1D('%s_MINw' % name, \
                         'GRSV-MIN', len(zbins)-1, zar))
-                    self['MINwf'] = Histo(ROOT.TH1D('%s_MINf' % name, \
+                    self['MINwf'] = Histo(ROOT.TH1D('%s_MINwf' % name, \
                         'GRSV-MIN', 20, 0., 1.))
                     
                     self['ZERO'] = Histo(ROOT.TH1D('%s_ZERO' % name, \
                         'GRSV-ZERO', len(zbins)-1, zar))
                     self['ZEROf'] = Histo(ROOT.TH1D('%s_ZEROf' % name, \
                         'GRSV-ZERO', 20, 0., 1.))
-                    self['ZEROw'] = Histo(ROOT.TH1D('%s_ZERO' % name, \
+                    self['ZEROw'] = Histo(ROOT.TH1D('%s_ZEROw' % name, \
                         'GRSV-ZERO', len(zbins)-1, zar))
-                    self['ZEROwf'] = Histo(ROOT.TH1D('%s_ZEROf' % name, \
+                    self['ZEROwf'] = Histo(ROOT.TH1D('%s_ZEROwf' % name, \
                         'GRSV-ZERO', 20, 0., 1.))
                     
                     self['GS_NLOC'] = Histo(ROOT.TH1D('%s_GS_NLOC' % name, \
                         'GS Set C', len(zbins)-1, zar))
                     self['GS_NLOCf'] = Histo(ROOT.TH1D('%s_GS_NLOCf' % name, \
                         'GS Set C', 20, 0., 1.))
-                    self['GS_NLOCw'] = Histo(ROOT.TH1D('%s_GS_NLOC' % name, \
+                    self['GS_NLOCw'] = Histo(ROOT.TH1D('%s_GS_NLOCw' % name, \
                         'GS Set C', len(zbins)-1, zar))
-                    self['GS_NLOCwf'] = Histo(ROOT.TH1D('%s_GS_NLOCf' % name, \
+                    self['GS_NLOCwf'] = Histo(ROOT.TH1D('%s_GS_NLOCwf' % name, \
                         'GS Set C', 20, 0., 1.))
                     
                     self['denom'] = Histo(ROOT.TH1D('%s_denom' % name, \
                         'Asymmetry denominator', len(zbins)-1, zar))
                     self['denomf'] = Histo(ROOT.TH1D('%s_denomf' % name, \
                         'Asymmetry denominator', 20, 0., 1.))
-                    self['denomw'] = Histo(ROOT.TH1D('%s_denom' % name, \
+                    self['denomw'] = Histo(ROOT.TH1D('%s_denomw' % name, \
                         'Asymmetry denominator', len(zbins)-1, zar))
-                    self['denomwf'] = Histo(ROOT.TH1D('%s_denomf' % name, \
+                    self['denomwf'] = Histo(ROOT.TH1D('%s_denomwf' % name, \
                         'Asymmetry denominator', 20, 0., 1.))
             
             self['one'] = Histo(ROOT.TH1D('%s_one' % name, '', 1, -0.5, 0.5))
