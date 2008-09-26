@@ -450,25 +450,54 @@ class TrackHistogramCollection(dict):
                         'GRSV-STD', len(zbins)-1, zar))
                     self['STDf'] = Histo(ROOT.TH1D('%s_STDf' % name, \
                         'GRSV-STD', 20, 0., 1.))
+                    self['STDw'] = Histo(ROOT.TH1D('%s_STD' % name, \
+                        'GRSV-STD', len(zbins)-1, zar))
+                    self['STDwf'] = Histo(ROOT.TH1D('%s_STDf' % name, \
+                        'GRSV-STD', 20, 0., 1.))
+                    
                     self['MAX'] = Histo(ROOT.TH1D('%s_MAX' % name, \
                         'GRSV-MAX', len(zbins)-1, zar))
                     self['MAXf'] = Histo(ROOT.TH1D('%s_MAXf' % name, \
                         'GRSV-MAX', 20, 0., 1.))
+                    self['MAXw'] = Histo(ROOT.TH1D('%s_MAX' % name, \
+                        'GRSV-MAX', len(zbins)-1, zar))
+                    self['MAXwf'] = Histo(ROOT.TH1D('%s_MAXf' % name, \
+                        'GRSV-MAX', 20, 0., 1.))
+                    
                     self['MIN'] = Histo(ROOT.TH1D('%s_MIN' % name, \
                         'GRSV-MIN', len(zbins)-1, zar))
                     self['MINf'] = Histo(ROOT.TH1D('%s_MINf' % name, \
                         'GRSV-MIN', 20, 0., 1.))
+                    self['MINw'] = Histo(ROOT.TH1D('%s_MIN' % name, \
+                        'GRSV-MIN', len(zbins)-1, zar))
+                    self['MINwf'] = Histo(ROOT.TH1D('%s_MINf' % name, \
+                        'GRSV-MIN', 20, 0., 1.))
+                    
                     self['ZERO'] = Histo(ROOT.TH1D('%s_ZERO' % name, \
                         'GRSV-ZERO', len(zbins)-1, zar))
                     self['ZEROf'] = Histo(ROOT.TH1D('%s_ZEROf' % name, \
                         'GRSV-ZERO', 20, 0., 1.))
+                    self['ZEROw'] = Histo(ROOT.TH1D('%s_ZERO' % name, \
+                        'GRSV-ZERO', len(zbins)-1, zar))
+                    self['ZEROwf'] = Histo(ROOT.TH1D('%s_ZEROf' % name, \
+                        'GRSV-ZERO', 20, 0., 1.))
+                    
                     self['GS_NLOC'] = Histo(ROOT.TH1D('%s_GS_NLOC' % name, \
                         'GS Set C', len(zbins)-1, zar))
                     self['GS_NLOCf'] = Histo(ROOT.TH1D('%s_GS_NLOCf' % name, \
                         'GS Set C', 20, 0., 1.))
+                    self['GS_NLOCw'] = Histo(ROOT.TH1D('%s_GS_NLOC' % name, \
+                        'GS Set C', len(zbins)-1, zar))
+                    self['GS_NLOCwf'] = Histo(ROOT.TH1D('%s_GS_NLOCf' % name, \
+                        'GS Set C', 20, 0., 1.))
+                    
                     self['denom'] = Histo(ROOT.TH1D('%s_denom' % name, \
                         'Asymmetry denominator', len(zbins)-1, zar))
                     self['denomf'] = Histo(ROOT.TH1D('%s_denomf' % name, \
+                        'Asymmetry denominator', 20, 0., 1.))
+                    self['denomw'] = Histo(ROOT.TH1D('%s_denom' % name, \
+                        'Asymmetry denominator', len(zbins)-1, zar))
+                    self['denomwf'] = Histo(ROOT.TH1D('%s_denomf' % name, \
                         'Asymmetry denominator', 20, 0., 1.))
             
             self['one'] = Histo(ROOT.TH1D('%s_one' % name, '', 1, -0.5, 0.5))
@@ -704,7 +733,8 @@ class HistogramCollection(dict):
     allKeys = ['nVertices', 'vx_vy', 'vz', 'vzBBC', 'spinBit', 'bx7', 'bbc', 
         'jet_pt_balance', 'jet_p_balance', 'jet_eta_balance', 'jet_phi_balance',
         'cosTheta', 'hardP', 'x1','x2','x1_x2', 
-        'jet_pt', 'lead_neutral', 'inclusive_jet_mult', 'dijet_mult']
+        'jet_pt', 'lead_neutral', 'inclusive_jet_mult', 'dijet_mult',
+        'true_jet_pt', 'jet_ptw']
     
     def __init__(self, name, tfile=None, keys=None):
         super(HistogramCollection, self).__init__()
@@ -752,6 +782,10 @@ class HistogramCollection(dict):
                 % name, '', 15, -0.5, 14.5))
             self['dijet_mult'] = Histo(ROOT.TH1D('%s_dijet_mult' % name, '', \
                 15, -0.5, 14.5))
+            self['true_jet_pt'] = Histo(ROOT.TH1D('%s_true_jet_pt' % name, '', 
+                200, 0.0, 50.0))
+            self['jet_ptw'] = Histo(ROOT.TH1D('%s_jet_ptw' % name, '', \
+                200, 0.0, 50.0))
             
         
         self.tracks_plus = TrackHistogramCollection('%s_plus' % (name,), \
@@ -786,9 +820,12 @@ class HistogramCollection(dict):
     
     
     def fillJets(self, triggerJet, awayJet=None):
-        self['jet_pt'].Fill(triggerJet.Pt())
+        pt = triggerJet.Pt()
+        self['jet_pt'].Fill(pt)
+        self['true_jet_pt'].Fill(shifted(pt))
+        self['jet_ptw'].Fill(pt, minbias_jet_weight(pt))
         if awayJet is not None:
-            self['jet_pt_balance'].Fill(triggerJet.Pt(), awayJet.Pt())
+            self['jet_pt_balance'].Fill(pt, awayJet.Pt())
             self['jet_p_balance'].Fill(triggerJet.P(), awayJet.P())
             self['jet_eta_balance'].Fill(triggerJet.Eta(), awayJet.Eta())
             self['jet_phi_balance'].Fill(triggerJet.Phi(), awayJet.Phi())
@@ -1109,15 +1146,25 @@ class HistogramManager(dict):
                             c['meanjetpt'].Fill(z, jet.Pt())
                             if ev.runId() > 7000000:
                                 c['one'].Fill(0)
+                            
+                            if trig == '117001':
+                                w = minbias_jet_weight(jet.Pt())
+                            else:
+                                w = 1.0
+                            
                             var = year==2006 and z or track.Pt()
                             if not simu: continue
                             for a in ('STD','MIN','MAX','ZERO','GS_NLOC'):
                                 num = mcasym.num(a, ev)
                                 c[a].Fill(var, num)
                                 c[a+'f'].Fill(var, num)
+                                c[a+'w'].Fill(var, num*w)
+                                c[a+'wf'].Fill(var, num*w)
                             denom = mcasym.denom('NLO', ev)
                             c['denom'].Fill(var, denom)
                             c['denomf'].Fill(var, denom)
+                            c['denomw'].Fill(var, denom*w)
+                            c['denomwf'].Fill(var, denom*w)
                         # break
             
             for jet in inclusiveJets:
@@ -1286,6 +1333,11 @@ def shifted(jetpt):
     else:
         return jetpt
 
+def minbias_jet_weight(x):
+    """
+    reweights measured jet pt from minbias to mock up triggered spectrum
+    """
+    return 0.72 - 0.16*x + 0.01*(x**2) - 0.00018*(x**3)
 
 def condenseIntoFills(histDir, useLSF=False,fillList=None):
     """uses hadd to make histogram files for each fill instead of each run"""
