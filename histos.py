@@ -1338,7 +1338,7 @@ def minbias_jet_weight(x):
     """
     reweights measured jet pt from minbias to mock up triggered spectrum
     """
-    return 0.72 - 0.16*x + 0.01*(x**2) - 0.00018*(x**3)
+    return 0.7247 - 0.1603*x + 0.01062*(x**2) - 0.0001758*(x**3)
 
 def condenseIntoFills(histDir, useLSF=False,fillList=None):
     """uses hadd to make histogram files for each fill instead of each run"""
