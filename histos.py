@@ -397,7 +397,8 @@ class TrackHistogramCollection(dict):
         'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg', 'vz', 'distortedPt', 
         'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom', 'dphi', 'one', 
         'meanpt', 'meanjetpt', 'z_noshift', 'STDf', 'MAXf', 'MINf', 'ZEROf', 
-        'GS_NLOCf', 'denomf', 'zf'
+        'GS_NLOCf', 'denomf', 'zf', 'STDw', 'MAXw', 'MINw', 'ZEROw', 'GS_NLOCw',
+        'STDwf', 'MAXwf', 'MINwf', 'ZEROwf', 'GS_NLOCwf'
     ]
     
     def __init__(self, name, tfile=None, keys=None):
