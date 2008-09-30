@@ -26,6 +26,9 @@ vzBins      = minimc.MiniMcHistos.vzBins
 zbins       = [0.0, 0.075, 0.125, 0.2, 0.3, 0.45, 0.65, 1.0]
 zar = array('d', zbins)
 
+asymKeys = ['STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'DSSV', 'LSS1', 'LSS2',
+    'LSS3', 'AAC1', 'DNS1', 'DNS2', 'M015', 'M030', 'M045', 'denom']
+
 pidCalibration = {
 6988 : ( 0.066608, 0.889596),
 6990 : ( 0.028513, 0.872612),
@@ -395,11 +398,11 @@ class TrackHistogramCollection(dict):
         'near_lead_pt', 'lead_matched', 'lead_cutfail', 'lead_nomatch', 
         'z_away2', 'z_away3', 'z_away4', 'away2_eta', 'away2_nHitsFit', 
         'away2_dcaG', 'away2_nSigmaPion', 'z_away2_bg', 'vz', 'distortedPt', 
-        'STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'denom', 'dphi', 'one', 
-        'meanpt', 'meanjetpt', 'z_noshift', 'STDf', 'MAXf', 'MINf', 'ZEROf', 
-        'GS_NLOCf', 'denomf', 'zf', 'STDw', 'MAXw', 'MINw', 'ZEROw', 'GS_NLOCw',
-        'STDwf', 'MAXwf', 'MINwf', 'ZEROwf', 'GS_NLOCwf'
+        'dphi', 'one', 'meanpt', 'meanjetpt', 'z_noshift', 'zf', 'z_away2_low',
+        'z_away2_high'
     ]
+    for key in asymKeys:
+        allKeys.extend([key, key+'w', key+'f', key+'l', key+'h'])
     
     def __init__(self, name, tfile=None, keys=None):
         self.away_mult = 0
@@ -447,50 +450,19 @@ class TrackHistogramCollection(dict):
                         'Asymmetry denominator', \
                         ptBins[0], ptBins[1], ptBins[2]))
                 else:
-                    self['STD'] = Histo(ROOT.TH1D('%s_STD' % name, \
-                        'GRSV-STD', len(zbins)-1, zar))
-                    self['STDf'] = Histo(ROOT.TH1D('%s_STDf' % name, \
-                        'GRSV-STD', 20, 0., 1.))
-                    self['STDw'] = Histo(ROOT.TH1D('%s_STDw' % name, \
-                        'GRSV-STD', len(zbins)-1, zar))
-                    self['STDwf'] = Histo(ROOT.TH1D('%s_STDwf' % name, \
-                        'GRSV-STD', 20, 0., 1.))
-                    
-                    self['MAX'] = Histo(ROOT.TH1D('%s_MAX' % name, \
-                        'GRSV-MAX', len(zbins)-1, zar))
-                    self['MAXf'] = Histo(ROOT.TH1D('%s_MAXf' % name, \
-                        'GRSV-MAX', 20, 0., 1.))
-                    self['MAXw'] = Histo(ROOT.TH1D('%s_MAXw' % name, \
-                        'GRSV-MAX', len(zbins)-1, zar))
-                    self['MAXwf'] = Histo(ROOT.TH1D('%s_MAXwf' % name, \
-                        'GRSV-MAX', 20, 0., 1.))
-                    
-                    self['MIN'] = Histo(ROOT.TH1D('%s_MIN' % name, \
-                        'GRSV-MIN', len(zbins)-1, zar))
-                    self['MINf'] = Histo(ROOT.TH1D('%s_MINf' % name, \
-                        'GRSV-MIN', 20, 0., 1.))
-                    self['MINw'] = Histo(ROOT.TH1D('%s_MINw' % name, \
-                        'GRSV-MIN', len(zbins)-1, zar))
-                    self['MINwf'] = Histo(ROOT.TH1D('%s_MINwf' % name, \
-                        'GRSV-MIN', 20, 0., 1.))
-                    
-                    self['ZERO'] = Histo(ROOT.TH1D('%s_ZERO' % name, \
-                        'GRSV-ZERO', len(zbins)-1, zar))
-                    self['ZEROf'] = Histo(ROOT.TH1D('%s_ZEROf' % name, \
-                        'GRSV-ZERO', 20, 0., 1.))
-                    self['ZEROw'] = Histo(ROOT.TH1D('%s_ZEROw' % name, \
-                        'GRSV-ZERO', len(zbins)-1, zar))
-                    self['ZEROwf'] = Histo(ROOT.TH1D('%s_ZEROwf' % name, \
-                        'GRSV-ZERO', 20, 0., 1.))
-                    
-                    self['GS_NLOC'] = Histo(ROOT.TH1D('%s_GS_NLOC' % name, \
-                        'GS Set C', len(zbins)-1, zar))
-                    self['GS_NLOCf'] = Histo(ROOT.TH1D('%s_GS_NLOCf' % name, \
-                        'GS Set C', 20, 0., 1.))
-                    self['GS_NLOCw'] = Histo(ROOT.TH1D('%s_GS_NLOCw' % name, \
-                        'GS Set C', len(zbins)-1, zar))
-                    self['GS_NLOCwf'] = Histo(ROOT.TH1D('%s_GS_NLOCwf' % name, \
-                        'GS Set C', 20, 0., 1.))
+                    for key in ('STD', 'MAX', 'MIN', 'ZERO', 'GS_NLOC', 'DSSV',
+                        'LSS1', 'LSS2', 'LSS3', 'AAC1', 'DNS1', 'DNS2', 'M015',
+                        'M030', 'M045'):
+                        self[key] = Histo(ROOT.TH1D('%s_%s' % (name,key), 
+                            key, len(zbins)-1, zar))
+                        self[key+'f'] = Histo(ROOT.TH1D('%s_%sf' % (name,key), 
+                            key, 20, 0., 1.))
+                        self[key+'w'] = Histo(ROOT.TH1D('%s_%sw' % (name,key), 
+                            key, len(zbins)-1, zar))
+                        self[key+'l'] = Histo(ROOT.TH1D('%s_%sl' % (name,key),
+                            key, len(zbins)-1, zar))
+                        self[key+'h'] = Histo(ROOT.TH1D('%s_%sh' % (name,key),
+                            key, len(zbins)-1, zar))
                     
                     self['denom'] = Histo(ROOT.TH1D('%s_denom' % name, \
                         'Asymmetry denominator', len(zbins)-1, zar))
@@ -498,8 +470,10 @@ class TrackHistogramCollection(dict):
                         'Asymmetry denominator', 20, 0., 1.))
                     self['denomw'] = Histo(ROOT.TH1D('%s_denomw' % name, \
                         'Asymmetry denominator', len(zbins)-1, zar))
-                    self['denomwf'] = Histo(ROOT.TH1D('%s_denomwf' % name, \
-                        'Asymmetry denominator', 20, 0., 1.))
+                    self['denoml'] = Histo(ROOT.TH1D('%s_denoml' % name, \
+                        'Asymmetry denominator', len(zbins)-1, zar))
+                    self['denomh'] = Histo(ROOT.TH1D('%s_denomh' % name, \
+                        'Asymmetry denominator', len(zbins)-1, zar))
             
             self['one'] = Histo(ROOT.TH1D('%s_one' % name, '', 1, -0.5, 0.5))
             
@@ -583,6 +557,11 @@ class TrackHistogramCollection(dict):
                 len(zbins)-1, zar))
             self['z_away2'].SetXTitle('p_{T}(#pi)/p_{T}(trigger jet)')
             
+            self['z_away2_low'] = Histo(ROOT.TH1D('%s_z_away2' % name, '', \
+                len(zbins)-1, zar))
+            self['z_away2_high'] = Histo(ROOT.TH1D('%s_z_away2' % name, '', \
+                len(zbins)-1, zar))
+                
             self['meanpt'] = Histo(ROOT.TProfile('%s_meanpt' % name, '', \
                 len(zbins)-1, zar))
             self['meanjetpt'] = Histo(ROOT.TProfile('%s_meanjetpt' % name, '', \
@@ -1129,6 +1108,8 @@ class HistogramManager(dict):
                     if abs(dphi) > 2.0:
                         z_noshift = track.Pt()/jet.Pt()
                         z = track.Pt()/shifted(jet.Pt())
+                        z_low = track.Pt()/shifted(jet.Pt(), 'low')
+                        z_high = track.Pt()/shifted(jet.Pt(), 'high')
                         if tcuts.dca and tcuts.fit and tcuts.pid:
                             c['away2_eta'].Fill(track.eta())
                         if tcuts.eta and tcuts.fit and tcuts.pid:
@@ -1143,29 +1124,38 @@ class HistogramManager(dict):
                         if tcuts.all:
                             c['z_noshift'].Fill(z_noshift)
                             c['z_away2'].Fill(z)
+                            c['z_away2_low'].Fill(z_low)
+                            c['z_away2_high'].Fill(z_high)
                             c['meanpt'].Fill(z, track.Pt())
                             c['meanjetpt'].Fill(z, jet.Pt())
                             if ev.runId() > 7000000:
                                 c['one'].Fill(0)
                             
                             if trig == '117001':
-                                w = minbias_jet_weight(jet.Pt())
+                                low = shifted(jet.Pt(), 'low')
+                                mid = shifted(jet.Pt())
+                                high = shifted(jet.Pt(), 'high')
+                                l = minbias_jet_weight_true(low)
+                                w = minbias_jet_weight_true(mid)
+                                h = minbias_jet_weight_true(high)
                             else:
-                                w = 1.0
+                                l = w = h = 1.0
                             
                             var = year==2006 and z or track.Pt()
                             if not simu: continue
-                            for a in ('STD','MIN','MAX','ZERO','GS_NLOC'):
+                            for a in asymKeys[:-1]:
                                 num = mcasym.num(a, ev)
                                 c[a].Fill(var, num)
-                                c[a+'f'].Fill(var, num)
+                                c[a+'f'].Fill(var, num*w)
                                 c[a+'w'].Fill(var, num*w)
-                                c[a+'wf'].Fill(var, num*w)
+                                c[a+'l'].Fill(var, num*l)
+                                c[a+'h'].Fill(var, num*h)
                             denom = mcasym.denom('NLO', ev)
                             c['denom'].Fill(var, denom)
-                            c['denomf'].Fill(var, denom)
+                            c['denomf'].Fill(var, denom*w)
                             c['denomw'].Fill(var, denom*w)
-                            c['denomwf'].Fill(var, denom*w)
+                            c['denoml'].Fill(var, denom*l)
+                            c['denomh'].Fill(var, denom*h)
                         # break
             
             for jet in inclusiveJets:
@@ -1325,12 +1315,16 @@ def distortedPt(track):
         return (pT + A*pT*pT)
 
 
-def shifted(jetpt):
+def shifted(jetpt, opt=None):
     """applies pT shift to correct measured jet pT back to particle level"""
     if year == 2006:
-        ## /STAR/node/12022 for details
-        shift = (-1.538 + 0.1561*jetpt + 0.001691*jetpt*jetpt)
-        return (jetpt - shift)
+        if opt == 'low':
+            return 1.201072 + 0.804055*jetpt - 0.001738157*jetpt*jetpt
+        elif opt == 'high':
+            return 1.874928 + 0.8837450*jetpt - 0.001643843*jetpt*jetpt
+        else:
+            ## /STAR/node/12022 for details
+            return 1.538 + 0.8439*jetpt - 0.001691*jetpt*jetpt
     else:
         return jetpt
 
@@ -1339,6 +1333,12 @@ def minbias_jet_weight(x):
     reweights measured jet pt from minbias to mock up triggered spectrum
     """
     return 0.7247 - 0.1603*x + 0.01062*(x**2) - 0.0001758*(x**3)
+
+def minbias_jet_weight_true(x):
+    """
+    reweights corrected jet pt from minbias to mock up triggered spectrum
+    """
+    return 1.149 - 0.2655*x + 0.01857*(x**2) - 0.0003445*(x**3)
 
 def condenseIntoFills(histDir, useLSF=False,fillList=None):
     """uses hadd to make histogram files for each fill instead of each run"""
