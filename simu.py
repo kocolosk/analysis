@@ -108,7 +108,9 @@ def mcasym(outName, inputFileNames, triggers=('jetpatch','117001'), keys=None):
     """
     outFile = ROOT.TFile(outName, 'recreate')
     inputFiles = [ROOT.TFile(n) for n in inputFileNames]
-    keys = keys or ['STD','MAX','MIN','ZERO','GS_NLOC']
+    oldkeys = keys or ['STD','MAX','MIN','ZERO','GS_NLOC']
+    keys = []
+    [keys.extend([key, key+'w']) for key in oldkeys]
     for sub in ('anyspin', 'gg', 'qg', 'qq'):
         for trigger in triggers:
             for key in keys:
@@ -118,7 +120,8 @@ def mcasym(outName, inputFileNames, triggers=('jetpatch','117001'), keys=None):
                     'xsec': xsec[samples[os.path.basename(f.GetName())[:7]]],
                     'nevents': f.Get('eventCounter').GetEntries(),
                     'num': f.Get('_%s_%s_minus_%s' % (trigger, sub, key)),
-                    'denom': f.Get('_%s_%s_minus_denom' % (trigger, sub)),
+                    'denom': f.Get('_%s_%s_minus_denom%s' % (trigger, sub,
+                        key.endswith('w') and 'w' or '')),
                     # 'nparticles': f.Get('_%s_%s_minus_pt' % (trigger, sub))
                     'nparticles': f.Get('_%s_%s_minus_z_away2' % (trigger, sub))
                 }, inputFiles)
@@ -128,14 +131,15 @@ def mcasym(outName, inputFileNames, triggers=('jetpatch','117001'), keys=None):
                     'xsec': xsec[samples[os.path.basename(f.GetName())[:7]]],
                     'nevents': f.Get('eventCounter').GetEntries(),
                     'num': f.Get('_%s_%s_plus_%s' % (trigger, sub, key)),
-                    'denom': f.Get('_%s_%s_plus_denom' % (trigger, sub)),
+                    'denom': f.Get('_%s_%s_plus_denom%s' % (trigger, sub,
+                        key.endswith('w') and 'w' or '')),
                     # 'nparticles': f.Get('_%s_%s_plus_pt' % (trigger, sub))
                     'nparticles': f.Get('_%s_%s_plus_z_away2' % (trigger, sub))
                 }, inputFiles)
                 outFile.cd()
                 _mcasym_merge(minus_inputs).Write()
                 _mcasym_merge(plus_inputs).Write()
-        outFile.Close()
+    outFile.Close()
         
 def _mcasym_merge(inputs):
     out = inputs[0]['num'].Clone()
@@ -143,7 +147,7 @@ def _mcasym_merge(inputs):
     
     ## don't include a bin from an individual sample in content or error
     ## if it has fewer than this # of particles
-    minParticlesToAccept = 1
+    minParticlesToAccept = 10
     
     ## first do the bin contents
     bottom = []
