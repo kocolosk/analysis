@@ -9,7 +9,7 @@ from glob import glob
 import ROOT
 
 from .asym import AsymmetryGenerator, ScalarCounts, Polarizations
-from .histos import HistogramManager
+from .histos import HistogramManager, shifted
 from .plots import pid_calibration
 from .runlists import long2_run6 as runlist
 from .runlists import transverse_run6 as transverse_runlist
@@ -18,11 +18,11 @@ from . import graphics
 
 histDir         = '/Users/kocolosk/data/run6/spin2008/hist'
 transHistDir    = '/Users/kocolosk/data/run6/spin2008/hist-transverse'
-mcasymFile      = '/Users/kocolosk/data/run6/spin2008/mcasym.cphist.root'
+mcasymFile      = '/Users/kocolosk/data/run6/spin2008/mcasym_10.cphist.root'
 datamcFile      = '/Users/kocolosk/data/run6/spin2008/merged.cphist.root'
 
 zbins = [
-    0.075, 0.125, ## these two are biased b/c of the track pT cut
+    # 0.075, 0.125, ## these two are biased b/c of the track pT cut
     0.2, 0.3, 0.45, 0.65, 1.0
 ]
 
@@ -74,8 +74,9 @@ def result():
     c = graphics.canvas2()
     c.SetLogy(0)
     
-    line = ROOT.TLine(0.075, 0.0, 1.0, 0.0)
+    line = ROOT.TLine(zbins[0], 0.0, zbins[-1], 0.0)
     line.SetLineStyle(2)
+    line.SetLineColor(10)
     
     prelim = ROOT.TText()
     prelim.SetTextColor(44)
@@ -85,34 +86,50 @@ def result():
     latex.SetTextSize(0.25)
     # latex.SetTextAlign(21)
     
-    c.cd(1)
+    syst = systematic_uncertainties()
+    syst_m = ROOT.TGraphErrors(len(zbins))
+    syst_p = ROOT.TGraphErrors(len(zbins))
+    
+    for g in (syst_m,syst_p):
+        g.SetMarkerColor(16)
+        g.SetFillColor(16)
+        g.SetPoint(len(zbins), 1.0, 0)
+        g.SetPointError(len(zbins), 0., 0.)
+        g.GetXaxis().SetRangeUser(zbins[0], zbins[-1])
+    
     hm = asym_m.GetAsymmetry('ll')
-    hm.SetMarkerStyle(20)
-    hm.SetTitle('')
-    hm.Draw('e1')
+    hp = asym_p.GetAsymmetry('ll')
+    
+    for i in range(len(zbins)-1):
+        z = (zbins[i] + zbins[i+1])/2
+        syst_m.SetPoint(i, z, hm.GetBinContent(i+1))
+        syst_m.SetPointError(i, 0.01, syst['minus'][i])
+        syst_p.SetPoint(i, z, hp.GetBinContent(i+1))
+        syst_p.SetPointError(i, 0.01, syst['plus'][i])
+        
+    c.cd(1)
+    syst_m.Draw('a2p')
     line.Draw()
+    hm.SetMarkerStyle(20)
+    hm.Draw('e1 same')
     prelim.DrawText(0.5,0.065,"2006 STAR Preliminary")
-    latex.DrawLatex(0.15, -0.085, '#pi^{-}')
+    latex.DrawLatex(0.07 + zbins[0], -0.085, '#pi^{-}')
     
     c.cd(2)
-    hp = asym_p.GetAsymmetry('ll')
-    hp.SetTitle('')
-    hp.SetMarkerStyle(21)
-    hp.Draw('e1')
+    syst_p.Draw('a2p')
     line.Draw()
+    hp.SetMarkerStyle(21)
+    hp.Draw('e1 same')
     prelim.DrawText(0.5,0.065,"2006 STAR Preliminary")
-    latex.DrawLatex(0.15, -0.085, '#pi^{+}')
+    latex.DrawLatex(0.07 + zbins[0], -0.085, '#pi^{+}')
     
-    for h in (hm,hp):
-        h.GetXaxis().SetTitle('p_{T}(#pi)/p_{T}(jet)')
+    for h in (hm,hp, syst_m, syst_p):
+        h.SetTitle('')
+        h.GetXaxis().SetTitle('z = p_{T}(#pi)/p_{T}(jet)')
         h.GetYaxis().SetRangeUser(-0.1, 0.1)
     
-    latex = ROOT.TLatex()
-    latex.DrawLatex(0.03,0.125,
-    " #vec{p} + #vec{p} #rightarrow jet + #pi + X at #sqrt{s}=200 GeV \
-             -1< #eta^{#pi}< 1 ")
-    
     raw_input('wait here:')
+    c.Print('preliminary_result.png')
     
     print '\nπ- A_{LL}'
     for bin in range(1, hm.GetNbinsX()+1):
@@ -123,6 +140,45 @@ def result():
     for bin in range(1, hp.GetNbinsX()+1):
         print '[%.2f-%.2f]  % .3f ± %.3f' % (hp.GetBinLowEdge(bin), 
             hp.GetBinLowEdge(bin+1), hp.GetBinContent(bin), hp.GetBinError(bin))
+    
+    color = {
+        'STD': ROOT.kBlack,
+        'ZERO': ROOT.kBlue,
+        'GS_NLOC': ROOT.kMagenta,
+        'MIN': ROOT.kGreen
+    }
+    title = {
+        'STD': 'GRSV-STD',
+        'MIN': 'GRSV-MIN',
+        'ZERO': 'GRSV-ZERO',
+        'GS_NLOC': 'GS Set C'
+    }
+    mcasym_tfile = ROOT.TFile(mcasymFile)
+    keys = ['STD','ZERO','GS_NLOC']
+    wkeys = [key+'w' for key in keys]
+    mgr2 = HistogramManager(mcasym_tfile, keys=wkeys)
+    leg = ROOT.TLegend(0.6, 0.15, 0.87, 0.35)
+    leg.SetBorderSize(1)
+    for key in keys:
+        m = mgr2['anyspin']['117001'].tracks_minus[key+'w']
+        p = mgr2['anyspin']['117001'].tracks_plus[key+'w']
+        for h in (m,p):
+            h.Smooth(2)
+            h.SetLineColor(color[key])
+            h.SetFillColor(color[key])
+            h.SetLineWidth(2)
+        leg.AddEntry(m, title[key])
+        c.cd(1)
+        m.Draw('e3 same')
+        hm.Draw('e1 same')
+        c.cd(2)
+        p.Draw('e3 same')
+        hp.Draw('e1 same')
+    c.cd(1)
+    leg.Draw()
+    raw_input('now wait here:')
+    
+    c.Print('preliminary_result_models.png')
 
 
 def systematic_uncertainties():
@@ -170,11 +226,6 @@ def systematic_uncertainties():
         val, err = pid_asym_p[i]
         pid_asym_p[i] = max( val-result_p[i], err)
     
-    for val in pid_asym_m:
-        print val 
-    for val in pid_asym_p:
-        print val
-    
     beam_vector = 0.0102
     asigma_m = [
         0.035,      # [0.07-0.12]   0.005 ± 0.035
@@ -193,21 +244,57 @@ def systematic_uncertainties():
         0.061       # [0.65-1.00]   0.033 ± 0.061
     ]
     
+    mcasym_m = [
+        0.0066,     # [0.07-0.12]   0.0012 ± 0.0066
+        0.0057,     # [0.12-0.20]   0.0057 ± 0.0025
+        0.0089,     # [0.20-0.30]   0.0089 ± 0.0020
+        0.0077,     # [0.30-0.45]   0.0077 ± 0.0026
+        0.0042,     # [0.45-0.65]   0.0038 ± 0.0042
+        0.0070      # [0.65-1.00]   0.0053 ± 0.0070
+    ]
+    mcasym_p = [
+        0.0047,     # [0.07-0.12]  -0.0014 ± 0.0047
+        0.0077,     # [0.12-0.20]   0.0077 ± 0.0024
+        0.0147,     # [0.20-0.30]   0.0147 ± 0.0023
+        0.0105,     # [0.30-0.45]   0.0105 ± 0.0024
+        0.0057,     # [0.45-0.65]   0.0057 ± 0.0044
+        0.0112      # [0.65-1.00]   0.0112 ± 0.0081
+    ]
+    
+    pt_shift_m = [ 0, 0,
+        0.003, # [0.20-0.30]   0.006 low, 0.001 high, 0.003 avg
+        0.005, # [0.30-0.45]   0.007 low, 0.003 high, 0.005 avg
+        0.016, # [0.45-0.65]   0.020 low, 0.012 high, 0.016 avg
+        0.010  # [0.65-1.00]   0.011 low, 0.008 high, 0.010 avg
+    ]
+    
+    pt_shift_p = [ 0, 0,
+        0.004, # [0.20-0.30]   0.005 low, 0.003 high, 0.004 avg
+        0.007, # [0.30-0.45]   0.008 low, 0.006 high, 0.007 avg
+        0.016, # [0.45-0.65]   0.023 low, 0.008 high, 0.016 avg
+        0.016  # [0.65-1.00]   0.012 low, 0.020 high, 0.016 avg
+    ]
+    
     relative_luminosity = 9.4e-4
     
     minus = [0.0 for bin in zbins[:-1]]
     plus = [0.0 for bin in zbins[:-1]]
     
-    for i in range(len(zbins)-1):
-        minus[i] = math.sqrt(
+    start = len(zbins) == 5 and 2 or 0
+    for i in range(start, start+len(zbins)-1):
+        minus[i-start] = math.sqrt(
             pow(relative_luminosity, 2) + 
             pow(pid_contamination*pid_asym_m[i], 2) +
-            pow(beam_vector*asigma_m[i], 2)
+            pow(beam_vector*asigma_m[i], 2) +
+            pow(mcasym_m[i], 2) + 
+            pow(pt_shift_m[i], 2)
         )
-        plus[i] = math.sqrt(
+        plus[i-start] = math.sqrt(
             pow(relative_luminosity, 2) +
             pow(pid_contamination*pid_asym_p[i], 2) + 
-            pow(beam_vector*asigma_p[i], 2)
+            pow(beam_vector*asigma_p[i], 2) + 
+            pow(mcasym_p[i], 2) + 
+            pow(pt_shift_p[i], 2)
         )
     
     return {'minus':minus, 'plus':plus}
@@ -435,12 +522,12 @@ def pid_background_fraction():
     c = graphics.canvas2()
     
     c.cd(1)
-    nsig_p.Draw()
-    [fit.Draw('same') for fit in pfits[1:]]
-    
-    c.cd(2)
     nsig_m.Draw()
     [fit.Draw('same') for fit in mfits[1:]]
+    
+    c.cd(2)
+    nsig_p.Draw()
+    [fit.Draw('same') for fit in pfits[1:]]
     
     raw_input('wait here:')
     c.Print('pid_background_fraction.png')
@@ -521,16 +608,21 @@ def asigma():
             hp.GetBinLowEdge(bin+1), hp.GetBinContent(bin), hp.GetBinError(bin))
 
 
-def trigger_bias():
+def mcasym(spin = 'anyspin'):
     """
     comparison of MC asymmetries for minbias and 137222
     """
-    f = ROOT.TFile(mcasymFile)
-    # keys = ['STD','MAX','MIN','ZERO','GS_NLOC']
-    keys = ['STD']
-    mgr = HistogramManager(f, keys=keys + ['denom'])
+    if spin == 'anyspin':
+        stitle = ''
+    else:
+        stitle = '_%(spin)s' % locals()
     
-    line = ROOT.TLine(0.1, 0.0, 0.9, 0.0)
+    f = ROOT.TFile(mcasymFile)
+    keys = ['STD', 'MIN','ZERO','GS_NLOC']
+    wkeys = [key+'w' for key in keys]
+    mgr = HistogramManager(f, keys=keys+wkeys)
+    
+    line = ROOT.TLine(zbins[0], 0.0, zbins[-1], 0.0)
     line.SetLineStyle(2)
     ROOT.gStyle.SetErrorX()
     
@@ -542,77 +634,143 @@ def trigger_bias():
         'GS_NLOC': ROOT.kMagenta
     }
     
-    smooth_factor = 2
+    smooth_factor = 1
     
     cmb = graphics.canvas2()
+    cmbw = graphics.canvas2()
     cjp = graphics.canvas2()
+    alldiffs = graphics.canvas2('Asymmetry Differences')
+    alldiffsw = graphics.canvas2('Reweighted Asymmetry Differences')
     keepme = []
     diffs = {}
     for i,key in enumerate(keys):
-        mb_m = mgr.anyspin['117001'].tracks_minus[key].Clone()
-        mb_p = mgr.anyspin['117001'].tracks_plus[key].Clone()
-        jp_m = mgr.anyspin['jetpatch'].tracks_minus[key].Clone()
-        jp_p = mgr.anyspin['jetpatch'].tracks_plus[key].Clone()
+        mb_m = mgr[spin]['117001'].tracks_minus[key].Clone()
+        mb_p = mgr[spin]['117001'].tracks_plus[key].Clone()
+        jp_m = mgr[spin]['jetpatch'].tracks_minus[key].Clone()
+        jp_p = mgr[spin]['jetpatch'].tracks_plus[key].Clone()
+        mb_mw = mgr[spin]['117001'].tracks_minus[key+'w'].Clone()
+        mb_pw = mgr[spin]['117001'].tracks_plus[key+'w'].Clone()
         
         opt = i>0 and 'e2 same' or 'e2'
         
-        for h in (mb_m, mb_p, jp_m, jp_p):
+        for h in (mb_m, mb_p, jp_m, jp_p, mb_mw, mb_pw):
             h.Smooth(smooth_factor)
             h.GetXaxis().SetTitle('p_{T}(#pi)/p_{T}(jet)')
-            h.GetXaxis().SetRangeUser(0.1, 0.9)
+            h.GetXaxis().SetRangeUser(zbins[0], zbins[-1])
             h.GetYaxis().SetRangeUser(-0.08,0.08)
             h.SetLineColor(color[key])
             h.SetFillColor(color[key])
-          
-        for h in (mb_m, mb_p):
-            h.SetLineColor(ROOT.kRed)
-            h.SetFillColor(ROOT.kRed)
         
         cmb.cd(1)
         line.Draw()
-        mb_m.SetTitle('MB MC Asymmetries for #pi^{-}')
+        mb_m.SetTitle('MB MC Asymmetries for #pi^{-} %(stitle)s' % locals())
         mb_m.Draw(opt)
         
         cmb.cd(2)
         line.Draw()
-        mb_p.SetTitle('MB MC Asymmetries for #pi^{+}')
+        mb_p.SetTitle('MB MC Asymmetries for #pi^{+} %(stitle)s' % locals())
         mb_p.Draw(opt)
+        
+        cmbw.cd(1)
+        line.Draw()
+        mb_mw.SetTitle('Reweighted MB MC Asymmetries for #pi^{-} %(stitle)s' \
+            % locals())
+        mb_mw.Draw(opt)
+        
+        cmbw.cd(2)
+        line.Draw()
+        mb_pw.SetTitle('Reweighted MB MC Asymmetries for #pi^{+} %(stitle)s' \
+            % locals())
+        mb_pw.Draw(opt)
         
         cjp.cd(1)
         line.Draw()
-        jp_m.SetTitle('JP1 MC Asymmetries for #pi^{-}')
+        jp_m.SetTitle('JP1 MC Asymmetries for #pi^{-} %(stitle)s' % locals())
         jp_m.Draw(opt)
         
         cjp.cd(2)
         line.Draw()
-        jp_p.SetTitle('JP1 MC Asymmetries for #pi^{+}')
+        jp_p.SetTitle('JP1 MC Asymmetries for #pi^{+} %(stitle)s' % locals())
         jp_p.Draw(opt)
         
         diff_m = jp_m.Clone()
         diff_m.Add(mb_m, -1)
         
+        diff_mw = jp_m.Clone()
+        diff_mw.Add(mb_mw, -1)
+        
         diff_p = jp_p.Clone()
         diff_p.Add(mb_p, -1)
         
+        diff_pw = jp_p.Clone()
+        diff_pw.Add(mb_pw, -1)
+        
         for h in (diff_m, diff_p):
             h.GetYaxis().SetRangeUser(-0.03, 0.03)
+            h.GetXaxis().SetRangeUser(zbins[0], zbins[-1])
             h.SetMarkerStyle(20)
+        
+        
+        for h in (diff_mw, diff_pw):
+            h.GetYaxis().SetRangeUser(-0.03, 0.03)
+            h.GetXaxis().SetRangeUser(zbins[0], zbins[-1])
+            h.SetMarkerStyle(24)
+            
         
         cdiff = graphics.canvas2(key)
         
+        leg = ROOT.TLegend(0.15, 0.15, 0.6, 0.35)
+        leg.SetHeader('Compare triggered asym to:')
+        leg.AddEntry(diff_m, 'MB', 'p')
+        leg.AddEntry(diff_mw, 'p_{T} reweighted MB', 'p')
+        
         cdiff.cd(1)
-        line.Draw()
-        diff_m.SetTitle('#pi^{-} JP1 - MC for %(key)s' % locals())
+        if spin == 'anyspin':
+            mtitle = '#pi^{-} JP1 - MB for %(key)s' % locals()
+            ptitle = '#pi^{+} JP1 - MB for %(key)s' % locals()            
+        else:
+            mtitle = '#pi^{-} JP1 - MB for %(key)s -- %(spin)s processes only' \
+                % locals()
+            ptitle = '#pi^{+} JP1 - MB for %(key)s -- %(spin)s processes only' \
+                % locals()
+        
+        diff_m.SetTitle(mtitle)
+        diff_mw.SetTitle(mtitle)
         diff_m.Draw('e1')
+        diff_mw.Draw('e1 same')
+        line.Draw()
+        leg.Draw()
         
         cdiff.cd(2)
-        line.Draw()
-        diff_p.SetTitle('#pi^{+} JP1 - MC for %(key)s' % locals())
+        diff_p.SetTitle(ptitle)
+        diff_pw.SetTitle(ptitle)
         diff_p.Draw('e1')
+        diff_pw.Draw('e1 same')
+        line.Draw()
         
-        diffs[key] = (diff_m, diff_p)
+        cdiff.Print('mcasym_%(key)s_diffs%(stitle)s.png' % locals())
         
-        keepme.extend([jp_m, jp_p])
+        opt2 = i>0 and 'e1 same' or 'e1'
+        
+        alldiffs.cd(1)
+        line.Draw()
+        diff_m.Draw(opt2)
+        
+        alldiffs.cd(2)
+        line.Draw()
+        diff_p.Draw(opt2)
+        
+        alldiffsw.cd(1)
+        line.Draw()
+        diff_mw.Draw(opt2)
+        
+        alldiffsw.cd(2)
+        line.Draw()
+        diff_pw.Draw(opt2)
+        
+        diffs[key] = (diff_mw, diff_pw)
+        
+        keepme.extend([jp_m, jp_p, cdiff, leg])
     
     # now report the asymmetry difference for each scenario
     for key in keys:
@@ -630,6 +788,12 @@ def trigger_bias():
                 diff_p.GetBinContent(bin), diff_p.GetBinError(bin) )
     
     raw_input('wait here:')
+    
+    cmb.Print('mcasym_minbias%(stitle)s.png' % locals())
+    cmbw.Print('mcasym_minbias_reweight%(stitle)s.png' % locals())
+    cjp.Print('mcasym_jetpatch%(stitle)s.png' % locals())
+    alldiffs.Print('mcasym_diff%(stitle)s.png' % locals())
+    alldiffsw.Print('mcasym_diff_reweight%(stitle)s.png' % locals())
 
 
 def subprocess_shift():
@@ -683,12 +847,11 @@ def subprocess_shift():
     
 
 
-def subprocess_fraction_z():
+def subprocess_fraction_z(charge = 1):
     import histos
     histos.simu = True
     ROOT.gStyle.SetErrorX()
     f = ROOT.TFile(datamcFile)
-    charge = -1
     mgr = HistogramManager(f, ['z_away2'])
     mb = {
         'all': mgr.anyspin['117001'].trackHistograms(charge)['z_away2'],
@@ -702,8 +865,6 @@ def subprocess_fraction_z():
         'qg': mgr.qg['jetpatch'].trackHistograms(charge)['z_away2'],
         'qq': mgr.qq['jetpatch'].trackHistograms(charge)['z_away2']
     }
-    print mb
-    print jp
     
     for key in ('gg','qg','qq'):
         mb[key].Divide(mb['all'])
@@ -713,25 +874,66 @@ def subprocess_fraction_z():
         h['gg'].SetLineColor(ROOT.kRed)
         h['qg'].SetLineColor(ROOT.kBlue)
         h['qq'].SetLineColor(ROOT.kGreen)
+        [h[k].SetMarkerStyle(24) for k in ('gg','qg','qq')]
+    
+    leg = ROOT.TLegend(0.65, 0.7, 0.85, 0.88)
+    leg.AddEntry(mb['gg'], 'gg')
+    leg.AddEntry(mb['qg'], 'qg')
+    leg.AddEntry(mb['qq'], 'qq')
     
     c = graphics.canvas2()
     c.cd(1)
-    mb['gg'].Draw()
-    mb['gg'].SetTitle('MB')
+    mb['gg'].Draw('e1')
+    mb['gg'].SetTitle('MB for charge=%d' % charge)
     mb['gg'].GetYaxis().SetRangeUser(0., 0.8)
-    mb['gg'].GetXaxis().SetRangeUser(0, 30)
-    mb['qg'].Draw('same')
-    mb['qq'].Draw('same')
+    mb['gg'].GetXaxis().SetRangeUser(zbins[0], zbins[-1])
+    mb['qg'].Draw('e1 same')
+    mb['qq'].Draw('e1 same')
+    leg.Draw()
     
     c.cd(2)
-    jp['gg'].Draw()
-    jp['gg'].SetTitle('JP')
+    jp['gg'].Draw('e1')
+    jp['gg'].SetTitle('JP for charge=%d' % charge)
     jp['gg'].GetYaxis().SetRangeUser(0., 0.8)
-    jp['gg'].GetXaxis().SetRangeUser(0, 30)
-    jp['qg'].Draw('same')
-    jp['qq'].Draw('same')
+    jp['gg'].GetXaxis().SetRangeUser(zbins[0], zbins[-1])
+    jp['qg'].Draw('e1 same')
+    jp['qq'].Draw('e1 same')
+    
+    c2 = graphics.canvas1()
+    delta = {
+        'gg': jp['gg'].Clone(),
+        'qg': jp['qg'].Clone(),
+        'qq': jp['qq'].Clone()
+    }
+    for k in delta.keys():
+        delta[k].Add(mb[k], -1)
+        delta[k].SetMarkerStyle(24)
+    
+    delta['gg'].SetTitle('Subprocess fraction difference (JP - MB) : charge=%d'\
+        % charge)
+    delta['gg'].GetYaxis().SetRangeUser(-0.4, 0.4)
+    delta['gg'].Draw('e1')
+    delta['qg'].Draw('e1 same')
+    delta['qq'].Draw('e1 same')
+    
+    leg2 = ROOT.TLegend(0.15, 0.7, 0.25, 0.88)
+    leg2.AddEntry(mb['gg'], 'gg')
+    leg2.AddEntry(mb['qg'], 'qg')
+    leg2.AddEntry(mb['qq'], 'qq')
+    leg2.Draw()
+    
+    line = ROOT.TLine(zbins[0], 0.0, zbins[-1], 0.0)
+    line.SetLineStyle(2)
+    line.Draw()
     
     raw_input('wait here:')
+    
+    if charge == 1:
+        c.Print('subprocess_fraction_trigger_plus.png')
+        c2.Print('subprocess_fraction_difference_plus.png')
+    else:
+        c.Print('subprocess_fraction_trigger_minus.png')
+        c2.Print('subprocess_fraction_difference_minus.png')
 
 
 def ffcomp():
@@ -836,8 +1038,8 @@ def meanpt():
     mbjetsim_p = mgr.anyspin['117001'].tracks_plus['meanjetpt']
     mbjetsim_m = mgr.anyspin['117001'].tracks_minus['meanjetpt']
     
-    meanjetpt_m.SetTitle('JP data, #pi -')
-    meanjetpt_p.SetTitle('JP data, #pi +')
+    meanjetpt_m.SetTitle('JP Data / Monte Carlo comparison, #pi -')
+    meanjetpt_p.SetTitle('JP Data / Monte Carlo comparison, #pi +')
     
     meanjetsim_m.SetTitle('Monte Carlo #pi -')
     meanjetsim_p.SetTitle('Monte Carlo #pi +')
@@ -865,28 +1067,44 @@ def meanpt():
     c = graphics.canvas2('Data / Monte Carlo comparison for JP')
     c.cd(1)
     meanjetpt_m.Draw()
+    meanjetpt_m.GetXaxis().SetRangeUser(zbins[0], zbins[-1])
+    meanjetpt_m.GetYaxis().SetRangeUser(0, 25)
     meanjetsim_m.Draw('][ hist same')
     meanpt_m.Draw('same')
     meansim_m.Draw('][ hist same')
     
     c.cd(2)
     meanjetpt_p.Draw()
+    meanjetpt_p.GetXaxis().SetRangeUser(zbins[0], zbins[-1])
+    meanjetpt_p.GetYaxis().SetRangeUser(0, 25)
     meanjetsim_p.Draw('][ hist same')
     meanpt_p.Draw('same')
     meansim_p.Draw('][ hist same')
     leg.Draw()
     
+    raw_input('wait here:')
+    c.Print('jp-means.png')
+    
     ## now compare JP and MB simulations
     c2 = graphics.canvas2('Comparison of MB and JP simulations')
     
+    for h in (meanjetsim_m, meanjetsim_p, meansim_m, meansim_p):
+        h.SetMarkerColor(ROOT.kBlue)
+    for h in (mbjetsim_m, mbjetsim_p, mbsim_m, mbsim_p):
+        h.SetMarkerColor(ROOT.kGreen)
+    
     c2.cd(1)
     meanjetsim_m.Draw('hist p')
+    meanjetsim_m.GetXaxis().SetRangeUser(zbins[0], zbins[-1])
+    meanjetsim_m.GetYaxis().SetRangeUser(0, 25)
     mbjetsim_m.Draw('hist p same')
     mbsim_m.Draw('hist p same')
     meansim_m.Draw('hist p same')
     
     c2.cd(2)
     meanjetsim_p.Draw('hist p')
+    meanjetsim_p.GetXaxis().SetRangeUser(zbins[0], zbins[-1])
+    meanjetsim_p.GetYaxis().SetRangeUser(0, 25)
     mbjetsim_p.Draw('hist p same')
     mbsim_p.Draw('hist p same')
     meansim_p.Draw('hist p same')
@@ -900,4 +1118,217 @@ def meanpt():
     
     c.Print('jp-means.png')
     c2.Print('simu-means.png')
+
+
+def minbias_pt_reweight():
+    """plots ratio of JP and MB jet spectrum and fits it"""
+    f = ROOT.TFile(datamcFile)
+    mgr = HistogramManager(f, keys=['true_jet_pt'])
+    mb = mgr.anyspin['117001']['true_jet_pt']
+    jp = mgr.anyspin['jetpatch']['true_jet_pt']
+    jp.Divide(mb)
+    
+    jp.SetStats(True)
+    jp.GetXaxis().SetRangeUser(5,30)
+    jp.GetYaxis().SetRangeUser(0.,1.)
+    jp.SetXTitle('corrected jet pT')
+    jp.SetYTitle('nJets (JP) / nJets (MB)')
+    
+    fit = ROOT.TF1('fit', 'pol1', 9.8, 25.3)
+    
+    # sigmoid = ROOT.TF1('sigmoid', '[0]*log([1]*x+[2])', 9.8 , 25.3)
+    # sigmoid.SetParameter(0, 1.)
+    # sigmoid.SetParameter(1, 0.08)
+    # sigmoid.SetParameter(2, 0.)
+    c1 = graphics.canvas1()
+    jp.Fit(fit, 'r')
+    ROOT.gStyle.SetOptFit(111)
+    raw_input('wait here:')
+    c1.Print('minbias_pt_reweight.png')
+    
+    jp.GetYaxis().SetRangeUser(1.E-5,1.)
+    ROOT.gPad.SetLogy()
+    raw_input('wait here:')
+    c1.Print('minbias_pt_reweight_log.png')
+
+
+def pt_shift_uncertainty():
+    ## this is my guess based on inverting Dave's fit
+    measured_pt = [10.31, 12.91, 15.58, 19.06, 23.20, 28.45]
+    
+    ## http://cyclotron.tamu.edu/star/2005n06Jets/PRDweb/
+    ## "numbers are from the preliminary analysis"
+    total_uncertainty = [ 0.72, 0.90, 0.99, 1.09, 1.27, 1.52 ]
+    
+    c = graphics.canvas1()
+    
+    low = ROOT.TGraph(len(measured_pt))
+    for i,(pt,error) in enumerate(zip(measured_pt, total_uncertainty)):
+        low.SetPoint(i, pt, shifted(pt)-error)
+    lowfit = ROOT.TF1('lowfit', 'pol2', 10, 30)
+    lowfit.SetLineStyle(2)
+    low.Fit(lowfit)
+    low.GetXaxis().SetTitle('measured jet p_{T}')
+    low.GetXaxis().SetRangeUser(10,30)
+    low.GetYaxis().SetTitle('corrected jet p_{T}')
+    low.GetYaxis().SetRangeUser(9,26)
+    low.SetTitle('Uncertainty on p_{T} shift')
+    low.SetLineStyle(2)
+    low.Draw('ap2')
+    
+    high = ROOT.TGraph(len(measured_pt))
+    for i,(pt,error) in enumerate(zip(measured_pt, total_uncertainty)):
+        high.SetPoint(i, pt, shifted(pt)+error)
+    highfit = ROOT.TF1('lowfit', 'pol2', measured_pt[0], measured_pt[-1])
+    highfit.SetLineStyle(2)
+    high.Fit(highfit)
+    high.SetLineStyle(2)
+    high.Draw('same')
+    
+    mid = ROOT.TF1('mid', lambda x: shifted(x[0]), 10.31, 28.45)
+    mid.Draw('same')
+    
+    raw_input('wait here:')
+
+def pt_shift_uncertainty_asymmetry():
+    """
+    calculate A_{LL} for particles in the p/K sideband of the dE/dx window
+    """
+    asym_pl = AsymmetryGenerator('asym_pl', bins=zbins, key='z_away2_low')
+    asym_pm = AsymmetryGenerator('asym_pm', bins=zbins, key='z_away2')
+    asym_ph = AsymmetryGenerator('asym_ph', bins=zbins, key='z_away2_high')
+    asym_ml = AsymmetryGenerator('asym_ml', bins=zbins, key='z_away2_low')
+    asym_mm = AsymmetryGenerator('asym_mm', bins=zbins, key='z_away2')
+    asym_mh = AsymmetryGenerator('asym_mh', bins=zbins, key='z_away2_high')
+    
+    scalars = ScalarCounts(os.environ['STAR'] + 
+        '/StRoot/StSpinPool/StTamuRelLum/inputs/run6.txt')
+    
+    polarizations = Polarizations.Final
+    
+    ## generate the asymmetries
+    allFiles = glob(histDir + '/chargedPions_*.hist.root')
+    for fname in allFiles[:]:
+        run = getRun(fname)
+        if run in runlist:
+            print fname, run
+            mgr = HistogramManager(ROOT.TFile(fname), ['z_away2', 
+                'z_away2_low', 'z_away2_high'])
+            
+            try:
+                bin6 = scalars[str(run) + '-5-6']
+                bin7 = scalars[str(run) + '-5-7']
+                bin8 = scalars[str(run) + '-5-8']
+                bin9 = scalars[str(run) + '-5-9']
+            except KeyError:
+                bin6 = scalars[str(run) + '-6-6']
+                bin7 = scalars[str(run) + '-6-7']
+                bin8 = scalars[str(run) + '-6-8']
+                bin9 = scalars[str(run) + '-6-9']
+            uu = bin6.uu + bin7.uu + bin8.uu + bin9.uu
+            ud = bin6.ud + bin7.ud + bin8.ud + bin9.ud
+            du = bin6.du + bin7.du + bin8.du + bin9.du
+            dd = bin6.dd + bin7.dd + bin8.dd + bin9.dd
+            
+            pol = polarizations[bin7.fill]
+            
+            asym_ml.FillFromHistogramManager(mgr, 'jetpatch', -1, uu,ud,du,dd, \
+                pol.py,pol.pb)
+            asym_mm.FillFromHistogramManager(mgr, 'jetpatch', -1, uu,ud,du,dd, \
+                pol.py,pol.pb)
+            asym_mh.FillFromHistogramManager(mgr, 'jetpatch', -1, uu,ud,du,dd, \
+                pol.py,pol.pb)
+            asym_pl.FillFromHistogramManager(mgr, 'jetpatch', 1, uu,ud,du,dd, \
+                pol.py,pol.pb)
+            asym_pm.FillFromHistogramManager(mgr, 'jetpatch', 1, uu,ud,du,dd, \
+                pol.py,pol.pb)
+            asym_ph.FillFromHistogramManager(mgr, 'jetpatch', 1, uu,ud,du,dd, \
+                pol.py,pol.pb)
+    
+    
+    c = graphics.canvas2()
+    c.SetLogy(0)
+    ROOT.gStyle.SetErrorX(0.0)
+    
+    c.cd(1)
+    hml = asym_ml.GetAsymmetry('ll')
+    hmm = asym_mm.GetAsymmetry('ll')
+    hmh = asym_mh.GetAsymmetry('ll')
+    hmm.SetMarkerStyle(20)
+    hmm.SetTitle('p_{T} shift uncertainty on A_{LL} #pi^{-}')
+    # hml.Fit('pol0', 'q')
+    hmm.Draw('e1')
+    gml = ROOT.TGraphErrors(hml)
+    gmh = ROOT.TGraphErrors(hmh)
+    for i in range(hmm.GetNbinsX()):
+        gml.SetPoint(i, hml.GetBinCenter(i+1)-0.02, hml.GetBinContent(i+1))
+        gmh.SetPoint(i, hmh.GetBinCenter(i+1)+0.02, hmh.GetBinContent(i+1))
+    gml.Draw('p')
+    gmh.Draw('p')
+    
+    c.cd(2)
+    hpl = asym_pl.GetAsymmetry('ll')
+    hpm = asym_pm.GetAsymmetry('ll')
+    hph = asym_ph.GetAsymmetry('ll')
+    hpm.SetTitle('p_{T} shift uncertainty on A_{LL} #pi^{+}')
+    hpm.SetMarkerStyle(21)
+    # hpl.Fit('pol0', 'q')
+    hpm.Draw('e1')
+    gpl = ROOT.TGraphErrors(hpl)
+    gph = ROOT.TGraphErrors(hph)
+    for i in range(hpm.GetNbinsX()):
+        gpl.SetPoint(i, hpl.GetBinCenter(i+1)-0.02, hpl.GetBinContent(i+1))
+        gph.SetPoint(i, hph.GetBinCenter(i+1)+0.02, hph.GetBinContent(i+1))
+    gpl.Draw('p')
+    gph.Draw('p')
+    
+    for g in (gml, gmh):
+        g.SetMarkerStyle(24)
+    for g in (gpl, gph):
+        g.SetMarkerStyle(25)
+    
+    for h in (hmm,hpm):
+        h.GetXaxis().SetTitle('p_{T}(#pi)/p_{T}(jet)')
+        h.GetYaxis().SetRangeUser(-0.06, 0.08)
+    
+    raw_input('wait here:')
+    c.Print('pt_shift_uncertainty_asymmetry.png')
+    
+    print '\nπ- shift asymmetry'
+    for bin in range(1, hmm.GetNbinsX()+1):
+        low = hml.GetBinContent(bin)
+        mid = hmm.GetBinContent(bin)
+        high = hmh.GetBinContent(bin)
+        diffl = abs(mid-low)
+        diffh = abs(mid-high)
+        diff = (diffl+diffh)/2
+        print '[%.2f-%.2f]  % .3f low, %.3f high, %.3f avg' % \
+            (hmm.GetBinLowEdge(bin), hmm.GetBinLowEdge(bin+1),diffl,diffh,diff)
+    
+    print '\nπ+ shift asymmetry'
+    for bin in range(1, hpm.GetNbinsX()+1):
+        low = hpl.GetBinContent(bin)
+        mid = hpm.GetBinContent(bin)
+        high = hph.GetBinContent(bin)
+        diffl = abs(mid-low)
+        diffh = abs(mid-high)
+        diff = (diffl+diffh)/2
+        print '[%.2f-%.2f]  % .3f low, %.3f high, %.3f avg' % \
+            (hpm.GetBinLowEdge(bin), hpm.GetBinLowEdge(bin+1),diffl,diffh,diff)
+
+
+def dphi():
+    data = hadd_interactive(histDir, runlist, 'jetpatch', 'anyspin', 'sum', \
+        'dphi')
+    mgr = HistogramManager(ROOT.TFile(datamcFile), keys=['dphi'])
+    simu = mgr.anyspin['jetpatch'].tracks_sum['dphi']
+    c = graphics.canvas1()
+    simu.SetLineColor(ROOT.kRed)
+    simu.GetXaxis().SetTitle('#Delta#phi')
+    simu.GetYaxis().SetTitle('normalized yield')
+    simu.DrawNormalized('hist')
+    
+    data.SetMarkerStyle(20)
+    data.DrawNormalized('same')
+    raw_input('wait here:')
 
