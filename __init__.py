@@ -27,6 +27,10 @@ ROOT.gStyle.SetPalette(1)
 ROOT.gStyle.SetCanvasBorderMode(0)
 ROOT.gStyle.SetOptDate(1)
 
+## runlists
+from asym   import golden_runlist_c, minbias_runs, final_runlist_run5
+from runlists import *
+
 import asym
 import minimc
 import histos
@@ -35,7 +39,9 @@ import simu
 import graphics
 import ff
 
-if sys.version_info[1] >= 4:
+## spin2008 module uses relative imports
+from sys import version_info
+if version_info[1] >= 4:
     import spin2008
 
 ## classes
@@ -46,10 +52,6 @@ from xsec   import datapoint as DataPoint
 
 ## utility methods
 from util   import *
-
-## runlists
-from asym   import golden_runlist_c, minbias_runs, final_runlist_run5
-from runlists import *
 
 import plots
 
