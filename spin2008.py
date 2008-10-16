@@ -91,8 +91,8 @@ def result():
     syst_p = ROOT.TGraphErrors(len(zbins))
     
     for g in (syst_m,syst_p):
-        g.SetMarkerColor(16)
-        g.SetFillColor(16)
+        g.SetMarkerColor(15)
+        g.SetFillColor(15)
         g.SetPoint(len(zbins), 1.0, 0)
         g.SetPointError(len(zbins), 0., 0.)
         g.GetXaxis().SetRangeUser(zbins[0], zbins[-1])
@@ -158,6 +158,7 @@ def result():
     wkeys = [key+'w' for key in keys]
     mgr2 = HistogramManager(mcasym_tfile, keys=wkeys)
     leg = ROOT.TLegend(0.6, 0.15, 0.87, 0.35)
+    leg.SetHeader('LO MC Evaluation')
     leg.SetBorderSize(1)
     for key in keys:
         m = mgr2['anyspin']['117001'].tracks_minus[key+'w']
@@ -1090,8 +1091,10 @@ def meanpt():
     
     for h in (meanjetsim_m, meanjetsim_p, meansim_m, meansim_p):
         h.SetMarkerColor(ROOT.kBlue)
+        h.SetLineColor(ROOT.kBlue)
     for h in (mbjetsim_m, mbjetsim_p, mbsim_m, mbsim_p):
-        h.SetMarkerColor(ROOT.kGreen)
+        h.SetMarkerColor(ROOT.kRed)
+        h.SetLineColor(ROOT.kRed)
     
     c2.cd(1)
     meanjetsim_m.Draw('hist p')
