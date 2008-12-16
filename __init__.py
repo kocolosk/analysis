@@ -1,15 +1,19 @@
 import ROOT
 
-libs_to_load = [ 
-'libPhysics', 'libTable', 'StarRoot', 'StarClassLibrary', 'St_base', 'StChain', 
-'St_Tables', 'StUtilities', 'StTreeMaker', 'StIOMaker', 'StTriggerDataMaker', 
-'StBichsel', 'StEvent', 'StEventUtilities', 'StDbLib', 'StEmcUtil', 'StTofUtil',
-'StPmdUtil', 'StStrangeMuDstMaker', 'StMuDSTMaker', 'StDaqLib', 
-'StDetectorDbMaker', 'StEmcTriggerMaker', 'StJetSkimEvent', 'StJets', 
-'StMCAsymMaker', 'StSpinDbMaker', 'St_db_Maker', 'StTriggerUtilities', 
-'StEEmcUtil', 'StEmcRawMaker', 'StEmcADCtoEMaker', 'StJetFinder', 'StJetMaker', 
-'StMiniMcEvent', 'StChargedPionAnalysisMaker', 'StSpinTree'
-]
+if ROOT.gROOT.GetVersion() == '5.12/00h':
+    libs_to_load = [ 
+    'libPhysics', 'libTable', 'StarRoot', 'StarClassLibrary', 'St_base',
+    'StChain', 'St_Tables', 'StUtilities', 'StTreeMaker', 'StIOMaker',
+    'StTriggerDataMaker', 'StBichsel', 'StEvent', 'StEventUtilities', 'StDbLib',
+    'StEmcUtil', 'StTofUtil', 'StPmdUtil', 'StStrangeMuDstMaker',
+    'StMuDSTMaker', 'StDaqLib', 'StDetectorDbMaker', 'StEmcTriggerMaker',
+    'StJetSkimEvent', 'StJets', 'StMCAsymMaker', 'StSpinDbMaker', 'St_db_Maker',
+    'StTriggerUtilities', 'StEEmcUtil', 'StEmcRawMaker', 'StEmcADCtoEMaker',
+    'StJetFinder', 'StJetMaker', 'StMiniMcEvent', 'StChargedPionAnalysisMaker',
+    'StSpinTree'
+    ]
+else:
+    libs_to_load = [ 'StChargedPionEvent' ]
 
 print 'analysis : loading shared libraries ...'
 libs_already_loaded = ROOT.gSystem.GetLibraries()
