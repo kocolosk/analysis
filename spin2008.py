@@ -18,7 +18,7 @@ from . import graphics
 
 histDir         = '/Users/kocolosk/data/run6/spin2008/hist'
 transHistDir    = '/Users/kocolosk/data/run6/spin2008/hist-transverse'
-mcasymFile      = '/Users/kocolosk/data/run6/spin2008/mcasym_10.cphist.root'
+mcasymFile      = '/Users/kocolosk/data/run6/simu/mcasym_10.cphist.root'
 datamcFile      = '/Users/kocolosk/data/run6/spin2008/merged.cphist.root'
 
 zbins = [
@@ -145,19 +145,21 @@ def result():
         'STD': ROOT.kBlack,
         'ZERO': ROOT.kBlue,
         'GS_NLOC': ROOT.kMagenta,
-        'MIN': ROOT.kGreen
+        'MIN': ROOT.kGreen,
+        'DSSV': ROOT.kGreen + 100
     }
     title = {
         'STD': 'GRSV-STD',
         'MIN': 'GRSV-MIN',
         'ZERO': 'GRSV-ZERO',
-        'GS_NLOC': 'GS Set C'
+        'GS_NLOC': 'GS Set C',
+        'DSSV': 'DSSV'
     }
     mcasym_tfile = ROOT.TFile(mcasymFile)
-    keys = ['STD','ZERO','GS_NLOC']
+    keys = ['STD','ZERO','GS_NLOC','DSSV']
     wkeys = [key+'w' for key in keys]
     mgr2 = HistogramManager(mcasym_tfile, keys=wkeys)
-    leg = ROOT.TLegend(0.6, 0.15, 0.87, 0.35)
+    leg = ROOT.TLegend(0.6, 0.13, 0.87, 0.37)
     leg.SetHeader('LO MC Evaluation')
     leg.SetBorderSize(1)
     for key in keys:
@@ -1195,7 +1197,7 @@ def pt_shift_uncertainty():
 
 def pt_shift_uncertainty_asymmetry():
     """
-    calculate A_{LL} for particles in the p/K sideband of the dE/dx window
+    calculate A_{LL} assuming different jet pt shifts
     """
     asym_pl = AsymmetryGenerator('asym_pl', bins=zbins, key='z_away2_low')
     asym_pm = AsymmetryGenerator('asym_pm', bins=zbins, key='z_away2')
