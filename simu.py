@@ -108,7 +108,7 @@ def mcasym(outName, inputFileNames, triggers=('jetpatch','117001'), keys=None):
     """
     outFile = ROOT.TFile(outName, 'recreate')
     inputFiles = [ROOT.TFile(n) for n in inputFileNames]
-    oldkeys = keys or ['STD','MAX','MIN','ZERO','GS_NLOC']
+    oldkeys = keys or ['STD','MAX','MIN','ZERO','GS_NLOC','DSSV']
     keys = []
     [keys.extend([key, key+'w']) for key in oldkeys]
     for sub in ('anyspin', 'gg', 'qg', 'qq'):
