@@ -1,5 +1,5 @@
 name    = __name__.split('.')[-1]
-VERSION = '$Id$'.strip('$Id: ')
+VERSION = '$Id$'[5:-2]
 
 import ROOT
 
