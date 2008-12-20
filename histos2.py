@@ -184,6 +184,8 @@ def update(modlist, triggers, tree, tfile=None):
     ## don't forget post-processing for 'anyspin' histos
     for coll in (hevent, hsum, hplus, hminus):
         coll['anyspin'] = [ h.Clone() for h in coll['other'] ]
+        [ h.SetName( h.GetName().replace('other','anyspin') ) for h in \
+            coll['anyspin']]
         for i in range(len(coll['anyspin'])):
             for spin in spinlist[1:]:
                 coll['anyspin'][i].Add(coll[spin][i].h)
@@ -192,7 +194,7 @@ def update(modlist, triggers, tree, tfile=None):
         tfile.cd()
         for coll in (hevent, hsum, hplus, hminus):
             for hlist in coll.values():
-                [ h.Write() for h in hlist ]
+                [h.Write() for h in filter(lambda h: h.GetEntries() > 0, hlist)]
     return {'event':hevent, 'plus':hplus, 'minus':hminus, 'sum':hsum}
 
 
