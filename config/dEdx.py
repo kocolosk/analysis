@@ -32,7 +32,7 @@ def accept_track(event, track):
     pid_cut = simu or (pid_min < track.nSigmaPion() < pid_max)
     return eta_cut and dca_cut and fit_cut and pid_cut
 
-def analyze(event):
+def analyze(event, **kw):
     for track in event.tracks():
         if event.charge_filter(track) and accept_track(event, track):
             yield (track.dEdx() * 1e7,)

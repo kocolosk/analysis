@@ -21,6 +21,6 @@ def accept_event(event):
     bbc_cut = bin in (7,8,9) or (event.runId() > 7000000 and bin==6)
     return vertex_cut and real_data_cut and bbc_cut
 
-def analyze(event):
+def analyze(event, **kw):
     yield (event.bx7(),)
 

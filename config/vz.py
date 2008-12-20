@@ -18,6 +18,6 @@ def accept_event(event):
     vertex_cut = event.nVertices() > 0
     return vertex_cut
 
-def analyze(event):
+def analyze(event, **kw):
     yield (event.vertex(0).z(),)
 

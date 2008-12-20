@@ -8,12 +8,12 @@ from .. import pid
 class_ = ROOT.TH1D
 
 binning = {
-    'nbinsx': 20,
+    'nbinsx': 40,
     'xbins': (-math.pi, math.pi)
 }
 
 props = {
-    'SetXTitle': ('#eta',)
+    'SetXTitle': (name,)
 }
 
 def accept_event(event):
@@ -22,6 +22,16 @@ def accept_event(event):
     bin = event.bbcTimeBin()/32
     bbc_cut = simu or bin in (7,8,9) or (event.runId() > 7000000 and bin==6)
     return vertex_cut and bbc_cut
+
+def accept_jet(event, jet):
+    pt_cut = 10.0 < jet.Pt() < 30.0
+    if event.year == 2005:
+        eta_cut = 0.2 < jet.detectorEta() < 0.8
+        rt_cut = 0.1 < (jet.tpcEtSum() / jet.Et()) < 0.9
+    else:
+        eta_cut = -0.7 < jet.detectorEta() < 0.9
+        rt_cut = (jet.tpcEtSum() / jet.Et()) > 0.08
+    return eta_cut and rt_cut and pt_cut
 
 def accept_track(event, track):
     eta_cut = abs( track.eta() ) < 1.0
@@ -33,8 +43,10 @@ def accept_track(event, track):
     pid_cut = simu or (pid_min < track.nSigmaPion() < pid_max)
     return eta_cut and dca_cut and fit_cut and pid_cut
 
-def analyze(event, **kw):
-    for track in event.tracks():
-        if event.charge_filter(track) and accept_track(event, track):
-            yield (track.Eta(),)
+def analyze(event, jet_trigger_filter, **kw):
+    for jet in event.jets():
+        if accept_jet(event, jet) and jet_trigger_filter(event, jet):
+            for track in filter(event.charge_filter, event.tracks()):
+                if accept_track(event, track):
+                    yield (track.DeltaPhi(jet),)
 

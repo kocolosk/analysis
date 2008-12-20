@@ -19,6 +19,6 @@ def accept_event(event):
     simu_cut = isinstance(event, ROOT.StChargedPionMcEvent)
     return vertex_cut and simu_cut
 
-def analyze(event):
+def analyze(event, **kw):
     yield (event.hardP(),)
 

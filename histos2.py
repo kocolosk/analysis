@@ -1,4 +1,5 @@
 import ROOT
+import math
 from array import array
 
 class Histo(object):
@@ -13,6 +14,7 @@ class Histo(object):
     def __init__(self, trig, spin, mod, tfile=None, charge=None):
         self.mod = mod
         self.trigger_filter = trigger_filter(trig)
+        self.jet_filter = jet_trigger_filter(trig)
         if charge:
             name = '_%s_%s_%s_%s' % (trig, spin, charge, mod.name)
         else:
@@ -107,7 +109,8 @@ class Histo(object):
     
     def analyze(self, event):
         if self.trigger_filter(event) and self.mod.accept_event(event):
-            [self.Fill(*vals) for vals in self.mod.analyze(event)]
+            [self.Fill(*vals) for vals in self.mod.analyze(event, \
+                jet_trigger_filter=self.jet_filter)]
         self.Flush()
     
 
@@ -135,14 +138,86 @@ def trigger_filter(trigId):
     return fun
 
 
+def jet_passed(event, jet, trigId):
+    if trigId in (96011, 117001): 
+        return True
+    elif trigId == 96201:
+        for particle in jet.particles():
+            if particle.detectorId() == ROOT.kBarrelEmcTowerId:
+                if event.highTowerAdc(particle.index()) > 13:
+                    return True
+        return False
+    elif trigId == 96211:
+        for particle in jet.particles():
+            if particle.detectorId() == ROOT.kBarrelEmcTowerId:
+                if event.highTowerAdc(particle.index()) > 17:
+                    return True
+        return False
+    elif trigId == 96221:
+        patchPhi = (90.,30.,-30.,-90.,-150.,150.)
+        for patchId in range(6):
+            if event.jetPatchAdc(patchId) > 66:
+                dPhi = abs(math.degrees(jet.Phi()) - patchPhi[patchId])
+                if dPhi < 40 or dPhi > 320:
+                    return True
+        return False
+    elif trigId == 96233:
+        patchPhi = (90.,30.,-30.,-90.,-150.,150.)
+        for patchId in range(6):
+            if event.jetPatchAdc(patchId) > 83:
+                dPhi = abs(math.degrees(jet.Phi()) - patchPhi[patchId])
+                if dPhi < 40 or dPhi > 320:
+                    return True
+        return False
+    elif trigId == 137221:
+        patchPhi = (150.,90.,30.,-30.,-90.,-150.,150.,90.,30.,-30.,-90.,-150.)
+        for patchId in range(12):
+            if event.jetPatchAdc(patchId) > 58:
+                dPhi = abs(math.degrees(jet.Phi()) - patchPhi[patchId])
+                if dPhi < 36 or dPhi > 324:
+                    return True
+        return False
+    elif trigId == 137222:
+        patchPhi = (150.,90.,30.,-30.,-90.,-150.,150.,90.,30.,-30.,-90.,-150.)
+        for patchId in range(12):
+            if event.jetPatchAdc(patchId) > 60:
+                dPhi = abs(math.degrees(jet.Phi()) - patchPhi[patchId])
+                if dPhi < 36 or dPhi > 324:
+                    return True
+
+
+def jet_trigger_filter(trigId):
+    fun = lambda ev,jet: False
+    try:
+        itrig = int(trigId)
+        fun = lambda ev,jet: jet_passed(ev,jet,itrig)
+    except ValueError:
+        if trigId == 'jetpatch':
+            fun = lambda ev,jet: \
+                (passed(ev, 96221)  and jet_passed(ev, jet, 96221)  ) or \
+                (passed(ev, 96233)  and jet_passed(ev, jet, 96233)  ) or \
+                (passed(ev, 137221) and jet_passed(ev, jet, 137221) ) or \
+                (passed(ev, 137222) and jet_passed(ev, jet, 137222) )
+    return fun
+
+
 def update(modlist, triggers, tree, tfile=None):
     spinKeys = {5:'uu', 6:'du', 9:'ud', 10:'dd'}
     subProcessKeys = {68:'gg', 28:'qg', 11:'qq'}
-    trackHistos = ['pt','eta','phi','nHitsFit','dcaG','dEdx','nSigmaPion']
+    trackHistos = ['pt','eta','phi','nHitsFit','dcaG','dEdx','nSigmaPion',
+        'dphi']
     global trigger_cache
     
     tree.GetEntry(0)
     simu = isinstance(tree.event, ROOT.StChargedPionMcEvent)
+    
+    if not simu:
+        year = tree.event.runId() > 7000000 and 2006 or 2005
+    else:
+        ## muDstName looks like '/rcf1302_01_2000evts.MuDst.root'
+        dataset = int(tree.event.muDstName()[4:8])
+        year = (dataset > 1300) and 2006 or 2005
+    
     spinlist = ['other']
     spinlist.extend(simu and ('gg','qg','qq') or ('uu','ud','du','dd'))
     
@@ -161,6 +236,7 @@ def update(modlist, triggers, tree, tfile=None):
     
     for entry in tree:
         ev = tree.event
+        ev.year = year
         
         spin = 'other'
         if simu:

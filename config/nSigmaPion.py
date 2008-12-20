@@ -27,7 +27,7 @@ def accept_track(event, track):
     fit_cut = track.nHitsFit() > 25
     return eta_cut and dca_cut and fit_cut
 
-def analyze(event):
+def analyze(event, **kw):
     for track in event.tracks():
         if event.charge_filter(track) and accept_track(event, track):
             yield (track.nSigmaPion(),)

@@ -3,15 +3,18 @@ VERSION = '$Id$'[5:-2]
 
 import ROOT
 
-class_ = ROOT.TH1D
+class_ = ROOT.TH2D
 
 binning = {
     'nbinsx': 200,
-    'xbins': (0.0, 1.0)
+    'xbins': (0.0, 20.0),
+    'nbinsy': 200,
+    'ybins': (0.0, 20.0)
 }
 
 props = {
-    'SetXTitle': ('partonic p_{T}',)
+    'SetXTitle': ('ptMc',),
+    'SetYTitle': ('ptPr',)
 }
 
 def accept_event(event):
@@ -20,5 +23,7 @@ def accept_event(event):
     return vertex_cut and simu_cut
 
 def analyze(event, **kw):
-    yield (event.x1(),)
+    for track in event.matchedPairs():
+        if event.charge_filter(track) and track.geantId() in (8,9):
+            yield (track.ptMc(), track.ptPr())
 

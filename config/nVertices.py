@@ -17,6 +17,6 @@ props = {
 def accept_event(event):
     return True
 
-def analyze(event):
+def analyze(event, **kw):
     yield (event.nVertices(),)
 
