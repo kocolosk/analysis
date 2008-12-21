@@ -1,17 +1,18 @@
 import ROOT
 import math
 from array import array
+from sets import Set
 
 class Histo(object):
     """
-    wrapper around ROOT histograms.  It uses a config module to determine how
+    wrapper to write ROOT histograms.  It uses a config module to determine how
     to instantiate and fill the histogram, and it overloads the histogram's
     Fill method to treat multi-particle statistics correctly.
     
     spin and charge are needed only to generate a unique name for ROOT.  The 
     actual filtering is done elsewhere.
     """
-    def __init__(self, trig, spin, mod, tfile=None, charge=None):
+    def __init__(self, trig, spin, mod, charge=None):
         self.mod = mod
         self.trigger_filter = trigger_filter(trig)
         self.jet_filter = jet_trigger_filter(trig)
@@ -20,10 +21,7 @@ class Histo(object):
         else:
             name = '_%s_%s_%s' % (trig, spin, mod.name)
         title = '%s@%s' % (mod.name, mod.VERSION)
-        if tfile:
-            self.h = tfile.Get(name)
-        else:
-            self.__construct(name, title, **mod.binning)
+        self.__construct(name, title, **mod.binning)
         [ getattr(self.h, key)(*val) for key,val in mod.props.items() ]
         self.profile = (mod.class_ == ROOT.TProfile)
         if not self.profile:
@@ -112,6 +110,77 @@ class Histo(object):
             [self.Fill(*vals) for vals in self.mod.analyze(event, \
                 jet_trigger_filter=self.jet_filter)]
         self.Flush()
+    
+
+
+class HColl(dict):
+    """
+    Just a dict whose keys are accessible as attributes.  Of limited utility
+    since integers can't be attributes, so all specific triggers are 
+    inaccessible.
+    """
+    def __getattr__(self, name):
+        try:
+            val = self[name]
+        except KeyError:
+            raise AttributeError
+        setattr(self, name, val)
+        return val
+    
+    def trackHistograms(self, charge):
+        """
+        will raise AttributeError if called on a non-track-level collection
+        """
+        if charge == 1:  return self.tracks_plus
+        if charge == -1: return self.tracks_minus
+        if charge == 0:  return self.tracks_sum
+
+
+class HKey(object):
+    """
+    allows for lazy loading of objects from a TFile in HistogramManager
+    """
+    def __init__(self, key):
+        self.key = key
+        self.obj = None
+    
+    def __getattr__(self, name):
+        if not self.obj:
+            self.obj = self.key.ReadObj()
+        return getattr(self.obj, name)
+    
+
+
+class HistogramManager(HColl):
+    """
+    loads TKeys from the TFile into a deep dictionary
+    """
+    def __init__(self, tfile=None, **kw):
+        super(HistogramManager, self).__init__()
+        self.tfile = tfile
+        
+        keyparts = [ k.GetName().split('_')[1:] for k in tfile.GetListOfKeys() ]
+        triggers = Set(k[0] for k in keyparts)
+        spins = Set(k[1] for k in keyparts)
+        
+        for s in spins:
+            self[s] = HColl.fromkeys(triggers, HColl())
+            for t in triggers:
+                for charge in ('plus', 'minus', 'sum'):
+                    self[s][t][charge] = HColl()
+                ## for backwards compatibility
+                self[s][t].tracks_plus = self[s][t]['plus']
+                self[s][t].tracks_minus = self[s][t]['minus']
+                self[s][t].tracks_sum = self[s][t]['sum']
+        
+        for key in tfile.GetListOfKeys():
+            k = key.GetName().split('_')[1:]
+            if len(k) == 3:
+                self[k[1]][k[0]][k[2]] = HKey(key)
+            elif k[2] in ('plus', 'minus', 'sum'):
+                self[k[1]][k[0]][k[2]]['_'.join(k[3:])] = HKey(key)
+            else:
+                self[k[1]][k[0]]['_'.join(k[2:])] = HKey(key)
     
 
 
