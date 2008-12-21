@@ -36,5 +36,5 @@ def accept_track(event, track):
 def analyze(event, **kw):
     for track in event.tracks():
         if event.charge_filter(track) and accept_track(event, track):
-            yield (track.Eta(),)
+            yield (track.Phi(),)
 
