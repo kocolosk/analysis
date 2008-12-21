@@ -61,7 +61,7 @@ class Histo(object):
                 nbinsz, zbins[0], zbins[1])
         elif isinstance(xbins, array) and isinstance(ybins, array):
             binning = (nbinsx, xbins, nbinsy, ybins)
-        elif isinstance(xbins, array):
+        elif ybins and isinstance(xbins, array):
             binning = (nbinsx, xbins, nbinsy, ybins[0], ybins[1])
         elif isinstance(ybins, array):
             binning = (nbinsx, xbins[0], xbins[1], nbinsy, ybins)
@@ -190,7 +190,7 @@ def passed(ev, trigId):
         return trigger_cache[trigId]
     except KeyError:
         val = ev.isSimuTrigger(trigId) and \
-            (ev.isTrigger(trigId) or isinstance(ev, ROOT.StChargedPionMcEvent))
+            (isinstance(ev, ROOT.StChargedPionMcEvent) or ev.isTrigger(trigId))
         trigger_cache[trigId] = val
         return val
 
@@ -274,7 +274,8 @@ def update(modlist, triggers, tree, tfile=None):
     spinKeys = {5:'uu', 6:'du', 9:'ud', 10:'dd'}
     subProcessKeys = {68:'gg', 28:'qg', 11:'qq'}
     trackHistos = ['pt','eta','phi','nHitsFit','dcaG','dEdx','nSigmaPion',
-        'dphi']
+        'dphi','ptMc_ptPr','away2_dcaG','away2_eta','away2_nHitsFit',
+        'away2_nSigmaPion','dphi','meanjetpt','meanpt','z_away2','z_noshift']
     global trigger_cache
     
     tree.GetEntry(0)
@@ -303,7 +304,12 @@ def update(modlist, triggers, tree, tfile=None):
                 hplus[spin].append(Histo(trig, spin, mod, charge='plus'))
                 hminus[spin].append(Histo(trig, spin, mod, charge='minus'))
     
+    fname = ''
     for entry in tree:
+        if fname != tree.GetCurrentFile().GetName():
+            fname = tree.GetCurrentFile().GetName()
+            print 'starting', fname
+        
         ev = tree.event
         ev.year = year
         
@@ -344,7 +350,6 @@ def update(modlist, triggers, tree, tfile=None):
 
 
 def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
-    ## FIXME: this won't work with simulations b/c it makes one .root/file
     from os.path import basename
     from glob import glob
     from . import config
@@ -356,17 +361,20 @@ def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
     
     files = glob(treeDir + '/' + globber + '.root')
     for fname in files:
-        print fname
         f = ROOT.TFile(fname)
         f.tree.GetEntry(0)
         simu = isinstance(f.tree.event, ROOT.StChargedPionMcEvent)
         if simu:
-            outname = basename(fname)[:9] + '.cphist.root'
+            outname = basename(fname)[:7] + '.cphist.root'
+            tree = ROOT.TChain('tree')
+            tree.Add(treeDir + '/' + globber + '.root')
         else:
             outname = basename(fname).replace('.tree.','.hist.')
+            tree = f.tree
         
         outFile = ROOT.TFile(outname, 'update')
-        update(modlist, triggers, f.tree, outFile)
+        update(modlist, triggers, tree, outFile)
         outFile.Close()
+        if simu: break
 
 

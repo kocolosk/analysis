@@ -35,10 +35,12 @@ def accept_jet(event, jet):
 def accept_track(event, track):
     eta_cut = abs( track.eta() ) < 1.0
     dca_cut = abs( track.globalDca().mag() ) < 1.0
-    simu = isinstance(event, ROOT.StChargedPionMcEvent)
-    pid_min = pid.min(event.runId())
-    pid_max = pid.max(event.runId())
-    pid_cut = simu or (pid_min < track.nSigmaPion() < pid_max)
+    if isinstance(event, ROOT.StChargedPionMcEvent):
+        pid_cut = True
+    else:
+        pid_min = pid.min(event.runId())
+        pid_max = pid.max(event.runId())
+        pid_cut = pid_min < track.nSigmaPion() < pid_max
     return eta_cut and dca_cut and pid_cut
 
 def analyze(event, jet_trigger_filter, **kw):
