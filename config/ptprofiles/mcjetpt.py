@@ -1,0 +1,36 @@
+name    = __name__.split('.')[-1]
+VERSION = '$Id$'[5:-2]
+
+import ROOT
+
+class_ = ROOT.TProfile
+
+binning = {
+    'nbinsx': 60,
+    'xbins': (0.0, 15.0)
+}
+
+props = {
+    'SetXTitle': ('MC #pi p_{T}',),
+    'SetYTitle': ('<particle jet p_{T}>',)
+}
+
+def accept_event(event):
+    simu = isinstance(event, ROOT.StChargedPionMcEvent)
+    return simu
+
+def accept_mctrack(track):
+    eta_cut = abs(track.etaMc()) < 1.0
+    pid_cut = track.geantId() in (8,9)
+    return eta_cut and pid_cut
+
+def analyze(event, **kw):
+    for track in filter(event.charge_filter, event.mcTracks()):
+        if accept_mctrack(track):
+            vec = ROOT.TVector3(track.pxMc(), track.pyMc(), track.pzMc())
+            jets = map(lambda j: (j, vec.DeltaR(j.Vect())), event.mcJets())
+            if jets:
+                result = reduce(lambda (j1, dR1), (j2, dR2): \
+                    dR1 < dR2 and (j1, dR1) or (j2, dR2), jets)
+                yield (track.ptMc(), result[0].Pt())
+

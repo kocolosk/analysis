@@ -275,7 +275,8 @@ def update(modlist, triggers, tree, tfile=None):
     subProcessKeys = {68:'gg', 28:'qg', 11:'qq'}
     trackHistos = ['pt','eta','phi','nHitsFit','dcaG','dEdx','nSigmaPion',
         'dphi','ptMc_ptPr','away2_dcaG','away2_eta','away2_nHitsFit',
-        'away2_nSigmaPion','dphi','meanjetpt','meanpt','z_away2','z_noshift']
+        'away2_nSigmaPion','dphi','meanjetpt','meanpt','z_away2','z_noshift', 
+        'x', 'mcjetpt', 'jetpt']
     global trigger_cache
     
     tree.GetEntry(0)
