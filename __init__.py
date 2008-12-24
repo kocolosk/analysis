@@ -23,6 +23,9 @@ for library in libs_to_load:
       #print 'analysis : loaded', library
 print 'analysis : loading complete'
 
+## this is nifty ... can extend classes on-the-fly
+ROOT.StTinyMcTrack.charge = ROOT.StTinyMcTrack.chargeMc
+
 ## style stuff
 ROOT.gStyle.SetCanvasColor(10)
 ROOT.gStyle.SetFillColor(10)
