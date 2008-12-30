@@ -1,4 +1,4 @@
-name    = __name__.split('.')[-1]
+name    = '_'.join(__name__.split('.')[-2:])
 VERSION = '$Id$'[5:-2]
 
 import ROOT
