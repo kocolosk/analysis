@@ -290,11 +290,15 @@ def update(modlist, triggers, tree, tfile=None):
     spinlist = ['other']
     spinlist.extend(simu and ('gg','qg','qq') or ('uu','ud','du','dd'))
     
-    hevent  = dict.fromkeys(spinlist, [])
-    hsum    = dict.fromkeys(spinlist, [])
-    hplus   = dict.fromkeys(spinlist, [])
-    hminus  = dict.fromkeys(spinlist, [])
+    hevent  = dict.fromkeys(spinlist)
+    hsum    = dict.fromkeys(spinlist)
+    hplus   = dict.fromkeys(spinlist)
+    hminus  = dict.fromkeys(spinlist)
     for spin in spinlist:
+        hevent[spin]    = list()
+        hsum[spin]      = list()
+        hplus[spin]     = list()
+        hminus[spin]    = list()
         for trig in triggers:
             for mod in filter(lambda m: m.name not in trackHistos, modlist):
                 hevent[spin].append(Histo(trig, spin, mod))
@@ -359,7 +363,7 @@ def update(modlist, triggers, tree, tfile=None):
 
 
 def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
-    from os.path import basename
+    from os.path import basename, join
     from glob import glob
     from analysis import config
     
@@ -379,17 +383,19 @@ def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
     triggers = kw.get('trigList') or \
         ('96011','96221','96233','117001','137221','137222','jetpatch')
     
+    histdir = kw.get('histdir') or './'
+    
     files = glob(treeDir + '/' + globber + '.root')
     for fname in files:
         f = ROOT.TFile(fname)
         f.tree.GetEntry(0)
         simu = isinstance(f.tree.event, ROOT.StChargedPionMcEvent)
         if simu:
-            outname = basename(fname)[:7] + '.cphist.root'
+            outname = join(histdir, basename(fname)[:7] + '.cphist.root')
             tree = ROOT.TChain('tree')
             tree.Add(treeDir + '/' + globber + '.root')
         else:
-            outname = basename(fname).replace('.tree.','.hist.')
+            outname = join(histdir, basename(fname).replace('.tree.','.hist.'))
             tree = f.tree
         
         outFile = ROOT.TFile(outname, 'update')
@@ -397,4 +403,53 @@ def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
         outFile.Close()
         if simu: break
 
+def condor_simu(treeDir, trigList=None, modlist=None, histdir='./'):
+    """
+    submits a single writeHistograms job to Condor for each *sample* in treeDir.
+    combines condor() and hadd_simu() into one step to (hopefully) save time
+    """
+    import analysis
+    allfiles = os.listdir(treeDir)
+    try:
+        os.mkdir('out')
+        os.mkdir('err')
+        os.mkdir('log')
+    except OSError: 
+        pass
+        
+    files = os.listdir(treeDir)
+    prefixes = [os.path.basename(f)[:7] for f in files if f.endswith('.root')]
+    uniq = sets.Set(prefixes)
+    
+    ## build the script that we will run -- note trick with sys.argv
+    f = open('job.py', 'w')
+    f.write('import sys\n')
+    f.write('import analysis\n')
+    f.write('analysis.histos2.writeHistograms(\'%s\', globber=\'*%%s*\' %% \
+        sys.argv[1], trigList=%s, modlist=%s, histdir=%s)\n' % (treeDir, 
+        trigList, modlist, histdir))
+    
+    ## build the submit.condor file
+    f = open('submit.condor', 'w')
+    f.write('executable = /usr/bin/python\n')
+    f.write('getenv = True\n')
+    f.write('notification = Error\n')
+    f.write('notify_user = kocolosk@rcf.rhic.bnl.gov\n')
+    f.write('universe = vanilla\n')
+    f.write('stream_output = True\n')
+    f.write('stream_error = True\n')
+    f.write('transfer_executable = False\n\n')
+    
+    ## add jobs for each simulation sample
+    for sample in uniq:
+        f.write('output = out/%s.out\n' % sample)
+        f.write('error = err/%s.err\n' % sample)
+        f.write('log = log/%s.condor.log\n' % sample)
+        f.write('arguments = %s/job.py %s\n' % (os.getcwd(), sample))
+        f.write('queue\n\n')
+    
+    f.close()
+    
+    ## and off we go
+    os.system('condor_submit submit.condor')
 
