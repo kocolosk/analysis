@@ -45,6 +45,8 @@ import tree
 import simu
 import graphics
 import ff
+import histos2
+import config
 
 ## spin2008 module uses relative imports
 from sys import version_info
