@@ -24,8 +24,12 @@ def accept_event(event):
     simu_cut = isinstance(event, ROOT.StChargedPionMcEvent)
     return vertex_cut and simu_cut
 
+def accept_track(track):
+    pid_cut = track.geantId() in (8,9)
+    return pid_cut
+
 def analyze(event, **kw):
     for track in event.matchedPairs():
-        if event.charge_filter(track) and track.geantId() in (8,9):
+        if event.charge_filter(track) and accept_track(track):
             yield (track.ptMc(), track.ptPr())
 

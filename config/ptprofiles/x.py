@@ -21,7 +21,7 @@ def accept_event(event):
     simu = isinstance(event, ROOT.StChargedPionMcEvent)
     return simu
 
-def accept_mctrack(track):
+def accept_track(track):
     eta_cut = abs(track.etaMc()) < 1.0
     pid_cut = track.geantId() in (8,9)
     return eta_cut and pid_cut
@@ -32,7 +32,7 @@ def analyze(event, **kw):
     p3 = XYZVector(event.parton3().Vect())
     p4 = XYZVector(event.parton4().Vect())
     for track in filter(event.charge_filter, event.mcTracks()):
-        if accept_mctrack(track):
+        if accept_track(track):
             vec = XYZVector(track.pxMc(), track.pyMc(), track.pzMc())
             if DeltaR(vec, p3) <  DeltaR(vec, p4):
                 yield (track.ptMc(), event.parton3().Pt()/100)
