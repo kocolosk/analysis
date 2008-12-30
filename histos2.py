@@ -299,7 +299,7 @@ def update(modlist, triggers, tree, tfile=None):
             for mod in filter(lambda m: m.name not in trackHistos, modlist):
                 hevent[spin].append(Histo(trig, spin, mod))
             for mod in filter(lambda m: m.name in trackHistos, modlist):
-                hsum[spin].append(Histo(trig, spin, mod, charge='sum'))                
+                hsum[spin].append(Histo(trig, spin, mod, charge='sum'))
                 hplus[spin].append(Histo(trig, spin, mod, charge='plus'))
                 hminus[spin].append(Histo(trig, spin, mod, charge='minus'))
     
@@ -353,7 +353,18 @@ def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
     from glob import glob
     from analysis import config
     
-    modlist = kw.get('modlist') or [getattr(config, m) for m in config.modules]
+    def all_modules(mod):
+        """
+        return a list oh all histogram modules in config
+        """
+        ret = list()
+        if hasattr(mod, 'modules'):
+            [ ret.extend(all_modules(getattr(mod, m))) for m in mod.modules ]
+        else:
+            ret.append(mod)
+        return ret
+    
+    modlist = kw.get('modlist') or all_modules(config)
     
     triggers = kw.get('trigList') or \
         ('96011','96221','96233','117001','137221','137222','jetpatch')
