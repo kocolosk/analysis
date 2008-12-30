@@ -38,7 +38,6 @@ class Histo(object):
         return '<Histo(%s) "%s" at %#x>' % (self.mod.class_.__name__, \
             self.h.GetName(), id(self))
     
-    @staticmethod
     def __checkBins(nbins, bins):
         if isinstance(bins, array):
             assert nbins == len(bins)-1
@@ -46,6 +45,7 @@ class Histo(object):
             assert len(bins) == 2
         else:
             assert nbins == 0
+    __checkBins = staticmethod(__checkBins)
     
     def __construct(self, name, title, nbinsx, xbins, nbinsy=0, nbinsz=0, **kw):
         ybins = kw.get('ybins')
@@ -160,8 +160,8 @@ class HistogramManager(HColl):
         self.tfile = tfile
         
         keyparts = [ k.GetName().split('_')[1:] for k in tfile.GetListOfKeys() ]
-        triggers = Set(k[0] for k in keyparts)
-        spins = Set(k[1] for k in keyparts)
+        triggers = Set([k[0] for k in keyparts])
+        spins = Set([k[1] for k in keyparts])
         
         for s in spins:
             self[s] = HColl.fromkeys(triggers, HColl())
