@@ -17,6 +17,8 @@ props = {
 
 branches = ('mMcJets*', 'mMcTracks*')
 
+vec = ROOT.TVector3()
+
 def accept_event(event):
     simu = isinstance(event, ROOT.StChargedPionMcEvent)
     return simu
@@ -29,7 +31,7 @@ def accept_track(track):
 def analyze(event, **kw):
     for track in filter(event.charge_filter, event.mcTracks()):
         if accept_track(track):
-            vec = ROOT.TVector3(track.pxMc(), track.pyMc(), track.pzMc())
+            vec.SetXYZ(track.pxMc(), track.pyMc(), track.pzMc())
             jets = map(lambda j: (j, vec.DeltaR(j.Vect())), event.mcJets())
             if jets:
                 result = reduce(lambda (j1, dR1), (j2, dR2): \
