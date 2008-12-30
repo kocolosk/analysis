@@ -408,7 +408,8 @@ def condor_simu(treeDir, trigList=None, modlist=None, histdir='./'):
     submits a single writeHistograms job to Condor for each *sample* in treeDir.
     combines condor() and hadd_simu() into one step to (hopefully) save time
     """
-    import analysis
+    import os
+    import sets
     allfiles = os.listdir(treeDir)
     try:
         os.mkdir('out')
@@ -421,13 +422,16 @@ def condor_simu(treeDir, trigList=None, modlist=None, histdir='./'):
     prefixes = [os.path.basename(f)[:7] for f in files if f.endswith('.root')]
     uniq = sets.Set(prefixes)
     
+    ## need to stringify modlist
+    _modlist = [mod.__name__ for mod in modlist]
+    
     ## build the script that we will run -- note trick with sys.argv
     f = open('job.py', 'w')
     f.write('import sys\n')
     f.write('import analysis\n')
     f.write('analysis.histos2.writeHistograms(\'%s\', globber=\'*%%s*\' %% \
-        sys.argv[1], trigList=%s, modlist=%s, histdir=%s)\n' % (treeDir, 
-        trigList, modlist, histdir))
+        sys.argv[1], trigList=%s, modlist=%s, histdir=\'%s\')\n' % (treeDir, 
+        trigList, _modlist, histdir))
     
     ## build the submit.condor file
     f = open('submit.condor', 'w')
