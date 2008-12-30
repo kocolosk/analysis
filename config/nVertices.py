@@ -14,6 +14,8 @@ props = {
     'SetXTitle': (name,)
 }
 
+branches = ('mVertices*', )
+
 def accept_event(event):
     return True
 

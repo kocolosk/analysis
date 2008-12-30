@@ -14,6 +14,8 @@ props = {
     'SetXTitle': (name,)
 }
 
+branches = ('mVertices*', 'mBbcTimeBin', 'mRunId', 'mSpinBit')
+
 def accept_event(event):
     vertex_cut = event.nVertices() > 0
     real_data_cut = isinstance(event, ROOT.StChargedPionEvent)

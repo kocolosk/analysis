@@ -14,6 +14,8 @@ props = {
     'SetXTitle': ('partonic p_{T}',)
 }
 
+branches = ('mX1', 'mVertices*', 'mParton1*', 'mParton2*')
+
 def accept_event(event):
     vertex_cut = event.nVertices() > 0
     simu_cut = isinstance(event, ROOT.StChargedPionMcEvent)

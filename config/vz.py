@@ -14,6 +14,8 @@ props = {
     'SetXTitle': (name,)
 }
 
+branches = ('mVertices*', )
+
 def accept_event(event):
     vertex_cut = event.nVertices() > 0
     return vertex_cut

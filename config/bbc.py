@@ -14,6 +14,8 @@ props = {
     'SetXTitle': (name,)
 }
 
+branches = ('mBbcTimeBin', )
+
 def accept_event(event):
     return True
 

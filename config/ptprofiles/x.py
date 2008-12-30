@@ -15,6 +15,8 @@ props = {
     'SetYTitle': ('<partonic p_{T}/100>',)
 }
 
+branches = ('mParton3*', 'mParton4*', 'mMcTracks*')
+
 def accept_event(event):
     simu = isinstance(event, ROOT.StChargedPionMcEvent)
     return simu

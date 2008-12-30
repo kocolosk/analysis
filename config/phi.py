@@ -16,6 +16,8 @@ props = {
     'SetXTitle': ('#eta',)
 }
 
+branches = ('mVertices*', 'mBbcTimeBin', 'mRunId', 'mTracks*')
+
 def accept_event(event):
     vertex_cut = event.nVertices() > 0
     simu = isinstance(event, ROOT.StChargedPionMcEvent)

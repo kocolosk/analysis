@@ -303,6 +303,16 @@ def update(modlist, triggers, tree, tfile=None):
                 hplus[spin].append(Histo(trig, spin, mod, charge='plus'))
                 hminus[spin].append(Histo(trig, spin, mod, charge='minus'))
     
+    ## only default branches are the ones used by the trigger filter
+    tree.SetBranchStatus('*', 0)
+    tree.SetBranchStatus('mSimuTriggerBits', 1)
+    if tree.GetBranch('mTriggerBits'):
+        tree.SetBranchStatus('mTriggerBits', 1)
+    
+    for mod in modlist:
+        for branchname in mod.branches:
+            tree.SetBranchStatus(branchname, 1)
+    
     fname = ''
     for entry in tree:
         if fname != tree.GetCurrentFile().GetName():
@@ -355,7 +365,7 @@ def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
     
     def all_modules(mod):
         """
-        return a list oh all histogram modules in config
+        return a list of all histogram modules in config
         """
         ret = list()
         if hasattr(mod, 'modules'):
