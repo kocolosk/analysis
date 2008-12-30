@@ -2,7 +2,7 @@ name    = __name__.split('.')[-1]
 VERSION = '$Id$'[5:-2]
 
 import ROOT
-from .. import pid
+from analysis import pid
 
 class_ = ROOT.TH1D
 

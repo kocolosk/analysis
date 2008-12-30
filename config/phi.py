@@ -3,7 +3,7 @@ VERSION = '$Id$'[5:-2]
 
 import ROOT
 import math
-from .. import pid
+from analysis import pid
 
 class_ = ROOT.TH1D
 

@@ -8,13 +8,13 @@ from glob import glob
 
 import ROOT
 
-from .asym import AsymmetryGenerator, ScalarCounts, Polarizations
-from .histos import HistogramManager, shifted
-from .plots import pid_calibration
-from .runlists import long2_run6 as runlist
-from .runlists import transverse_run6 as transverse_runlist
-from .util import getRun, fillList, hadd_interactive
-from . import graphics
+from analysis.asym import AsymmetryGenerator, ScalarCounts, Polarizations
+from analysis.histos import HistogramManager, shifted
+from analysis.plots import pid_calibration
+from analysis.runlists import long2_run6 as runlist
+from analysis.runlists import transverse_run6 as transverse_runlist
+from analysis.util import getRun, fillList, hadd_interactive
+from analysis import graphics
 
 histDir         = '/Users/kocolosk/data/run6/spin2008/hist'
 transHistDir    = '/Users/kocolosk/data/run6/spin2008/hist-transverse'
@@ -943,8 +943,8 @@ def ffcomp():
     """
     this function still needs some work ... seems very buggy
     """
-    from .util import tf1
-    from .ff import dss
+    from analysis.util import tf1
+    from analysis.ff import dss
     from math import sqrt
     
     f = ROOT.TFile('pythia_ff.hist.root')

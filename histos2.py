@@ -351,7 +351,7 @@ def update(modlist, triggers, tree, tfile=None):
 def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
     from os.path import basename
     from glob import glob
-    from . import config
+    from analysis import config
     
     modlist = kw.get('modlist') or [getattr(config, m) for m in config.modules]
     
