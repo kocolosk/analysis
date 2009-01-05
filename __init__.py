@@ -1,6 +1,7 @@
 import ROOT
 
-if ROOT.gROOT.GetVersion() == '5.12/00h':
+import socket
+if socket.gethostname().endswith('bnl.gov'):
     libs_to_load = [ 
     'libPhysics', 'libTable', 'StarRoot', 'StarClassLibrary', 'St_base',
     'StChain', 'St_Tables', 'StUtilities', 'StTreeMaker', 'StIOMaker',
@@ -14,6 +15,7 @@ if ROOT.gROOT.GetVersion() == '5.12/00h':
     ]
 else:
     libs_to_load = [ 'StChargedPionEvent' ]
+del socket
 
 print 'analysis : loading shared libraries ...'
 libs_already_loaded = ROOT.gSystem.GetLibraries()
