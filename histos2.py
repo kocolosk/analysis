@@ -307,11 +307,12 @@ def update(modlist, triggers, tree, tfile=None):
                 hplus[spin].append(Histo(trig, spin, mod, charge='plus'))
                 hminus[spin].append(Histo(trig, spin, mod, charge='minus'))
     
-    ## only default branches are the ones used by the trigger filter
+    ## only default branches are the ones used by the trigger and spin filters
     tree.SetBranchStatus('*', 0)
     tree.SetBranchStatus('mSimuTriggerBits', 1)
-    if tree.GetBranch('mTriggerBits'):
-        tree.SetBranchStatus('mTriggerBits', 1)
+    for branchname in ('mTriggerBits', 'mProcessId', 'mSpinBit', 'mSpinQA'):
+        if tree.GetBranch(branchname):
+            tree.SetBranchStatus(branchname, 1)
     
     for mod in modlist:
         for branchname in mod.branches:
@@ -366,6 +367,8 @@ def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
     from os.path import basename, join
     from glob import glob
     from analysis import config
+    from types import StringType
+    import sys
     
     def all_modules(mod):
         """
@@ -380,6 +383,10 @@ def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
     
     modlist = kw.get('modlist') or all_modules(config)
     
+    ## get the actual modules if we received only names (e.g. from Condor)
+    _modlist = map(lambda mod: isinstance(mod, StringType) and sys.modules[mod]\
+        or mod, modlist)
+    
     triggers = kw.get('trigList') or \
         ('96011','96221','96233','117001','137221','137222','jetpatch')
     
@@ -391,7 +398,9 @@ def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
         f.tree.GetEntry(0)
         simu = isinstance(f.tree.event, ROOT.StChargedPionMcEvent)
         if simu:
-            outname = join(histdir, basename(fname)[:7] + '.cphist.root')
+            assert len(_modlist) == 1
+            outname = join(histdir, '%s.%s.cphist.root' % (basename(fname)[:7], 
+                _modlist[0].name))
             tree = ROOT.TChain('tree')
             tree.Add(treeDir + '/' + globber + '.root')
         else:
@@ -399,7 +408,7 @@ def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
             tree = f.tree
         
         outFile = ROOT.TFile(outname, 'update')
-        update(modlist, triggers, tree, outFile)
+        update(_modlist, triggers, tree, outFile)
         outFile.Close()
         if simu: break
 
@@ -429,9 +438,9 @@ def condor_simu(treeDir, trigList=None, modlist=None, histdir='./'):
     f = open('job.py', 'w')
     f.write('import sys\n')
     f.write('import analysis\n')
-    f.write('analysis.histos2.writeHistograms(\'%s\', globber=\'*%%s*\' %% \
-        sys.argv[1], trigList=%s, modlist=%s, histdir=\'%s\')\n' % (treeDir, 
-        trigList, _modlist, histdir))
+    f.write('analysis.histos2.write_histograms(\'%s\', globber=\'*%%s*\' %% \
+        sys.argv[1], trigList=%s, modlist=[sys.argv[2]], histdir=\'%s\')\n' % \
+        (treeDir, trigList, histdir))
     
     ## build the submit.condor file
     f = open('submit.condor', 'w')
@@ -446,11 +455,13 @@ def condor_simu(treeDir, trigList=None, modlist=None, histdir='./'):
     
     ## add jobs for each simulation sample
     for sample in uniq:
-        f.write('output = out/%s.out\n' % sample)
-        f.write('error = err/%s.err\n' % sample)
-        f.write('log = log/%s.condor.log\n' % sample)
-        f.write('arguments = %s/job.py %s\n' % (os.getcwd(), sample))
-        f.write('queue\n\n')
+        for mod in _modlist:
+            f.write('output = out/%s.%s.out\n' % (sample, mod))
+            f.write('error = err/%s.%s.err\n' % (sample, mod))
+            f.write('log = log/%s.%s.condor.log\n' % (sample, mod))
+            f.write('arguments = %s/job.py %s %s -b\n' % (os.getcwd(), sample, 
+                mod))
+            f.write('queue\n\n')
     
     f.close()
     
