@@ -27,6 +27,24 @@ print 'analysis : loading complete'
 
 ## this is nifty ... can extend classes on-the-fly
 ROOT.StTinyMcTrack.charge = ROOT.StTinyMcTrack.chargeMc
+ROOT.StMiniMcPair.pt = ROOT.StMiniMcPair.ptPr
+ROOT.StMiniMcPair.eta = ROOT.StMiniMcPair.etaPr
+ROOT.StMiniMcPair.nHitsFit = ROOT.StMiniMcPair.fitPts
+def _minimc_globalDca(self):
+    try:
+        self.dcaVec.set(0, 0, self.dcaGl())
+    except AttributeError:
+        self.dcaVec = ROOT.StThreeVectorF(0, 0, self.dcaGl())
+    return self.dcaVec
+ROOT.StMiniMcPair.globalDca = _minimc_globalDca
+def _minimc_DeltaPhi(self, jet):
+    try:
+        self.lv.SetPtEtaPhiM(self.ptPr(), self.etaPr(), self.phiPr(), 0.135)
+    except AttributeError:
+        self.lv = ROOT.TLorentzVector()
+        self.lv.SetPtEtaPhiM(self.ptPr(), self.etaPr(), self.phiPr(), 0.135)
+    return self.lv.DeltaPhi(jet)
+ROOT.StMiniMcPair.DeltaPhi = _minimc_DeltaPhi
 
 ## style stuff
 ROOT.gStyle.SetCanvasColor(10)

@@ -141,4 +141,5 @@ def config_modules():
     mods = filter(lambda m: m and m.__name__.startswith('analysis.config.'), 
         sys.modules.values())
     mods.remove(analysis.config.ptprofiles)
+    mods.remove(analysis.config.mcasym)
     return mods
