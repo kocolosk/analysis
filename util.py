@@ -138,8 +138,6 @@ def tf1(fun, rangeMin, rangeMax, **kw):
 def config_modules():
     import sys
     import analysis
-    mods = filter(lambda m: m and m.__name__.startswith('analysis.config.'), 
-        sys.modules.values())
-    mods.remove(analysis.config.ptprofiles)
-    mods.remove(analysis.config.mcasym)
+    mods = filter(lambda m: m and m.__name__.startswith('analysis.config.') \
+        and hasattr(m, 'name'), sys.modules.values())
     return mods

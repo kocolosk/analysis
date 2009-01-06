@@ -17,7 +17,8 @@ props = {
     'SetYTitle': (name,)
 }
 
-branches = ('mVertices*', 'mMatchedPairs*', 'mJets*', 'mHighTowers*', 
+branches = ('mFlavor*', 'mX1', 'mParton1*', 'mParton2*', 'mParton3*',  
+    'mProcessId', 'mVertices*', 'mMatchedPairs*', 'mJets*', 'mHighTowers*', 
     'mJetPatches*')
 
 def accept_event(event):
