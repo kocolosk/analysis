@@ -42,7 +42,7 @@ def accept_track(track):
     pid_cut = track.geantId() in (8,9)
     return eta_cut and dca_cut and fit_cut and pid_cut
 
-def shifted(year, jetpt, opt=None):
+def shifted(year, jetpt):
     """applies pT shift to correct measured jet pT back to particle level"""
     if year == 2006:
         return 1.874928 + 0.8837450*jetpt - 0.001643843*jetpt*jetpt

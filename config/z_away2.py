@@ -48,16 +48,11 @@ def accept_track(event, track):
         pid_cut = pid_min < track.nSigmaPion() < pid_max
     return eta_cut and dca_cut and fit_cut and pid_cut
 
-def shifted(year, jetpt, opt=None):
+def shifted(year, jetpt):
     """applies pT shift to correct measured jet pT back to particle level"""
     if year == 2006:
-        if opt == 'low':
-            return 1.201072 + 0.804055*jetpt - 0.001738157*jetpt*jetpt
-        elif opt == 'high':
-            return 1.874928 + 0.8837450*jetpt - 0.001643843*jetpt*jetpt
-        else:
-            ## /STAR/node/12022 for details
-            return 1.538 + 0.8439*jetpt - 0.001691*jetpt*jetpt
+        ## /STAR/node/12022 for details
+        return 1.538 + 0.8439*jetpt - 0.001691*jetpt*jetpt
     else:
         return jetpt
 
