@@ -73,34 +73,25 @@ def mergeHistos(histos, eventCounts, sampleIds):
 
 def mergeSamples(outName, inputFileNames):
     outFile = ROOT.TFile(outName, 'recreate')
+    hlist = merge_samples(inputFileNames)
+    outFile.cd()
+    [h.Write() for h in hlist]
+    outFile.Close()
+
+def merge_samples(inputFileNames):
+    merged = []
     inputFiles = [ROOT.TFile(n) for n in inputFileNames]
     eventCounts = [f.Get('eventCounter').GetEntries() for f in inputFiles]
     sampleIds = [samples[os.path.basename(n)[:7]] for n in inputFileNames]
-    
     keys = inputFiles[0].GetListOfKeys()
     for key in keys:
         if key.GetName() == 'eventCounter': continue
         histos = [f.Get(key.GetName()) for f in inputFiles]
-        
-        # skip 2D histos for now b/c they are SLOW
-        if histos[0].ClassName().startswith('TH2'): 
-            ## but keep 'z', 'z_away'
-            keepMe = False
-            for name in ('_z', '_z_away', 'ptMc_ptPr'):
-                if name in histos[0].GetName():
-                    keepMe = True
-            if not keepMe:
-                [h.Delete() for h in histos]
-                continue
         print key
-        
-        out = mergeHistos(histos, eventCounts, sampleIds)
+        merged.append( mergeHistos(histos, eventCounts, sampleIds) )
         [h.Delete() for h in histos]
-        outFile.cd()
-        out.Write()
-    
-    outFile.Close()
-    
+    return merged
+
 def mcasym(outName, inputFileNames, triggers=('jetpatch','117001'), keys=None):
     """
     caveats:

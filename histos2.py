@@ -318,8 +318,12 @@ def update(modlist, triggers, tree, tfile=None):
         for branchname in mod.branches:
             tree.SetBranchStatus(branchname, 1)
     
+    eventCounter = ROOT.TH1I('eventCounter','',1,-1,1)
+    
     fname = ''
     for entry in tree:
+        eventCounter.Fill(0)
+        
         if fname != tree.GetCurrentFile().GetName():
             fname = tree.GetCurrentFile().GetName()
             print 'starting', fname
@@ -357,10 +361,12 @@ def update(modlist, triggers, tree, tfile=None):
     
     if tfile:
         tfile.cd()
+        eventCounter.Write()
         for coll in (hevent, hsum, hplus, hminus):
             for hlist in coll.values():
                 [h.Write() for h in filter(lambda h: h.GetEntries() > 0, hlist)]
-    return {'event':hevent, 'plus':hplus, 'minus':hminus, 'sum':hsum}
+    return {'event':hevent, 'plus':hplus, 'minus':hminus, 'sum':hsum, 
+        'eventCounter':eventCounter}
 
 
 def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
@@ -407,7 +413,7 @@ def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
             outname = join(histdir, basename(fname).replace('.tree.','.hist.'))
             tree = f.tree
         
-        outFile = ROOT.TFile(outname, 'update')
+        outFile = ROOT.TFile(outname, 'recreate')
         update(_modlist, triggers, tree, outFile)
         outFile.Close()
         if simu: break
@@ -430,6 +436,13 @@ def condor_simu(treeDir, trigList=None, modlist=None, histdir='./'):
     files = os.listdir(treeDir)
     prefixes = [os.path.basename(f)[:7] for f in files if f.endswith('.root')]
     uniq = sets.Set(prefixes)
+    
+    ## ignore these samples until further notice
+    ignored = ('rcf1231', 'rcf1235', 'rcf1270', 'rcf1271', 'rcf1273')
+    for elem in ignored:
+        try:
+            uniq.remove(elem)
+        except ValueError: pass
     
     ## need to stringify modlist
     _modlist = [mod.__name__ for mod in modlist]
@@ -468,3 +481,18 @@ def condor_simu(treeDir, trigList=None, modlist=None, histdir='./'):
     ## and off we go
     os.system('condor_submit submit.condor')
 
+
+def merge_simu(outfile, inputdir='./'):
+    import analysis
+    from os.path import join
+    from glob import glob
+    filenames = glob(join(inputdir, 'rcf*.cphist.root'))
+    uniq = Set([f[10:] for f in filenames])
+    for u in uniq:
+        samples = glob('*' + u)
+        hlist = analysis.simu.merge_samples(samples)
+        outfile.cd()
+        [h.Write() for h in hlist]
+    
+
+    
