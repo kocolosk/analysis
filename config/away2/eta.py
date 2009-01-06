@@ -1,4 +1,4 @@
-name    = __name__.split('.')[-1]
+name    = '_'.join(__name__.split('.')[-2:])
 VERSION = '$Id$'[5:-2]
 
 import ROOT
@@ -7,8 +7,8 @@ from analysis import pid
 class_ = ROOT.TH1D
 
 binning = {
-    'nbinsx': 100,
-    'xbins': (0.0, 3.1)
+    'nbinsx': 40,
+    'xbins': (-2.0, 2.0)
 }
 
 props = {
@@ -36,7 +36,7 @@ def accept_jet(event, jet):
     return eta_cut and rt_cut and pt_cut
 
 def accept_track(event, track):
-    eta_cut = abs( track.eta() ) < 1.0
+    dca_cut = abs( track.globalDca().mag() ) < 1.0
     fit_cut = track.nHitsFit() > 25
     if isinstance(event, ROOT.StChargedPionMcEvent):
         pid_cut = True
@@ -44,12 +44,13 @@ def accept_track(event, track):
         pid_min = pid.min(event.runId())
         pid_max = pid.max(event.runId())
         pid_cut = pid_min < track.nSigmaPion() < pid_max
-    return eta_cut and fit_cut and pid_cut
+    return dca_cut and fit_cut and pid_cut
 
 def analyze(event, jet_trigger_filter, **kw):
     for jet in event.jets():
         if accept_jet(event, jet) and jet_trigger_filter(event, jet):
             for track in filter(event.charge_filter, event.tracks()):
                 if accept_track(event,track) and abs(track.DeltaPhi(jet))>2.0:
-                    yield (track.globalDca().mag(),)
+                    yield (track.Eta(),)
+
 
