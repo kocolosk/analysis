@@ -63,7 +63,6 @@ import minimc
 import histos
 import tree
 import simu
-import graphics
 import ff
 import histos2
 import config
@@ -83,5 +82,7 @@ from xsec   import datapoint as DataPoint
 from util   import *
 
 import plots
+from plots import spin2008
+from plots import graphics
 
 __all__ = ['asym','datamc2','histos','minimc', 'runlists', 'util']

@@ -2380,4 +2380,3 @@ def mcasym(fname, trigger='jetpatch', keys=None):
         plus.Draw(opt)
         keepme.extend([c,minus,plus])
     raw_input('wait:')
-
