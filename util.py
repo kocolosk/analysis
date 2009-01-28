@@ -134,10 +134,3 @@ def tf1(fun, rangeMin, rangeMax, **kw):
     from ROOT import TF1
     return TF1(str(uuid()), lambda x: fun(x[0], **kw), rangeMin, rangeMax)
 
-
-def config_modules():
-    import sys
-    import analysis
-    mods = filter(lambda m: m and m.__name__.startswith('analysis.config.') \
-        and hasattr(m, 'name'), sys.modules.values())
-    return mods

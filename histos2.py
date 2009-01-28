@@ -376,18 +376,7 @@ def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
     from types import StringType
     import sys
     
-    def all_modules(mod):
-        """
-        return a list of all histogram modules in config
-        """
-        ret = list()
-        if hasattr(mod, 'modules'):
-            [ ret.extend(all_modules(getattr(mod, m))) for m in mod.modules ]
-        else:
-            ret.append(mod)
-        return ret
-    
-    modlist = kw.get('modlist') or all_modules(config)
+    modlist = kw.get('modlist') or config.all_modules()
     
     ## get the actual modules if we received only names (e.g. from Condor)
     _modlist = map(lambda mod: isinstance(mod, StringType) and sys.modules[mod]\
