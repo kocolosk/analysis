@@ -115,7 +115,11 @@ class Histo(object):
 
 class HColl(dict):
     """
-    Just a dict whose keys are accessible as attributes.  Of limited utility
+    Overrides __getitem__ to allow for lazy retrieval of objects from TFiles.
+    If a TKey is inserted into this dictionary, the object associated with that
+    key will be returned instead of the key.
+    
+    Also allows items to be accessed as attributes.  This is of limited utility
     since integers can't be attributes, so all specific triggers are 
     inaccessible.
     """
@@ -127,6 +131,10 @@ class HColl(dict):
         setattr(self, name, val)
         return val
     
+    def __getitem__(self, key):
+        val = dict.__getitem__(self, key)
+        return isinstance(val, ROOT.TKey) and val.ReadObj() or val
+    
     def trackHistograms(self, charge):
         """
         will raise AttributeError if called on a non-track-level collection
@@ -134,21 +142,6 @@ class HColl(dict):
         if charge == 1:  return self.tracks_plus
         if charge == -1: return self.tracks_minus
         if charge == 0:  return self.tracks_sum
-
-
-class HKey(object):
-    """
-    allows for lazy loading of objects from a TFile in HistogramManager
-    """
-    def __init__(self, key):
-        self.key = key
-        self.obj = None
-    
-    def __getattr__(self, name):
-        if not self.obj:
-            self.obj = self.key.ReadObj()
-        return getattr(self.obj, name)
-    
 
 
 class HistogramManager(HColl):
@@ -177,11 +170,11 @@ class HistogramManager(HColl):
         for key in tfile.GetListOfKeys():
             k = key.GetName().split('_')[1:]
             if len(k) == 3:
-                self[k[1]][k[0]][k[2]] = HKey(key)
+                self[k[1]][k[0]][k[2]] = key
             elif k[2] in ('plus', 'minus', 'sum'):
-                self[k[1]][k[0]][k[2]]['_'.join(k[3:])] = HKey(key)
+                self[k[1]][k[0]][k[2]]['_'.join(k[3:])] = key
             else:
-                self[k[1]][k[0]]['_'.join(k[2:])] = HKey(key)
+                self[k[1]][k[0]]['_'.join(k[2:])] = key
     
 
 
