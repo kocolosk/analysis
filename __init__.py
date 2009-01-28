@@ -55,7 +55,6 @@ ROOT.gStyle.SetCanvasBorderMode(0)
 ROOT.gStyle.SetOptDate(1)
 
 ## runlists
-from asym   import golden_runlist_c, minbias_runs, final_runlist_run5
 from runlists import *
 
 import asym
