@@ -164,8 +164,9 @@ class HistogramManager(HColl):
         spins = Set([k[1] for k in keyparts])
         
         for s in spins:
-            self[s] = HColl.fromkeys(triggers, HColl())
+            self[s] = HColl.fromkeys(triggers)
             for t in triggers:
+                self[s][t] = HColl()
                 for charge in ('plus', 'minus', 'sum'):
                     self[s][t][charge] = HColl()
                 ## for backwards compatibility

@@ -51,6 +51,7 @@ samples = {
 
 def mergeHistos(histos, eventCounts, sampleIds):
     out = histos[0].Clone()
+    out.SetDirectory(None)
     out.Reset('ice')
     isProfile = out.ClassName().startswith('TProfile')
     nbins = out.GetBin(out.GetNbinsX(), out.GetNbinsY(), out.GetNbinsZ())
