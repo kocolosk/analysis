@@ -66,11 +66,6 @@ import ff
 import histos2
 import config
 
-## spin2008 module uses relative imports
-from sys import version_info
-if version_info[1] >= 4:
-    import spin2008
-
 ## classes
 from asym   import AsymmetryGenerator, ScalarCounts, Polarizations
 from histos import HistogramManager
