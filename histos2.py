@@ -470,7 +470,7 @@ def merge_simu(outfile, inputdir='./'):
     from os.path import join
     from glob import glob
     filenames = glob(join(inputdir, 'rcf*.cphist.root'))
-    uniq = Set([f[10:] for f in filenames])
+    uniq = Set([f[len(inputdir)+8:] for f in filenames])
     for u in uniq:
         samples = glob('*' + u)
         hlist = analysis.simu.merge_samples(samples)
@@ -478,4 +478,50 @@ def merge_simu(outfile, inputdir='./'):
         [h.Write() for h in hlist]
     
 
+def mcasym(outfile, inputdir='./'):
+    """
+    inputdir can have multiple scenarios, but only one type of mcasym histogram.
+    E.g. don't try this function on a directory that contains histograms vs.
+    pT and versus z
+    """
+    import analysis
+    from os.path import join, basename
+    from glob import glob
+    filenames = glob(join(inputdir, 'rcf*.cphist.root'))
+    
+    pdfs = Set([f[:len(inputdir)+8] for f in filenames])
+    pdfs = [k.split('.')[0].split('_')[-1] for k in keys]
+    pdfs.remove('denom')
+    pdfs.remove('nparticles')
+    print 'Generating asymmetries for', pdfs
+    
+    def xsec(tfile):
+        name = basename(tfile.GetName())[:7]
+        return analysis.simu.xsec[analysis.simu.samples[name]]
+    
+    ## loop over polarized PDF scenarios -- each one in its own file
+    for pdf in pdfs:
+        samples = [f for f in filter(lambda f: pdf in f, filenames)]
+        print samples
+        
+        hkeys = ROOT.TFile(samples[0]).GetListOfKeys()
+        hkeys = [k.GetName() for k in hkeys]
+        hkeys.remove('eventCounter')
+        
+        inputfiles = [ ROOT.TFile(s) for s in samples ]
+        denom = ROOT.TFile(samples[0].replace(pdf, 'denom'))
+        nparticles = ROOT.TFile(samples[0].replace(pdf, 'nparticles'))
+        
+        for key in hkeys:
+            inputs = map(lambda f: {
+                'id': basename(f.GetName())[:7],
+                'xsec': xsec(f),
+                'nevents': f.Get('eventCounter').GetEntries(),
+                'num': f.Get(key),
+                'denom': denom.Get(key),
+                'nparticles': nparticles.Get(key)
+            }, inputfiles)
+            
+            outfile.cd()
+            analysis.simu._mcasym_merge(inputs).Write()
     
