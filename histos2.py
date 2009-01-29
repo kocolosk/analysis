@@ -358,7 +358,7 @@ def update(modlist, triggers, tree, tfile=None):
         eventCounter.Write()
         for coll in (hevent, hsum, hplus, hminus):
             for hlist in coll.values():
-                [h.Write() for h in filter(lambda h: h.GetEntries() > 0, hlist)]
+                [h.Write() for h in hlist]
     return {'event':hevent, 'plus':hplus, 'minus':hminus, 'sum':hsum, 
         'eventCounter':eventCounter}
 
