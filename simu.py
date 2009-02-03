@@ -133,13 +133,12 @@ def mcasym(outName, inputFileNames, triggers=('jetpatch','117001'), keys=None):
                 _mcasym_merge(plus_inputs).Write()
     outFile.Close()
         
-def _mcasym_merge(inputs):
+def _mcasym_merge(inputs, minParticlesToAccept=10):
     out = inputs[0]['num'].Clone()
     out.Reset('ice')
     
     ## don't include a bin from an individual sample in content or error
-    ## if it has fewer than this # of particles
-    minParticlesToAccept = 10
+    ## if it has fewer than this minParticlesToAccept # of particles
     
     ## first do the bin contents
     bottom = []
@@ -174,7 +173,6 @@ def _mcasym_merge(inputs):
         
         ferror = bottom[bin-1]>0 and math.sqrt(error/(bottom[bin-1]**2)) or 0.0
         out.SetBinError(bin, ferror)
-        print bin, out.GetBinError(bin)
         
     return out
     
