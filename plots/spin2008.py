@@ -14,7 +14,7 @@ from analysis.plots import pid_calibration
 from analysis.runlists import long2_run6 as runlist
 from analysis.runlists import transverse_run6 as transverse_runlist
 from analysis.util import getRun, fillList, hadd_interactive
-from analysis import graphics
+from analysis.plots import graphics
 
 histDir         = '/Users/kocolosk/data/run6/spin2008/hist'
 transHistDir    = '/Users/kocolosk/data/run6/spin2008/hist-transverse'
