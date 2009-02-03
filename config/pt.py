@@ -1,6 +1,7 @@
 name    = __name__.split('.')[-1]
 VERSION = '$Id$'[5:-2]
 
+from array import array
 import ROOT
 from analysis import pid
 

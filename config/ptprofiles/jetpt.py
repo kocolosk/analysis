@@ -1,6 +1,7 @@
 name    = '_'.join(__name__.split('.')[-2:])
 VERSION = '$Id$'[5:-2]
 
+from array import array
 import ROOT
 
 class_ = ROOT.TProfile
