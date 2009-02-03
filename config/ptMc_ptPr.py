@@ -8,8 +8,8 @@ class_ = ROOT.TH2D
 binning = {
     'nbinsx': 200,
     'xbins': (0.0, 20.0),
-    'nbinsy': 200,
-    'ybins': (0.0, 20.0)
+    'nbinsy': 5,
+    'ybins': array('d', [2.0, 3.18, 4.56, 6.32, 8.8, 12.84])
 }
 
 props = {

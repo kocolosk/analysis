@@ -7,8 +7,8 @@ from analysis import pid
 class_ = ROOT.TH1D
 
 binning = {
-    'nbinsx': 40,
-    'xbins': (0, 20)
+    'nbinsx': 5,
+    'xbins': array('d', [2.0, 3.18, 4.56, 6.32, 8.8, 12.84])
 }
 
 props = {

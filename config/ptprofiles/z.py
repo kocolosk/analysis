@@ -6,8 +6,8 @@ import ROOT
 class_ = ROOT.TProfile
 
 binning = {
-    'nbinsx': 60,
-    'xbins': (0.0, 15.0)
+    'nbinsx': 5,
+    'xbins': array('d', [2.0, 3.18, 4.56, 6.32, 8.8, 12.84])
 }
 
 props = {
