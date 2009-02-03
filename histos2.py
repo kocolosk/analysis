@@ -489,8 +489,8 @@ def mcasym(outfile, inputdir='./'):
     from glob import glob
     filenames = glob(join(inputdir, 'rcf*.cphist.root'))
     
-    pdfs = Set([f[:len(inputdir)+8] for f in filenames])
-    pdfs = [k.split('.')[0].split('_')[-1] for k in keys]
+    pdfs = Set([f[len(inputdir)+8:] for f in filenames])
+    pdfs = [k.split('.')[0].split('_')[-1] for k in pdfs]
     pdfs.remove('denom')
     pdfs.remove('nparticles')
     print 'Generating asymmetries for', pdfs
@@ -502,26 +502,29 @@ def mcasym(outfile, inputdir='./'):
     ## loop over polarized PDF scenarios -- each one in its own file
     for pdf in pdfs:
         samples = [f for f in filter(lambda f: pdf in f, filenames)]
-        print samples
+        inputfiles = [ ROOT.TFile(s) for s in samples ]
+        denom = [ ROOT.TFile(s.replace(pdf,'denom')) for s in samples ]
+        nparticles = [ ROOT.TFile(s.replace(pdf,'nparticles')) for s in samples ]
         
-        hkeys = ROOT.TFile(samples[0]).GetListOfKeys()
+        hkeys = inputfiles[0].GetListOfKeys()
         hkeys = [k.GetName() for k in hkeys]
         hkeys.remove('eventCounter')
         
-        inputfiles = [ ROOT.TFile(s) for s in samples ]
-        denom = ROOT.TFile(samples[0].replace(pdf, 'denom'))
-        nparticles = ROOT.TFile(samples[0].replace(pdf, 'nparticles'))
-        
         for key in hkeys:
-            inputs = map(lambda f: {
+            inputs = map(lambda f,d,n: {
                 'id': basename(f.GetName())[:7],
                 'xsec': xsec(f),
                 'nevents': f.Get('eventCounter').GetEntries(),
                 'num': f.Get(key),
-                'denom': denom.Get(key),
-                'nparticles': nparticles.Get(key)
-            }, inputfiles)
+                'denom': d.Get(key.replace(pdf, 'denom')),
+                'nparticles': n.Get(key.replace(pdf, 'nparticles'))
+            }, inputfiles, denom, nparticles)
             
             outfile.cd()
             analysis.simu._mcasym_merge(inputs).Write()
-    
+            
+            ## also add A_{LL} in each partonic bin for debugging
+            for h in inputs:
+                h['num'].Divide(h['denom'])
+                h['num'].SetName(h['id']+h['num'].GetName())
+                h['num'].Write()
