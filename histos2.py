@@ -24,6 +24,7 @@ class Histo(object):
         self.__construct(name, title, **mod.binning)
         [ getattr(self.h, key)(*val) for key,val in mod.props.items() ]
         self.profile = (mod.class_ == ROOT.TProfile)
+        self.mcasym = ('mcasym' in mod.__name__)
         if not self.profile:
             self.h.Sumw2()
         self.vals = []
@@ -74,7 +75,7 @@ class Histo(object):
         self.h = class_(name, title, *binning)
     
     def Fill(self, x, y=None, z=None):
-        if self.profile:
+        if self.profile or self.mcasym:
             self.h.Fill(x,y)
         else:
             self.vals.append((x,y,z))
@@ -84,7 +85,7 @@ class Histo(object):
         Ends the event and actually fills the ROOT histogram, taking multi-
         particle statistics into account.
         """
-        if self.profile: return
+        if self.profile or self.mcasym: return
         weight = {}
         keep = {}
         for x,y,z in self.vals:
@@ -96,11 +97,7 @@ class Histo(object):
             if z:
                 self.h.Fill(x,y,z,w)
             elif y:
-                try:
-                    self.h.Fill(x,y,w)
-                except TypeError:
-                    # assume this is an mcasym histo which has its own weight
-                    self.h.Fill(x,y)
+                self.h.Fill(x,y,w)
             else:
                 self.h.Fill(x,w)
         self.vals = []
