@@ -76,7 +76,10 @@ class Histo(object):
     
     def Fill(self, x, y=None, z=None):
         if self.profile or self.mcasym:
-            self.h.Fill(x,y)
+            if y:
+                self.h.Fill(x,y)
+            else:
+                self.h.Fill(x)
         else:
             self.vals.append((x,y,z))
     
