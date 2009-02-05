@@ -27,7 +27,9 @@ def accept_event(event):
     return simu_cut and vz_cut and vertex_cut
 
 def accept_track(track):
-    return track.geantId() in (8,9)
+    etamc_cut = abs(track.etaMc()) < 1.0
+    pid_cut = track.geantId() in (8,9)
+    return etamc_cut and pid_cut
 
 def analyze(event, **kw):
     for track in event.mcTracks():

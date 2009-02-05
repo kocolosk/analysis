@@ -27,9 +27,10 @@ def accept_event(event):
     return simu_cut and vz_cut and vertex_cut
 
 def accept_track(track):
-    dca_cut = abs( track.globalDca().mag() ) < 1.0
+    etamc_cut = abs(track.etaMc()) < 1.0
     pid_cut = track.geantId() in (8,9)
-    return dca_cut and pid_cut
+    dca_cut = abs( track.globalDca().mag() ) < 1.0
+    return etamc_cut and pid_cut and dca_cut
 
 def analyze(event, **kw):
     for track in event.matchedPairs():
