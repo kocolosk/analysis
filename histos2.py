@@ -421,7 +421,7 @@ def condor_simu(treeDir, trigList=None, modlist=None, histdir='./'):
     uniq = sets.Set(prefixes)
     
     ## ignore these samples until further notice
-    ignored = ('rcf1231', 'rcf1235', 'rcf1270', 'rcf1271', 'rcf1273')
+    ignored = ('rcf1235', 'rcf1270', 'rcf1271', 'rcf1273')
     for elem in ignored:
         try:
             uniq.remove(elem)
