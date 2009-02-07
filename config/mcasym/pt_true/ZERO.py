@@ -33,5 +33,5 @@ def accept_track(track):
 def analyze(event, **kw):
     for track in event.mcTracks():
         if event.charge_filter(track) and accept_track(track):
-            yield (track.pt(), mcasym.num('ZERO', event))
+            yield (track.ptMc(), mcasym.num('ZERO', event))
 
