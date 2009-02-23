@@ -534,13 +534,13 @@ _first_run = (
 ( 7346019, 8119 )
 )
     
-def min(run):
+def min(run, cut=-1.0):
     mean, width = _calib[fill(run)]
-    return mean - 1.0*width
+    return mean + cut*width
 
-def max(run):
+def max(run, cut=2.0):
     mean, width = _calib[fill(run)]
-    return mean + 2.0*width
+    return mean + cut*width
     
 def fill(run):
     index = bisect(_first_run, (run, 9999)) - 1
