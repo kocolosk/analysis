@@ -56,3 +56,12 @@ def canvas3(name=None):
         p.Draw()
         ROOT.SetOwnership( p, False )
     return c
+
+def maybe_save(c=None):
+    if not c:
+        c = ROOT.gPad
+    fname = raw_input('Save As? ')
+    if fname:
+        c.Print(fname)
+
+        
