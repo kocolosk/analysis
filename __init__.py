@@ -14,15 +14,15 @@ if socket.gethostname().endswith('bnl.gov'):
     'StSpinTree'
     ]
 else:
-    libs_to_load = [ 'StChargedPionEvent' ]
+    libs_to_load = [ '/usr/local/lib/StChargedPionEvent.so' ]
 del socket
 
 print 'analysis : loading shared libraries ...'
 libs_already_loaded = ROOT.gSystem.GetLibraries()
 for library in libs_to_load:
-   if library not in libs_already_loaded:
-      ROOT.gSystem.Load(library)
-      #print 'analysis : loaded', library
+    if library not in libs_already_loaded:
+        ROOT.gSystem.Load(library)
+        # print 'analysis : loaded', library
 print 'analysis : loading complete'
 
 ## this is nifty ... can extend classes on-the-fly
