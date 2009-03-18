@@ -46,6 +46,12 @@ def _minimc_DeltaPhi(self, jet):
     return self.lv.DeltaPhi(jet)
 ROOT.StMiniMcPair.DeltaPhi = _minimc_DeltaPhi
 
+def _tgraph_shift_point(self, i, dx=0.0, dy=0.0):
+    xvalues = self.GetX()
+    yvalues = self.GetY()
+    self.SetPoint(i, xvalues[i]+dx, yvalues[i]+dy)
+ROOT.TGraph.ShiftPoint = _tgraph_shift_point
+
 ## style stuff
 ROOT.gStyle.SetCanvasColor(10)
 ROOT.gStyle.SetFillColor(10)
