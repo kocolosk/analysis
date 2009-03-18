@@ -30,20 +30,10 @@ def accept_track(event, track):
     dca_cut = abs( track.globalDca().mag() ) < 1.0
     fit_cut = track.nHitsFit() > 25
     if isinstance(event, ROOT.StChargedPionMcEvent):
-        pid_cut = track.geantId() in (8,9)
+        pid_cut = track.geantId() in (11,12,14,15)
     else:
         nsigpi = pid.shift(event.runId(), track.nSigmaPion())
-        pt = track.Pt()
-        if pt < 3.18:
-            pid_cut = -1.1 < nsigpi < 2.3
-        elif pt < 4.56:
-            pid_cut = -1.4 < nsigpi < 2.1
-        elif pt < 6.32:
-            pid_cut = -1.4 < nsigpi < 1.8
-        elif pt < 8.80:
-            pid_cut = -1.4 < nsigpi < 1.8
-        else:
-            pid_cut = -1.3 < nsigpi < 1.4
+        pid_cut = nsigpi < -2.1
     return eta_cut and dca_cut and fit_cut and pid_cut
 
 def analyze(event, **kw):
