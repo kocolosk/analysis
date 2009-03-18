@@ -1,14 +1,15 @@
 name    = '_'.join(__name__.split('.')[-2:])
 VERSION = '$Id$'[5:-2]
 
+from array import array
 import ROOT
 import mcasym
 
 class_ = ROOT.TH1D
 
 binning = {
-    'nbinsx': 40,
-    'xbins': (0.0, 20.0)
+    'nbinsx': 5,
+    'xbins': array('d', [2.00, 3.18, 4.56, 6.32, 8.80, 12.84])
 }
 
 props = {

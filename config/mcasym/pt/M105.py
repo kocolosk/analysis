@@ -17,7 +17,8 @@ props = {
     'SetYTitle': (name,)
 }
 
-branches = ('mVertices*', 'mMatchedPairs*')
+branches = ('mFlavor*', 'mX1', 'mParton1*', 'mParton2*', 'mParton3*',  
+    'mProcessId', 'mVertices*', 'mMatchedPairs*')
 
 def accept_event(event):
     vertex_cut = event.nVertices() > 0
@@ -34,5 +35,5 @@ def accept_track(track):
 def analyze(event, **kw):
     for track in event.matchedPairs():
         if event.charge_filter(track) and accept_track(track):
-            yield (track.pt(),)
+            yield (track.pt(), mcasym.num('M105', event))
 
