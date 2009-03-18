@@ -1,5 +1,6 @@
 import ROOT
 import math
+import os
 from array import array
 from sets import Set
 
@@ -366,7 +367,7 @@ def update(modlist, triggers, tree, tfile=None):
         'eventCounter':eventCounter}
 
 
-def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
+def write_histograms(treedir, globber='*', **kw):
     from os.path import basename, join
     from glob import glob
     from analysis import config
@@ -379,12 +380,12 @@ def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
     _modlist = map(lambda mod: isinstance(mod, StringType) and sys.modules[mod]\
         or mod, modlist)
     
-    triggers = kw.get('trigList') or \
+    triggers = kw.get('triglist') or \
         ('96011','96221','96233','117001','137221','137222','jetpatch')
     
     histdir = kw.get('histdir') or './'
     
-    files = glob(treeDir + '/' + globber + '.root')
+    files = glob(treedir + '/' + globber + '.root')
     for fname in files:
         f = ROOT.TFile(fname)
         f.tree.GetEntry(0)
@@ -394,7 +395,7 @@ def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
             outname = join(histdir, '%s.%s.cphist.root' % (basename(fname)[:7], 
                 _modlist[0].name))
             tree = ROOT.TChain('tree')
-            tree.Add(treeDir + '/' + globber + '.root')
+            tree.Add(treedir + '/' + globber + '.root')
         else:
             outname = join(histdir, basename(fname).replace('.tree.','.hist.'))
             tree = f.tree
@@ -404,14 +405,62 @@ def write_histograms(treeDir='~/data/run5/tree', globber='*', **kw):
         outFile.Close()
         if simu: break
 
-def condor_simu(treeDir, trigList=None, modlist=None, histdir='./'):
+def condor_data(treedir, triglist=None, modlist=None, histdir='./'):
     """
-    submits a single writeHistograms job to Condor for each *sample* in treeDir.
+    submits a single writeHistograms job to Condor for each ROOT file in treedir
+    """
+    from analysis import getRun
+    allfiles = os.listdir(treedir)
+    try:
+        os.mkdir('out')
+        os.mkdir('err')
+        os.mkdir('log')
+    except OSError: 
+        pass
+    
+    ## need to stringify modlist
+    _modlist = [mod.__name__ for mod in modlist]
+    
+    ## build the script that we will run -- note trick with sys.argv
+    f = open('job.py', 'w')
+    f.write('import sys\n')
+    f.write('import analysis\n')
+    f.write('analysis.histos2.write_histograms(\'%s\', globber=\'*%%s*\' %% \
+        sys.argv[1], triglist=%s, modlist=%s, histdir=\'%s\')\n' % \
+        (treedir, triglist, _modlist, histdir))
+    
+    ## build the submit.condor file
+    f = open('submit.condor', 'w')
+    f.write('executable = /usr/bin/python\n')
+    f.write('getenv = True\n')
+    f.write('notification = Error\n')
+    f.write('notify_user = kocolosk@rcf.rhic.bnl.gov\n')
+    f.write('universe = vanilla\n')
+    f.write('stream_output = True\n')
+    f.write('stream_error = True\n')
+    f.write('transfer_executable = False\n\n')
+    
+    for fname in allfiles:
+        if not fname.endswith('.root'): continue
+        run = getRun(fname)
+        if runList is None or run in runList:
+            f.write('output = out/%s.out\n' % run)
+            f.write('error = err/%s.err\n' % run)
+            f.write('log = log/%s.condor.log\n' % run)
+            f.write('arguments = %s/job.py %s\n' % (os.getcwd(), run))
+            f.write('queue\n\n')
+    
+    f.close()
+    
+    ## and off we go
+    os.system('condor_submit submit.condor')
+
+def condor_simu(treedir, triglist=None, modlist=None, histdir='./'):
+    """
+    submits a single writeHistograms job to Condor for each *sample* in treedir.
     combines condor() and hadd_simu() into one step to (hopefully) save time
     """
-    import os
-    import sets
-    allfiles = os.listdir(treeDir)
+    allfiles = os.listdir(treedir)
     try:
         os.mkdir('out')
         os.mkdir('err')
@@ -419,9 +468,9 @@ def condor_simu(treeDir, trigList=None, modlist=None, histdir='./'):
     except OSError: 
         pass
         
-    files = os.listdir(treeDir)
+    files = os.listdir(treedir)
     prefixes = [os.path.basename(f)[:7] for f in files if f.endswith('.root')]
-    uniq = sets.Set(prefixes)
+    uniq = Set(prefixes)
     
     ## ignore these samples until further notice
     ignored = ('rcf1231', 'rcf1235', 'rcf1270', 'rcf1271', 'rcf1273')
@@ -438,8 +487,8 @@ def condor_simu(treeDir, trigList=None, modlist=None, histdir='./'):
     f.write('import sys\n')
     f.write('import analysis\n')
     f.write('analysis.histos2.write_histograms(\'%s\', globber=\'*%%s*\' %% \
-        sys.argv[1], trigList=%s, modlist=[sys.argv[2]], histdir=\'%s\')\n' % \
-        (treeDir, trigList, histdir))
+        sys.argv[1], triglist=%s, modlist=[sys.argv[2]], histdir=\'%s\')\n' % \
+        (treedir, triglist, histdir))
     
     ## build the submit.condor file
     f = open('submit.condor', 'w')
