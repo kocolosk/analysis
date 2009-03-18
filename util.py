@@ -134,3 +134,17 @@ def tf1(fun, rangeMin, rangeMax, **kw):
     from ROOT import TF1
     return TF1(str(uuid()), lambda x: fun(x[0], **kw), rangeMin, rangeMax)
 
+
+def upload_scalers(scaler_path, db_path):
+    import sqlite3
+    f = open(scaler_path)
+    f.readline() # skip header
+    db = sqlite3.connect(db_path)
+    dbc = db.cursor()
+    for line in f:
+        fill, run, board, timebin, uu, du, ud, dd = line.split()
+        values = tuple([int(v) for v in (run,board,timebin, uu,ud,du,dd)])
+        print values
+        dbc.execute('INSERT INTO scalers VALUES (?,?,?, ?,?,?,?)', values)
+    db.commit()
+    dbc.close()
