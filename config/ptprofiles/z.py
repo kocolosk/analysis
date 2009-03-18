@@ -2,6 +2,7 @@ name    = '_'.join(__name__.split('.')[-2:])
 VERSION = '$Id$'[5:-2]
 
 import ROOT
+from analysis import pid
 
 class_ = ROOT.TProfile
 
