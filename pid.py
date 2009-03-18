@@ -1,6 +1,29 @@
+# encoding: utf-8
+from array import array
 from bisect import bisect
+from math import exp, log10
 
+import ROOT
 from analysis.util import fill
+
+class Gaussian:
+    def __init__(self, norm=None, mean=None, sigma=None):
+        self.norm = norm
+        self.mean = mean
+        self.sigma = sigma
+    
+    def __call__(self, x, par=None):
+        norm  = par and par[0] or self.norm
+        mean  = par and par[1] or self.mean
+        sigma = par and par[2] or self.sigma
+            
+        if sigma == 0 and mean == 0:
+            return norm
+        elif sigma == 0:
+            return 0
+        else:
+            return norm*exp(-1*(x[0]-mean)**2/(2*sigma**2))
+
 
 _calib = {
 6988 : ( 0.066608, 0.889596),
@@ -183,4 +206,174 @@ def min(run, cut=-1.0):
 def max(run, cut=2.0):
     mean, width = _calib[fill(run)]
     return mean + cut*width
+
+def fit(h, p):
+    """
+    performs the spectra-style 8 Gaussian fit on a histogram containing both
+    + and - tracks shifted by 5*track.charge().  Fixed parameters include
     
+    π+ mean == π- mean
+    K+ mean == K- mean
+    e+ mean == e- mean
+    p  mean == pbar mean
+    all widths equal
+    K mean (from recalibration) (expressed as π-K)
+    p mean (from recalibration) (expressed as π-p)
+    e mean (from recalibration) (expressed as π-e)
+    
+    In other words, the only parameters of the fit that are actually allowed to
+    float are the yields of each species (8), the resolution (1), and the π
+    mean.
+    
+    Yichun doesn't have any recalibrated data for p_{T} < 3 GeV.  I obtained 
+    the π-K and π-p separations in that regime from Bichsel.  Bichsel's π-e 
+    numbers were quite far off, so I allowed π-e to float and then stuck the
+    values I got into this code.  That procedure can be repeated by 
+    uncommenting a few select lines.
+    """
+    from uuid import uuid1 as uuid
+    
+    xpoints = array('d', [2.125, 2.375, 2.625, 2.875, 3.125, 3.375, 3.625, 
+        3.875, 4.25, 4.75, 5.25, 5.75, 6.25, 6.75, 7.5, 9.0, 11.0, 13.5])
+    K_pi_points = [
+        -1.4983, ## Bichsel
+        -1.5858, ## Bichsel
+        -1.6393, ## Bichsel
+        -1.6791, ## Bichsel
+        -1.69081,
+        -1.69629,
+        -1.69354,
+        -1.6873,
+        -1.68201,
+        -1.70533,
+        -1.71762,
+        -1.68769,
+        -1.64231,
+        -1.62156,
+        -1.5798,
+        -1.52717,
+        -1.48498,
+        -1.41808
+    ]
+    p_pi_points = [
+        -0.9990, ## Bichsel
+        -1.3854, ## Bichsel
+        -1.6398, ## Bichsel
+        -1.8385, ## Bichsel
+        -1.98053,
+        -2.09692,
+        -2.21161,
+        -2.2801,
+        -2.33066,
+        -2.43533,
+        -2.4858,
+        -2.52706,
+        -2.54293,
+        -2.53356,
+        -2.49091,
+        -2.42632,
+        -2.33928,
+        -2.22135
+    ]
+    e_pi_points = [
+        # 4.7485, ## Bichsel
+        # 4.5271, ## Bichsel
+        # 4.3310, ## Bichsel
+        # 4.1556, ## Bichsel
+        3.78652, ## allowed e-pi separation to float, then took these numbers
+        3.78652, ## allowed e-pi separation to float, then took these numbers
+        3.73179, ## allowed e-pi separation to float, then took these numbers
+        3.73179, ## allowed e-pi separation to float, then took these numbers
+        3.33640,
+        3.24293,
+        3.15668,
+        3.07248,
+        2.96264,
+        2.78870,
+        2.63843,
+        2.52391,
+        2.42252,
+        2.33433,
+        2.24786,
+        2.08437,
+        1.84996,
+        1.66622
+    ]
+    K_pi = ROOT.TGraph(len(xpoints), xpoints, array('d', K_pi_points))
+    p_pi = ROOT.TGraph(len(xpoints), xpoints, array('d', p_pi_points))
+    e_pi = ROOT.TGraph(len(xpoints), xpoints, array('d', e_pi_points))
+    
+    class ParticleIdentifier(dict):
+        def __init__(self):
+            super(ParticleIdentifier, self).__init__()
+        
+        def __call__(self, x, par):
+            """
+            par[0] = π+ norm
+            par[1] = π- norm
+            par[2] = K+/π+
+            par[3] = K-/π-
+            par[4] = p/π+
+            par[5] = pbar/π-
+            par[6] = e+/π+
+            par[7] = e-/π-
+            par[8] = width
+            par[9] = π mean
+            """
+            self['pi_plus']  = Gaussian(par[0], par[9]+6, par[8])
+            self['K_plus']   = Gaussian(par[2]*par[0], par[9]+6+K_pi.Eval(p), par[8])
+            self['proton']   = Gaussian(par[4]*par[0], par[9]+6+p_pi.Eval(p), par[8])
+            self['positron'] = Gaussian(par[6]*par[0], par[9]+6+e_pi.Eval(p), par[8])
+            # self['positron'] = Gaussian(par[6]*par[0], par[10]+6, par[8])
+        
+            self['pi_minus'] = Gaussian(par[1], par[9]-6, par[8])
+            self['K_minus']  = Gaussian(par[3]*par[1], par[9]-6+K_pi.Eval(p), par[8])
+            self['pbar']     = Gaussian(par[5]*par[1], par[9]-6+p_pi.Eval(p), par[8])
+            self['electron'] = Gaussian(par[7]*par[1], par[9]-6+e_pi.Eval(p), par[8])
+            # self['electron'] = Gaussian(par[7]*par[1], par[10]-6, par[8])
+            
+            return sum([f(x) for f in self.values()])
+    
+    h.SetStats(True)
+    ROOT.gStyle.SetOptFit(1101)
+    
+    fitter = ParticleIdentifier()
+    tf1 = ROOT.TF1(str(uuid()), fitter, -12.0, 12.0, 10)
+    tf1.SetParName(0, "#pi+ Norm")
+    tf1.SetParName(1, "#pi- Norm")
+    tf1.SetParName(2, "K+/#pi+")
+    tf1.SetParName(3, "K-/#pi-")
+    tf1.SetParName(4, "p/#pi+")
+    tf1.SetParName(5, "#bar{p}/#pi-")
+    tf1.SetParName(6, "e+/#pi+")
+    tf1.SetParName(7, "e-/#pi-")
+    tf1.SetParName(8, "Width")
+    tf1.SetParName(9, "#pi Mean")
+    # tf1.SetParName(10, "e Mean")
+    
+    tf1.SetParameter(0, h.GetMaximum())
+    tf1.SetParameter(1, h.GetMaximum())
+    tf1.SetParameter(2, 0.25)
+    tf1.SetParameter(3, 0.25)
+    tf1.SetParameter(4, 0.2)
+    tf1.SetParameter(5, 0.2)
+    tf1.SetParameter(6, 0.025)
+    tf1.SetParameter(7, 0.025)
+    tf1.SetParameter(8, 0.9)
+    tf1.SetParameter(9, -0.3)
+    # tf1.SetParameter(10, 4.0)
+    
+    tf1.SetParLimits(2, 0.0, 0.5)
+    tf1.SetParLimits(3, 0.0, 0.5)
+    tf1.SetParLimits(4, 0.0, 0.5)
+    tf1.SetParLimits(5, 0.0, 0.5)
+    tf1.SetParLimits(6, 0.0, 0.5)
+    tf1.SetParLimits(7, 0.0, 0.5)
+    # tf1.SetParLimits(10, 2.0, 5.0)
+    
+    tf1.SetLineWidth(2)
+    
+    h.Fit(tf1, 'rq')
+    
+    return fitter
+
