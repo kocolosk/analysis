@@ -249,6 +249,7 @@ def jet_passed(event, jet, trigId):
                 dPhi = abs(math.degrees(jet.Phi()) - patchPhi[patchId])
                 if dPhi < 36 or dPhi > 324:
                     return True
+        return False
 
 
 def jet_trigger_filter(trigId):
