@@ -57,6 +57,12 @@ def canvas3(name=None):
         ROOT.SetOwnership( p, False )
     return c
 
+def ps_canvas(name=None, x=3, y=4):
+    title = name or str(uuid())
+    c = ROOT.TCanvas(title,title,100,100,600,800)
+    c.Divide(x,y)
+    return c
+
 def maybe_save(c=None):
     if not c:
         c = ROOT.gPad
