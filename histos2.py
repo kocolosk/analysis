@@ -578,5 +578,5 @@ def mcasym(outfile, inputdir='./'):
             ## also add A_{LL} in each partonic bin for debugging
             for h in inputs:
                 h['num'].Divide(h['denom'])
-                h['num'].SetName(h['id']+h['num'].GetName())
+                h['num'].SetName(h['num'].GetName() + '_' + h['id'])
                 h['num'].Write()
