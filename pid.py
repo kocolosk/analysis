@@ -172,6 +172,10 @@ _calib = {
 7957 : ( 0.014065, 0.899964)
 }
 
+def shift(run, nsigpi):
+    offset = _calib[fill(run)][0]
+    return nsigpi - offset
+
 def min(run, cut=-1.0):
     mean, width = _calib[fill(run)]
     return mean + cut*width
