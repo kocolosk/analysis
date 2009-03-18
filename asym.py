@@ -11,7 +11,8 @@ class AsymmetryGenerator:
         bins = [4, 2.0, 10.0], key='pt'):
         self.name = name
         self.bins = bins
-        self.key     = key
+        self.key = key
+        self.multi_stats = False
         if len(self.bins) == 3:
             self.top = { 
                 'ls' : ROOT.TH1D('_%s_ls' % (name,), '', self.bins[0], \
@@ -97,10 +98,71 @@ class AsymmetryGenerator:
     
     
     def FillFromHistogram(self, spinbit, uu, ud, du, dd, Py, Pb, h):
-        for bin in range(h.GetNbinsX()):
-            x = h.GetBinCenter(bin+1)
-            count = int(h.GetBinContent(bin+1))
-            [ self.Fill(spinbit, uu, ud, du, dd, Py, Pb, x) for i in range(count) ]
+        if self.multi_stats:
+            R1 = float(uu+ud)/(du+dd)
+            R2 = float(uu+du)/(ud+dd)
+            R3 = float(uu+dd)/(ud+du)
+
+            Rls = float(uu)/dd
+            Rus = float(ud)/du
+
+            if spinbit == 5: ## yb == uu
+                self.top['ly'].Add(h, (-1.*Py) )
+                self.bot['ly'].Add(h, (Py*Py) )
+
+                self.top['lb'].Add(h, (-1.*Pb) )
+                self.bot['lb'].Add(h, (Pb*Pb) )
+
+                self.top['ll'].Add(h, (Py*Pb) )
+                self.bot['ll'].Add(h, (Py*Py*Pb*Pb) )
+
+                self.top['ls'].Add(h, (Py*Pb) )
+                self.bot['ls'].Add(h, (Py*Py*Pb*Pb) )
+            elif spinbit == 9: ## yb == ud
+                self.top['ly'].Add(h, (-1.*Py) )
+                self.bot['ly'].Add(h, (Py*Py) )
+
+                self.top['lb'].Add(h, (R2*Pb) )
+                self.bot['lb'].Add(h, (R2*Pb*Pb) )
+
+                self.top['ll'].Add(h, (-1.*R3*Py*Pb) )
+                self.bot['ll'].Add(h, (R3*Py*Py*Pb*Pb) )
+
+                self.top['us'].Add(h, (Py*Pb) )
+                self.bot['us'].Add(h, (Py*Py*Pb*Pb) )
+            elif spinbit == 6: ## yb == du
+                self.top['ly'].Add(h, (R1*Py) )
+                self.bot['ly'].Add(h, (R1*Py*Py) )
+
+                self.top['lb'].Add(h, (-1.*Pb) )
+                self.bot['lb'].Add(h, (Pb*Pb) )
+
+                self.top['ll'].Add(h, (-1.*R3*Py*Pb) )
+                self.bot['ll'].Add(h, (R3*Py*Py*Pb*Pb) )
+
+                self.top['us'].Add(h, (-1.*Rus*Py*Pb) )
+                self.bot['us'].Add(h, (Rus*Py*Py*Pb*Pb) )
+            elif spinbit == 10: ## yb == dd
+                self.top['ly'].Add(h, (R1*Py) )
+                self.bot['ly'].Add(h, (R1*Py*Py) )
+
+                self.top['lb'].Add(h, (R2*Pb) )
+                self.bot['lb'].Add(h, (R2*Pb*Pb) )
+
+                self.top['ll'].Add(h, (Py*Pb) )
+                self.bot['ll'].Add(h, (Py*Py*Pb*Pb) )
+
+                self.top['ls'].Add(h, (-1.*Rls*Py*Pb) )
+                self.bot['ls'].Add(h, (Rls*Py*Py*Pb*Pb) )
+            else:
+                print spinbit, 'is not a valid spinbit'
+        
+        if not self.multi_stats:
+            for bin in range(1, h.GetNbinsX()+1):
+                x = h.GetBinCenter(bin)
+                count = int(h.GetBinContent(bin))
+                for i in range(count):
+                    self.Fill(spinbit, uu, ud, du, dd, Py, Pb, x)
     
     
     def Fill(self, spinbit, uu, ud, du, dd, Py, Pb, val):
