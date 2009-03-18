@@ -46,8 +46,7 @@ def run5():
     return all config modules appropriate for Run 5 data
     """
     ret = all_modules()
-    [ ret.remove(m) for m in (cosTheta, hardP, parton_deltaR, ptMc_ptPr, x1, 
-        x1_x2, x2) ]
+    [ ret.remove(m) for m in (cosTheta, hardP, ptMc_ptPr, x1, x1_x2, x2) ]
     [ ret.remove(m) for m in all_modules(mcasym) ]
     ret.remove(ptprofiles.mcjetpt)
     return ret
@@ -57,8 +56,7 @@ def run6():
     return all config modules appropriate for Run 6 data
     """
     ret = all_modules()
-    [ ret.remove(m) for m in (cosTheta, hardP, parton_deltaR, ptMc_ptPr, x1, 
-        x1_x2, x2) ]
+    [ ret.remove(m) for m in (cosTheta, hardP, ptMc_ptPr, x1, x1_x2, x2) ]
     [ ret.remove(m) for m in all_modules(mcasym) ]
     ret.remove(ptprofiles.mcjetpt)
     return ret
