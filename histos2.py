@@ -153,6 +153,7 @@ class HistogramManager(HColl):
         self.tfile = tfile
         
         keyparts = [ k.GetName().split('_')[1:] for k in tfile.GetListOfKeys() ]
+        keyparts = filter(lambda k: len(k) > 2, keyparts) ## skip eventCounter
         triggers = Set([k[0] for k in keyparts])
         spins = Set([k[1] for k in keyparts])
         
@@ -169,6 +170,7 @@ class HistogramManager(HColl):
         
         for key in tfile.GetListOfKeys():
             k = key.GetName().split('_')[1:]
+            if len(k) < 3: continue ## skip eventCounter
             if len(k) == 3:
                 self[k[1]][k[0]][k[2]] = key
             elif k[2] in ('plus', 'minus', 'sum'):
