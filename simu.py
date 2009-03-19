@@ -225,3 +225,83 @@ def partonicCrossSection(sample='2_3', nevents=1000, sqrts=200):
     
     return pythia.GetPARI(1)
 
+
+def nlo_pion_fractions():
+    simuFile = '/Users/kocolosk/data/run5-simu/hist/merged.cphist.root'
+    
+    import operator
+    from array import array
+    
+    from analysis.plots import graphics
+    from analysis.histos2 import HistogramManager
+    
+    bin_centers = array('d', [2.59, 3.87, 5.44, 7.56, 10.82])
+    
+    gg_gg = [4.439015E+06, 1.996755E+05, 1.263479E+04, 7.499839E+02, 2.810099E+01]
+    qg_qg = [3.388824E+06, 1.976496E+05, 1.670780E+04, 1.382847E+03, 7.863113E+01]
+    qq_qq = [2.527259E+05, 2.286667E+04, 2.908361E+03, 3.641042E+02, 3.269253E+01]
+    qb_qb = [1.441496E+05, 1.107764E+04, 1.164664E+03, 1.152362E+02, 7.462816E+00]
+    qb_gg = [2.679754E+04, 1.085830E+03, 7.030866E+01, 4.713206E+00, 2.204383E-01]
+    
+    total = [8.301383E+06, 4.332231E+05, 3.347704E+04, 2.609205E+03, 1.463661E+02]
+    
+    pythia_id = {
+        11: qq_qq,
+        12: qb_qb,
+        13: qb_gg,
+        28: qg_qg,
+        68: gg_gg
+    }
+    
+    
+    graph = {
+        11: ROOT.TGraph(5, bin_centers, array('d', 
+            map(operator.div, pythia_id[11], total))),
+        12: ROOT.TGraph(5, bin_centers, array('d', 
+            map(operator.div, pythia_id[12], total))),
+        # 13: ROOT.TGraph(5, bin_centers, array('d',
+        #     map(operator.div, pythia_id[13], total))),
+        28: ROOT.TGraph(5, bin_centers, array('d', 
+            map(operator.div, pythia_id[28], total))),
+        68: ROOT.TGraph(5, bin_centers, array('d', 
+            map(operator.div, pythia_id[68], total)))
+    }
+    
+    mgr = HistogramManager(ROOT.TFile(simuFile))
+    hist = {
+        11: mgr.qq['96011']['plus']['pt'],
+        28: mgr.qg['96011']['plus']['pt'],
+        68: mgr.gg['96011']['plus']['pt']
+    }
+    htotal = mgr.anyspin['96011']['plus']['pt']
+    [h.Divide(htotal) for h in hist.values()]
+    
+    graph[68].SetLineColor(ROOT.kRed)
+    graph[28].SetLineColor(ROOT.kGreen)
+    graph[11].SetLineColor(ROOT.kBlue)
+    graph[12].SetLineColor(ROOT.kMagenta)
+    [g.SetLineWidth(2) for g in graph.values()]
+    
+    hist[68].SetMarkerColor(ROOT.kRed)
+    hist[28].SetMarkerColor(ROOT.kGreen)
+    hist[11].SetMarkerColor(ROOT.kBlue)
+    [h.SetMarkerStyle(24) for h in hist.values()]
+    
+    bg = ROOT.TH2D('bg', '', 1, 2.00, 12.84, 1, 0., 0.6)
+    bg.SetTitle('Subprocess Fractions (solid=NLO+DSS, points=Pythia)')
+    bg.SetXTitle('#pi p_{T}')
+    
+    leg = ROOT.TLegend(0.8, 0.2, 0.88, 0.8)
+    leg.AddEntry(graph[68], 'gg', 'l')
+    leg.AddEntry(graph[28], 'qg', 'l')
+    leg.AddEntry(graph[11], 'qq', 'l')
+    leg.AddEntry(graph[12], 'q#bar{q}', 'l')
+    
+    c = graphics.canvas1()
+    bg.Draw()
+    [ g.Draw() for g in graph.values() ]
+    [ h.Draw('same') for h in hist.values() ]
+    leg.Draw()
+    
+    graphics.maybe_save()
+
