@@ -1,3 +1,5 @@
+from bisect import bisect
+
 def getRun(path):
     """searches for an integer runnumber in the supplied path.
     if not found, return the filename after stripping path and suffix info"""

@@ -1,6 +1,5 @@
 # encoding: utf-8
 from array import array
-from bisect import bisect
 from math import exp, log10
 
 import ROOT
