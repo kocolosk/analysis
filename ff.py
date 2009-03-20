@@ -1,5 +1,5 @@
+import os
 from scipy.special import beta as Beta
-from math import pow
 mu0 = 1
 ## mu0charm = 1.43
 ## mu0bottom = 4.3
@@ -71,7 +71,7 @@ def pythia(ckMin, ckMax, nevents):
     import ROOT
     pythia = ROOT.TPythia6()
     
-    # CDF Tune A for STAR
+    ## CDF Tune A for STAR
     pythia.SetMSEL(1)
     pythia.SetMSTP(51, 7)
     pythia.SetMSTP(81, 1)
@@ -85,44 +85,69 @@ def pythia(ckMin, ckMax, nevents):
     pythia.SetPARP(90, 0.25)
     pythia.SetPARP(91, 1.0)
     
+    ## some customizations of the gluon fragmentation
+    # pythia.SetMSTJ(1, 2)
+    # pythia.SetMSTJ(2, 4)
+    # pythia.SetMSTJ(3, 0)
+    # pythia.SetMSTJ(11, 1)
+    # pythia.SetPARJ(22, 1.0)
+    # pythia.SetPARJ(41, 0.3)
+    # pythia.SetPARJ(42, 0.58)
+    # pythia.SetPARJ(43, 0.5)
+    # pythia.SetPARJ(44, 0.9)
+    
     pythia.SetCKIN(3, ckMin)
     pythia.SetCKIN(4, ckMax)
     
     pythia.Initialize('CMS', 'p', 'p', 200)
     
-    h = {
+    hz = {
         211: {
-            1:  ROOT.TH1D('d_plus', '', 200, 0., 1.),
-            2:  ROOT.TH1D('u_plus', '', 200, 0., 1.),
-            3:  ROOT.TH1D('s_plus', '', 200, 0., 1.),
-            4:  ROOT.TH1D('c_plus', '', 200, 0., 1.),
-            5:  ROOT.TH1D('b_plus', '', 200, 0., 1.),
-            -1: ROOT.TH1D('dbar_plus', '', 200, 0., 1.),
-            -2: ROOT.TH1D('ubar_plus', '', 200, 0., 1.),
-            -3: ROOT.TH1D('sbar_plus', '', 200, 0., 1.),
-            -4: ROOT.TH1D('cbar_plus', '', 200, 0., 1.),
-            -5: ROOT.TH1D('bbar_plus', '', 200, 0., 1.),
-            21: ROOT.TH1D('g_plus', '', 200, 0., 1.)
+            1:  ROOT.TH1D('z_d_plus', '', 200, 0., 1.),
+            2:  ROOT.TH1D('z_u_plus', '', 200, 0., 1.),
+            3:  ROOT.TH1D('z_s_plus', '', 200, 0., 1.),
+            4:  ROOT.TH1D('z_c_plus', '', 200, 0., 1.),
+            5:  ROOT.TH1D('z_b_plus', '', 200, 0., 1.),
+            -1: ROOT.TH1D('z_dbar_plus', '', 200, 0., 1.),
+            -2: ROOT.TH1D('z_ubar_plus', '', 200, 0., 1.),
+            -3: ROOT.TH1D('z_sbar_plus', '', 200, 0., 1.),
+            -4: ROOT.TH1D('z_cbar_plus', '', 200, 0., 1.),
+            -5: ROOT.TH1D('z_bbar_plus', '', 200, 0., 1.),
+            21: ROOT.TH1D('z_g_plus', '', 200, 0., 1.)
         },
         -211: {
-            1:  ROOT.TH1D('d_minus', '', 200, 0., 1.),
-            2:  ROOT.TH1D('u_minus', '', 200, 0., 1.),
-            3:  ROOT.TH1D('s_minus', '', 200, 0., 1.),
-            4:  ROOT.TH1D('c_minus', '', 200, 0., 1.),
-            5:  ROOT.TH1D('b_minus', '', 200, 0., 1.),
-            -1: ROOT.TH1D('dbar_minus', '', 200, 0., 1.),
-            -2: ROOT.TH1D('ubar_minus', '', 200, 0., 1.),
-            -3: ROOT.TH1D('sbar_minus', '', 200, 0., 1.),
-            -4: ROOT.TH1D('cbar_minus', '', 200, 0., 1.),
-            -5: ROOT.TH1D('bbar_minus', '', 200, 0., 1.),
-            21: ROOT.TH1D('g_minus', '', 200, 0., 1.)
+            1:  ROOT.TH1D('z_d_minus', '', 200, 0., 1.),
+            2:  ROOT.TH1D('z_u_minus', '', 200, 0., 1.),
+            3:  ROOT.TH1D('z_s_minus', '', 200, 0., 1.),
+            4:  ROOT.TH1D('z_c_minus', '', 200, 0., 1.),
+            5:  ROOT.TH1D('z_b_minus', '', 200, 0., 1.),
+            -1: ROOT.TH1D('z_dbar_minus', '', 200, 0., 1.),
+            -2: ROOT.TH1D('z_ubar_minus', '', 200, 0., 1.),
+            -3: ROOT.TH1D('z_sbar_minus', '', 200, 0., 1.),
+            -4: ROOT.TH1D('z_cbar_minus', '', 200, 0., 1.),
+            -5: ROOT.TH1D('z_bbar_minus', '', 200, 0., 1.),
+            21: ROOT.TH1D('z_g_minus', '', 200, 0., 1.)
         }
     }
     
-    def makeVector(pythia, i):
-        return ROOT.TLorentzVector( pythia.GetP(i,1), pythia.GetP(i,2),
-            pythia.GetP(i,3), pythia.GetP(i,4) )
+    hpt = {}
+    ptbins = (40, 0., 20.)
+    cname = {211: 'plus', -211: 'minus'}
+    fname = {
+        1:'d', 2:'u', 3:'s', 4:'c', 5:'b', 
+        -1:'ubar', -2:'dbar', -3:'sbar', -4:'cbar', -5:'bbar', 
+        21:'g', 'any':'any'
+    }
+    for process in (11,12,13,28,53,68):
+        tmp = hpt.setdefault(process, {})
+        for charge in (-211,211):
+            tmp2 = tmp.setdefault(charge, {})
+            for flavor in (1,2,3,4,5,-1,-2,-3,-4,-5,21,'any'):
+                name = 'pt_%d_%s_%s' % (process, fname[flavor], cname[charge])
+                hpt[process][charge][flavor] = ROOT.TH1D(name, '', *ptbins)
     
+    vectorize = lambda pythia, i: ROOT.TLorentzVector( pythia.GetP(i,1), 
+        pythia.GetP(i,2), pythia.GetP(i,3), pythia.GetP(i,4) )
     
     ## Particle numbers are as follows:
     ## 1,2 protons
@@ -133,7 +158,7 @@ def pythia(ckMin, ckMax, nevents):
         if i % 1000 == 0: print 'generating event', i
         pythia.GenerateEvent()
         nparticles = pythia.GetN()
-        
+        processid = pythia.GetMSTI(1)
         for i in range(9,nparticles+1):
             pid = pythia.GetK(i, 2)
             
@@ -150,16 +175,67 @@ def pythia(ckMin, ckMax, nevents):
             ## skip pions from beam remnants, ISR
             if parent not in (7,8): continue
             
-            mom = makeVector(pythia, i)
+            mom = vectorize(pythia, i)
             
-            parton = makeVector(pythia, parent)
+            parton = vectorize(pythia, parent)
             flavor = pythia.GetK(parent, 2)
             
             z = mom.Vect().Dot(parton.Vect()) / parton.P()**2
             
-            h[pid][flavor].Fill(z)
+            hz[pid][flavor].Fill(z)
+            hpt[processid][pid][flavor].Fill(mom.Pt())
+            hpt[processid][pid]['any'].Fill(mom.Pt())
         
     pythia.Pystat(1)
-    return h
+    
+    f = ROOT.TFile('pythia_%(ckMin)d_%(ckMax)d_%(nevents)d.root' % locals(), 
+        'recreate')
+    for charge in (-211, 211):
+        [ h.Write() for h in hz[charge].values() ]
+        for process in (11,12,13,28,53,68):
+            [ h.Write() for h in hpt[process][charge].values() ]
+    f.Close()
+    
+    return (hz, hpt)
+
+def condor_ff(nevents=1E5, ckin=[2, 3, 4, 5, 7, 9, 11, 15, 25, 35, 100]):
+    try:
+        os.mkdir('out')
+        os.mkdir('err')
+        os.mkdir('log')
+    except OSError: 
+        pass
+    
+    ## build the script that we will run -- note trick with sys.argv
+    f = open('job.py', 'w')
+    f.write('from sys import argv\n')
+    f.write('import analysis\n')
+    f.write('analysis.ff.pythia(int(argv[1]), int(argv[2]), %d)' % nevents)
+    
+    ## build the submit.condor file
+    f = open('submit.condor', 'w')
+    f.write('executable = /usr/bin/python\n')
+    f.write('getenv = True\n')
+    f.write('notification = Error\n')
+    f.write('notify_user = kocolosk@rcf.rhic.bnl.gov\n')
+    f.write('universe = vanilla\n')
+    f.write('stream_output = True\n')
+    f.write('stream_error = True\n')
+    f.write('transfer_executable = False\n\n')
+    
+    ## add jobs for each ckin bin
+    for i in range(len(ckin)-1):
+        sample = '%d_%d' % (ckin[i], ckin[i+1])
+        f.write('output = out/pythia_%s.out\n' % (sample,))
+        f.write('error = err/pythia_%s.err\n' % (sample,))
+        f.write('log = log/pythia_%s.condor.log\n' % (sample,))
+        f.write('arguments = %s/job.py %d %d -b\n' % (os.getcwd(), ckin[i], 
+            ckin[i+1]))
+        f.write('queue\n\n')
+    
+    f.close()
+    
+    ## and off we go
+    os.system('condor_submit submit.condor')
 
     
