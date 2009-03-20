@@ -226,7 +226,7 @@ def partonicCrossSection(sample='2_3', nevents=1000, sqrts=200):
     return pythia.GetPARI(1)
 
 
-def nlo_pion_fractions():
+def nlo_pion_fractions(ff='Kretzer'):
     simuFile = '/Users/kocolosk/data/run5-simu/hist/merged.cphist.root'
     
     import operator
@@ -237,30 +237,31 @@ def nlo_pion_fractions():
     
     bin_centers = array('d', [2.59, 3.87, 5.44, 7.56, 10.82])
     
-    gg_gg = [4.439015E+06, 1.996755E+05, 1.263479E+04, 7.499839E+02, 2.810099E+01]
-    qg_qg = [3.388824E+06, 1.976496E+05, 1.670780E+04, 1.382847E+03, 7.863113E+01]
-    qq_qq = [2.527259E+05, 2.286667E+04, 2.908361E+03, 3.641042E+02, 3.269253E+01]
-    qb_qb = [1.441496E+05, 1.107764E+04, 1.164664E+03, 1.152362E+02, 7.462816E+00]
-    qb_gg = [2.679754E+04, 1.085830E+03, 7.030866E+01, 4.713206E+00, 2.204383E-01]
-    
-    total = [8.301383E+06, 4.332231E+05, 3.347704E+04, 2.609205E+03, 1.463661E+02]
+    if ff == 'DSS':
+        gg_gg = [4.4390E+06, 1.9967E+05, 1.2634E+04, 7.4998E+02, 2.8100E+01]
+        qg_qg = [3.3888E+06, 1.9764E+05, 1.6707E+04, 1.3828E+03, 7.8631E+01]
+        qq_qq = [2.5272E+05, 2.2866E+04, 2.9083E+03, 3.6410E+02, 3.2692E+01]
+        qb_qb = [1.4414E+05, 1.1077E+04, 1.1646E+03, 1.1523E+02, 7.4628E+00]
+        total = [8.3013E+06, 4.3322E+05, 3.3477E+04, 2.6092E+03, 1.4636E+02]
+    elif ff == 'Kretzer':
+        gg_gg = [2.0141E+06, 8.0377E+04, 4.5900E+03, 2.4401E+02, 7.9185E+00]
+        qg_qg = [3.0735E+06, 1.8293E+05, 1.6132E+04, 1.4147E+03, 8.5984E+01]
+        qq_qq = [4.8958E+05, 4.3564E+04, 5.4494E+03, 6.7049E+02, 5.8678E+01]
+        qb_qb = [1.3586E+05, 1.0378E+04, 1.0776E+03, 1.0510E+02, 6.6962E+00]
+        total = [5.9360E+06, 3.3000E+05, 2.8449E+04, 2.5438E+03, 1.6599E+02]
     
     pythia_id = {
         11: qq_qq,
         12: qb_qb,
-        13: qb_gg,
         28: qg_qg,
         68: gg_gg
     }
-    
     
     graph = {
         11: ROOT.TGraph(5, bin_centers, array('d', 
             map(operator.div, pythia_id[11], total))),
         12: ROOT.TGraph(5, bin_centers, array('d', 
             map(operator.div, pythia_id[12], total))),
-        # 13: ROOT.TGraph(5, bin_centers, array('d',
-        #     map(operator.div, pythia_id[13], total))),
         28: ROOT.TGraph(5, bin_centers, array('d', 
             map(operator.div, pythia_id[28], total))),
         68: ROOT.TGraph(5, bin_centers, array('d', 
@@ -287,8 +288,8 @@ def nlo_pion_fractions():
     hist[11].SetMarkerColor(ROOT.kBlue)
     [h.SetMarkerStyle(24) for h in hist.values()]
     
-    bg = ROOT.TH2D('bg', '', 1, 2.00, 12.84, 1, 0., 0.6)
-    bg.SetTitle('Subprocess Fractions (solid=NLO+DSS, points=Pythia)')
+    bg = ROOT.TH2D('bg', '', 1, 2.00, 12.84, 1, 0., 0.7)
+    bg.SetTitle('Subprocess Fractions (solid=NLO+%s, points=Pythia)' % ff)
     bg.SetXTitle('#pi p_{T}')
     
     leg = ROOT.TLegend(0.8, 0.2, 0.88, 0.8)
@@ -305,3 +306,55 @@ def nlo_pion_fractions():
     
     graphics.maybe_save()
 
+
+def qg_fragmentation_comparison():
+    simuFile = '/Users/kocolosk/work/2009-03-19-pi-fragmentation/merged.root'
+    
+    import operator
+    from array import array
+    
+    from analysis.plots import graphics
+    from analysis.histos2 import HistogramManager
+    
+    bin_centers = array('d', [2.59, 3.87, 5.44, 7.56, 10.82])
+    
+    dss_g = [2.5988E+06, 1.3668E+05, 1.0331E+04, 7.4421E+02, 3.4858E+01]
+    dss_q = [7.9033E+05, 6.0820E+04, 6.3704E+03, 6.3982E+02, 4.3774E+01]
+    
+    kretzer_g = [1.6305E+06, 7.3650E+04, 4.8672E+03, 3.0306E+02, 1.1753E+01]
+    kretzer_q = [1.4892E+06, 1.1274E+05, 1.1583E+04, 1.1391E+03, 7.5693E+01]
+    
+    dss_graph = ROOT.TGraph(5, bin_centers, array('d',
+        map(operator.div, dss_g, map(operator.add, dss_q, dss_g))))
+    kretzer_graph = ROOT.TGraph(5, bin_centers, array('d',
+        map(operator.div, kretzer_g, map(operator.add, kretzer_q, kretzer_g))))
+    
+    dss_graph.SetLineStyle(2)
+    [ graph.SetLineWidth(2) for graph in (dss_graph, kretzer_graph) ]
+    
+    mgr = HistogramManager(ROOT.TFile(simuFile))
+    gluon = mgr.qg['96011']['plus']['pt_gluon_jet']
+    quark = mgr.qg['96011']['plus']['pt_quark_jet']
+    ratio = gluon.Clone()
+    both = gluon.Clone()
+    both.Add(quark)
+    ratio.Divide(both)
+    ratio.GetXaxis().SetRangeUser(2.00, 12.84)
+    ratio.GetYaxis().SetRangeUser(0.0, 1.0)
+    
+    ratio.SetMarkerStyle(24)
+    ratio.SetTitle('Fraction of qg #pi+ from gluon jet')
+    ratio.SetXTitle('#pi p_{T}')
+    
+    leg = ROOT.TLegend(0.7, 0.7, 0.88, 0.88)
+    leg.AddEntry(dss_graph, 'DSS', 'l')
+    leg.AddEntry(kretzer_graph, 'Kretzer', 'l')
+    leg.AddEntry(ratio, 'Pythia')
+    
+    c = graphics.canvas1()
+    ratio.Draw()
+    dss_graph.Draw()
+    kretzer_graph.Draw()
+    leg.Draw()
+    
+    graphics.maybe_save()
