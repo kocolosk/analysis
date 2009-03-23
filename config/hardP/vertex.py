@@ -1,4 +1,4 @@
-name = __name__.split('.')[-1]
+name    = '_'.join(__name__.split('.')[-2:])
 VERSION = '$Id$'[5:-2]
 
 from array import array
@@ -14,8 +14,8 @@ binning = {
 }
 
 props = {
-    'SetXTitle': ('#pi p_{T}'), 
-    'SetYTitle': ('partonic p_{T}')
+    'SetXTitle': ('#pi p_{T}',), 
+    'SetYTitle': ('partonic p_{T}',)
 }
 
 branches = ('mMcVertex*', 'mMcTracks*', 'mHardP', 'mVertices*')

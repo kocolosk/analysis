@@ -1,4 +1,4 @@
-name = __name__.split('.')[-1]
+name    = '_'.join(__name__.split('.')[-2:])
 VERSION = '$Id$'[5:-2]
 
 from array import array
@@ -14,11 +14,11 @@ binning = {
 }
 
 props = {
-    'SetXTitle': ('#pi p_{T}'), 
-    'SetYTitle': ('partonic p_{T}')
+    'SetXTitle': ('#pi p_{T}',), 
+    'SetYTitle': ('partonic p_{T}',)
 }
 
-branches = ('mMcVertex*', 'mMcTracks*', 'mHardP')
+branches = ('mMcVertex*', 'mPythiaRecord*', 'mHardP')
 
 def accept_event(event):
     simu_cut = isinstance(event, ROOT.StChargedPionMcEvent)
@@ -27,13 +27,13 @@ def accept_event(event):
 
 
 def accept_track(track):
-    etamc_cut = abs(track.etaMc()) < 1.0
-    pid_cut = track.geantId() in (8,9)
+    etamc_cut = abs(track.vec.Eta()) < 1.0
+    pid_cut = abs(track.id) == 211
     return etamc_cut and pid_cut
 
 
 def analyze(event, **kw):
-    for track in event.mcTracks():
+    for track in event.pythiaRecord():
         if event.charge_filter(track) and accept_track(track):
-            yield (track.ptMc(), event.hardP())
+            yield (track.vec.Pt(), event.hardP())
 
