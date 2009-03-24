@@ -17,7 +17,7 @@ props = {
     'SetYTitle': (name,)
 }
 
-branches = ('mMcVertex*', 'mMcTracks*')
+branches = ('mMcVertex*', 'mPythiaRecord*')
 
 def accept_event(event):
     vertex_cut = abs(event.mcVertex().z()) < 60
@@ -25,12 +25,12 @@ def accept_event(event):
     return vertex_cut and simu_cut
 
 def accept_track(track):
-    etamc_cut = abs(track.etaMc()) < 1.0
-    pid_cut = track.geantId() in (8,9)
+    etamc_cut = abs(track.vec.Eta()) < 1.0
+    pid_cut = abs(track.id) == 211
     return etamc_cut and pid_cut
 
 def analyze(event, **kw):
-    for track in event.mcTracks():
+    for track in event.pythiaRecord():
         if event.charge_filter(track) and accept_track(track):
-            yield (track.ptMc(),)
+            yield (track.vec.Pt(),)
 

@@ -45,6 +45,10 @@ def _minimc_DeltaPhi(self, jet):
         self.lv.SetPtEtaPhiM(self.ptPr(), self.etaPr(), self.phiPr(), 0.135)
     return self.lv.DeltaPhi(jet)
 ROOT.StMiniMcPair.DeltaPhi = _minimc_DeltaPhi
+def _pythia_charge(self):
+    """hack, will fail for lots of particles including electrons"""
+    return (self.id > 0) and 1 or -1
+ROOT.StChargedPionPythiaRow.charge = _pythia_charge
 
 def _tgraph_shift_point(self, i, dx=0.0, dy=0.0):
     xvalues = self.GetX()
