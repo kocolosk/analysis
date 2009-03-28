@@ -376,3 +376,31 @@ def fit(h, p):
     
     return fitter
 
+def bichsel(species='pi', method='GetI70', resolution=0.08):
+    mass = { 'pi': 0.139570, 'K': 0.493677, 'p': 0.938272, 'e': 0.000511 }
+    b = ROOT.Bichsel.Instance()
+    fun = getattr(b, method)
+    
+    ## distribute data points so we have uniform coverage on log scale
+    xvals = [10**(float(i)/1000) for i in range(-1000, 2000)]
+    yvals = [fun(log10(p/mass[species])) for p in xvals]
+    ex = [0 for i in range(-1000, 2000)]
+    ey = [resolution*val for val in yvals]
+    graph = ROOT.TGraphErrors(len(xvals), array('d',xvals), array('d',yvals), 
+        array('d', ex), array('d', ey))
+    return graph
+
+def bichsel_acceptance(method='GetI70', resolution=0.08):
+    mass = 0.139570
+    b = ROOT.Bichsel.Instance()
+    fun = getattr(b, method)
+    xvals = [10**(float(i)/1000) for i in range(-1000, 2000)]
+    xvals = filter(lambda x: x>3.0 and x<12.5, xvals)
+    yvals = [fun(log10(p/mass)) for p in xvals]
+    ex = [0 for i in range(-1000, 2000)]
+    eyl = [1*resolution*val for val in yvals]
+    eyh = [2*resolution*val for val in yvals]
+    graph = ROOT.TGraphAsymmErrors(len(xvals), array('d',xvals), array('d',yvals), 
+        array('d', ex), array('d', ex), array('d', eyl), array('d', eyh))
+    return graph
+
