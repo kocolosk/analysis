@@ -580,3 +580,73 @@ def mcasym(outfile, inputdir='./'):
                 h['num'].Divide(h['denom'])
                 h['num'].SetName(h['num'].GetName() + '_' + h['id'])
                 h['num'].Write()
+
+def mcasym_reweighted(outfile, inputdir='./'):
+    gg_scale = [2.2040, 2.4842, 2.7525, 3.0736, 3.5487]
+    qg_scale = [1.1026, 1.0804, 1.0356, 0.9775, 0.9145]
+    qq_scale = [0.5162, 0.5249, 0.5337, 0.5430, 0.5571]
+    
+    import analysis
+    from os.path import join, basename
+    from glob import glob
+    filenames = glob(join(inputdir, 'rcf*.cphist.root'))
+    
+    pdfs = Set([f[len(inputdir)+8:] for f in filenames])
+    pdfs = [k.split('.')[0].split('_')[-1] for k in pdfs]
+    pdfs.remove('denom')
+    pdfs.remove('nparticles')
+    print 'Generating asymmetries for', pdfs
+    
+    def xsec(tfile):
+        name = basename(tfile.GetName())[:7]
+        return analysis.simu.xsec[analysis.simu.samples[name]]
+    
+    def reweight(f, key):
+        anyspin = f.Get(key)
+        anyspin.Reset('ice')
+        gg = f.Get(key.replace('anyspin', 'gg'))
+        qg = f.Get(key.replace('anyspin', 'qg'))
+        qq = f.Get(key.replace('anyspin', 'qq'))
+        other = f.Get(key.replace('anyspin', 'other'))
+        for bin in range(1,6):
+            content = gg.GetBinContent(bin)*gg_scale[bin-1] + \
+                      qg.GetBinContent(bin)*qg_scale[bin-1] + \
+                      qq.GetBinContent(bin)*qq_scale[bin-1] + \
+                      other.GetBinContent(bin)
+            error   = (gg.GetBinError(bin)*gg_scale[bin-1])**2 + \
+                      (qg.GetBinError(bin)*qg_scale[bin-1])**2 + \
+                      (qq.GetBinError(bin)*qq_scale[bin-1])**2 + \
+                      other.GetBinError(bin)**2
+            anyspin.SetBinContent(bin, content)
+            anyspin.SetBinError(bin, math.sqrt(error))
+        return anyspin
+        
+    ## loop over polarized PDF scenarios -- each one in its own file
+    for pdf in pdfs:
+        samples = [f for f in filter(lambda f: pdf in f, filenames)]
+        inputfiles = [ ROOT.TFile(s) for s in samples ]
+        denom = [ ROOT.TFile(s.replace(pdf,'denom')) for s in samples ]
+        nparticles = [ ROOT.TFile(s.replace(pdf,'nparticles')) for s in samples ]
+        
+        hkeys = inputfiles[0].GetListOfKeys()
+        hkeys = filter(lambda k: 'anyspin' in k, [k.GetName() for k in hkeys])
+        # hkeys.remove('eventCounter')
+        
+        for key in hkeys:
+            inputs = map(lambda f,d,n: {
+                'id': basename(f.GetName())[:7],
+                'xsec': xsec(f),
+                'nevents': f.Get('eventCounter').GetEntries(),
+                'num': reweight(f,key),
+                'denom': reweight(d, key.replace(pdf, 'denom')),
+                'nparticles': n.Get(key.replace(pdf, 'nparticles'))
+            }, inputfiles, denom, nparticles)
+            
+            outfile.cd()
+            analysis.simu._mcasym_merge(inputs).Write()
+            
+            ## also add A_{LL} in each partonic bin for debugging
+            for h in inputs:
+                h['num'].Divide(h['denom'])
+                h['num'].SetName(h['num'].GetName() + '_' + h['id'])
+                h['num'].Write()
