@@ -82,8 +82,23 @@ def mergeSamples(outName, inputFileNames):
 def merge_samples(inputFileNames):
     merged = []
     inputFiles = [ROOT.TFile(n) for n in inputFileNames]
-    eventCounts = [f.Get('eventCounter').GetEntries() for f in inputFiles]
-    sampleIds = [samples[os.path.basename(n)[:7]] for n in inputFileNames]
+    try:
+        sampleIds = [samples[os.path.basename(n)[:7]] for n in inputFileNames]
+        eventCounts = [f.Get('eventCounter').GetEntries() for f in inputFiles]
+    except KeyError:
+        sampleIds = []
+        eventCounts = []
+        for fname in inputFileNames:
+            ## strip off 'pythia_'
+            fname = fname[7:]
+            
+            low,high,counts = fname.split('_')[:3]
+            if low == '35':
+                low = 'above'
+                high = '35'
+            sampleIds.append('%(low)s_%(high)s' % locals())
+            eventCounts.append(int(counts.split('.')[0]))
+    
     keys = inputFiles[0].GetListOfKeys()
     for key in keys:
         if key.GetName() == 'eventCounter': continue
