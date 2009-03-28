@@ -6,6 +6,7 @@ modules = map(lambda m: os.path.splitext(m)[0],
 modules.append('ptprofiles')
 modules.append('mcasym')
 modules.append('away2')
+modules.append('hardP')
 __import__(__name__, {}, {}, modules)
 
 def all_modules(mod=None):
