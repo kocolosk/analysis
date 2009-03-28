@@ -519,3 +519,17 @@ def fill(run):
     index = bisect(_first_run, (run, 9999)) - 1
     return _first_run[index][1]
 
+
+def calculate_binning(resolution_fun, ptmin=2.00, ptmax=10.00):
+    """
+    
+    """
+    pt = ptmin
+    bin_edges = [ptmin]
+    while pt < ptmax:
+        width = 0
+        while resolution_fun(pt+width) > width:
+            width += 0.01
+        bin_edges.append(pt+2*width)
+        pt = pt+2*width
+    return bin_edges
