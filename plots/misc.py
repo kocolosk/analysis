@@ -163,11 +163,15 @@ def run6_result_theory_curves():
     leg.AddEntry(nlo_m['DSSV'], 'DSSV', 'l')
     leg.AddEntry(nlo_m['GSC'], 'GS-C', 'l')
     
+    latex2 = ROOT.TLatex()
+    
     c.cd(1)
     hm.SetMarkerStyle(20)
     syst_m.Draw('a2p')
     prelim.DrawText(0.42,-0.041,"STAR Preliminary")
     latex.DrawLatex(0.05 + zbins[0], 0.044, '#pi^{-}')
+    latex2.DrawLatex(0.45, 0.06, '10 < jet p_{T} < 30')
+    latex2.DrawLatex(0.5, 0.045, '#pi p_{T} > 2')
     [ g.Draw('l') for g in nlo_m.values() ]
     line.Draw()
     hm.Draw('e1 same')
@@ -182,6 +186,4 @@ def run6_result_theory_curves():
     leg.Draw()
     hp.Draw('e1 same')
     
-    raw_input('now wait here:')
-    
-    c.Print('preliminary_result_models.png')
+    graphics.maybe_save(c)
