@@ -151,12 +151,12 @@ def run6_result_theory_curves():
     }
     
     for nlo in (nlo_m, nlo_p):
-        nlo['GSC'].SetLineStyle(4)
+        nlo['DSSV'].SetLineStyle(2)
         nlo['GSC'].SetLineColor(ROOT.kMagenta)
-        nlo['DSSV'].SetLineColor(ROOT.kGreen)
+        nlo['DSSV'].SetLineColor(ROOT.kGreen+2)
         [gr.SetLineWidth(3) for gr in nlo.values()]
     
-    leg = ROOT.TLegend(0.69, 0.17, 0.96, 0.36)
+    leg = ROOT.TLegend(0.69, 0.15, 0.97, 0.36)
     leg.SetBorderSize(0)
     leg.SetNColumns(1)
     leg.AddEntry(nlo_m['STD'], 'GRSV-STD', 'l')
@@ -174,6 +174,7 @@ def run6_result_theory_curves():
     latex2.DrawLatex(0.5, 0.045, '#pi p_{T} > 2')
     [ g.Draw('l') for g in nlo_m.values() ]
     line.Draw()
+    syst_m.Draw('2p')
     hm.Draw('e1 same')
     
     c.cd(2)
@@ -184,6 +185,7 @@ def run6_result_theory_curves():
     [ g.Draw('l') for g in nlo_p.values() ]
     line.Draw()
     leg.Draw()
+    syst_p.Draw('2p')
     hp.Draw('e1 same')
     
     graphics.maybe_save(c)
