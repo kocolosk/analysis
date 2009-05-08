@@ -75,6 +75,13 @@ def run6_result_theory_curves():
     c = graphics.canvas2()
     c.SetLogy(0)
     
+    for i in (1, 2):
+        pad = c.cd(i)
+        pad.SetTopMargin(0.03)
+        pad.SetBottomMargin(0.1)
+        pad.SetLeftMargin(0.12)
+        pad.SetRightMargin(0.02)
+    
     line = ROOT.TLine(zbins[0], 0.0, zbins[-1], 0.0)
     line.SetLineStyle(2)
     
@@ -111,6 +118,12 @@ def run6_result_theory_curves():
         h.SetTitle('')
         h.GetXaxis().SetTitle('z')
         h.GetYaxis().SetRangeUser(-0.05, 0.08)
+        h.GetYaxis().SetTitle('A_{LL}  ')
+        h.GetYaxis().SetTitleSize(0.06)
+        h.GetYaxis().SetTitleOffset(1.0)
+        h.GetXaxis().SetTitle('z  ')
+        h.GetXaxis().SetTitleSize(0.065)
+        h.GetXaxis().SetTitleOffset(0.7)
     
     title = {
         'STD': 'GRSV-STD',
@@ -143,7 +156,7 @@ def run6_result_theory_curves():
         nlo['DSSV'].SetLineColor(ROOT.kGreen)
         [gr.SetLineWidth(3) for gr in nlo.values()]
     
-    leg = ROOT.TLegend(0.62, 0.12, 0.89, 0.31)
+    leg = ROOT.TLegend(0.69, 0.17, 0.96, 0.36)
     leg.SetBorderSize(0)
     leg.SetNColumns(1)
     leg.AddEntry(nlo_m['STD'], 'GRSV-STD', 'l')
