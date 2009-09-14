@@ -131,23 +131,31 @@ def run6_result_theory_curves():
         'DSSV': 'DSSV'
     }
     
-    ## NLO curves
-    from analysis.asym import theoryCurves as make_graph
+    def make_graph(num, denom):
+        g = ROOT.TGraphErrors(len(num))
+        for i,n in enumerate(num):
+            d = denom[i]
+            val = n.y / d.y
+            err = val*math.sqrt((n.sys/n.y)**2 + (d.sys/d.y)**2)
+            g.SetPoint(i, n.x, val)
+            g.SetPointError(i, 0, err)
+        return g
+    
     nlo_m = {
         'STD': make_graph(analysis.deflorian.minus.std, 
-            analysis.deflorian.minus.mrst).getGraph(),
+            analysis.deflorian.minus.mrst),
         'DSSV': make_graph(analysis.deflorian.minus.dssv, 
-            analysis.deflorian.minus.mrst).getGraph(),
+            analysis.deflorian.minus.mrst),
         'GSC': make_graph(analysis.deflorian.minus.gsc, 
-            analysis.deflorian.minus.mrst).getGraph(),
+            analysis.deflorian.minus.mrst),
     }
     nlo_p = {
         'STD': make_graph(analysis.deflorian.plus.std, 
-            analysis.deflorian.plus.mrst).getGraph(),
+            analysis.deflorian.plus.mrst),
         'DSSV': make_graph(analysis.deflorian.plus.dssv, 
-            analysis.deflorian.plus.mrst).getGraph(),
+            analysis.deflorian.plus.mrst),
         'GSC': make_graph(analysis.deflorian.plus.gsc, 
-            analysis.deflorian.plus.mrst).getGraph(),
+            analysis.deflorian.plus.mrst),
     }
     
     for nlo in (nlo_m, nlo_p):
@@ -155,6 +163,7 @@ def run6_result_theory_curves():
         nlo['GSC'].SetLineColor(ROOT.kMagenta)
         nlo['DSSV'].SetLineColor(ROOT.kGreen+2)
         [gr.SetLineWidth(3) for gr in nlo.values()]
+        [gr.SetFillColor(ROOT.kOrange) for gr in nlo.values()]
     
     leg = ROOT.TLegend(0.69, 0.15, 0.97, 0.36)
     leg.SetBorderSize(0)
@@ -172,7 +181,8 @@ def run6_result_theory_curves():
     latex.DrawLatex(0.05 + zbins[0], 0.044, '#pi^{-}')
     latex2.DrawLatex(0.45, 0.06, '10 < jet p_{T} < 30')
     latex2.DrawLatex(0.5, 0.045, '#pi p_{T} > 2')
-    [ g.Draw('l') for g in nlo_m.values() ]
+    [ g.Draw('3') for g in nlo_m.values() ]
+    [ g.Draw('lx') for g in nlo_m.values() ]
     line.Draw()
     syst_m.Draw('2p')
     hm.Draw('e1 same')
@@ -182,7 +192,8 @@ def run6_result_theory_curves():
     syst_p.Draw('a2p')
     prelim.DrawText(0.42,-0.041,"STAR Preliminary")
     latex.DrawLatex(0.05 + zbins[0], 0.044, '#pi^{+}')
-    [ g.Draw('l') for g in nlo_p.values() ]
+    [ g.Draw('3') for g in nlo_p.values() ]
+    [ g.Draw('lx') for g in nlo_p.values() ]
     line.Draw()
     leg.Draw()
     syst_p.Draw('2p')
