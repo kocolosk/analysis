@@ -1,8 +1,13 @@
 import ROOT
 import math
 import os
+import sys
 from array import array
-from sets import Set
+
+if sys.version[:3] > '2.3':
+    Set = set
+else:
+    from sets import Set
 
 class Histo(object):
     """

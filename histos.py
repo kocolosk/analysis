@@ -2,8 +2,12 @@ import math
 import os
 import sys
 import time
-import sets
 from array import array
+
+if sys.version[:3] > '2.3':
+    Set = set
+else:
+    from sets import Set
 
 import ROOT
 import minimc
@@ -1457,7 +1461,7 @@ def hadd_simu(histDir='./'):
     """groups files by dataset, then calls hadd on each"""
     files = os.listdir(histDir)
     prefixes = [os.path.basename(f)[:7] for f in files if f.endswith('.root')]
-    uniq = sets.Set(prefixes)
+    uniq = Set(prefixes)
     
     ## build the hadd.condor file
     f = open('hadd.condor', 'w')
@@ -1501,7 +1505,7 @@ def condor_simu(treeDir, trigList=None, year=2006):
         
     files = os.listdir(treeDir)
     prefixes = [os.path.basename(f)[:9] for f in files if f.endswith('.root')]
-    uniq = sets.Set(prefixes)
+    uniq = Set(prefixes)
     
     ## build the script that we will run -- note trick with sys.argv
     f = open('job.py', 'w')
