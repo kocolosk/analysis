@@ -68,6 +68,12 @@ def final_result():
     # trig_p_l = [0.30,  1.10,  8.60,  3.80,  6.90]
     # trig_p_h = [0.30,  1.10,  5.40,  3.80,  4.50]
     
+    ## trig+reco after rescaling, dropping MAX,MIN,P*
+    trig_m_l = [5.90,  8.30,  9.30,  7.20,  4.80]
+    trig_m_h = [2.70,  7.20,  3.40,  3.60,  5.70]
+    trig_p_l = [6.10, 12.80, 17.60, 20.90, 15.20]
+    trig_p_h = [6.10,  6.60, 10.10, 18.60,  6.20]
+    
     asigma_m = [1.80, 1.80, 1.80, 1.80, 1.80]
     asigma_p = [1.80, 1.80, 1.80, 1.80, 1.80]
     
@@ -96,6 +102,21 @@ def final_result():
         array('d', map(sum_quadrature, trig_p_h, asigma_p, pid_p, rellumi))
     )
     
+    ## auto-generate LaTeX tables
+    for i in range(5):
+        print '[%.2f - %.2f] & %.4f $\pm$ %.4f (stat) -%.4f +%.4f (syst)\\\\'\
+            % (ptbins[i], ptbins[i+1], 
+            hm.GetBinContent(i+1), hm.GetBinError(i+1),
+            syst_m.GetErrorYlow(i), syst_m.GetErrorYhigh(i))
+        print '\\hline'
+    
+    for i in range(5):
+        print '[%.2f - %.2f] & %.4f $\pm$ %.4f (stat) -%.4f +%.4f (syst)\\\\'\
+            % (ptbins[i], ptbins[i+1],
+            hp.GetBinContent(i+1), hp.GetBinError(i+1),
+            syst_p.GetErrorYlow(i), syst_p.GetErrorYhigh(i))
+        print '\\hline'
+    
     ## NLO curves
     from analysis.asym import theoryCurves
     nlo_m = {
@@ -123,16 +144,56 @@ def final_result():
             analysis.xsec.werner_plus_dss_cteqm5_pt).getGraph()
     }
     
+    
+    nlo_m['DSSV'] = ROOT.TGraphErrors(15,
+        array('d', [float(i) for i in range(1,16)]),
+        array('d', [
+            -2.685E-05, -4.188E-05, -8.716E-05, -1.562E-04, -1.841E-04,
+            -1.420E-04, -5.366E-05,  6.018E-05,  1.274E-04,  1.235E-04,
+             7.536E-06, -2.645E-04, -6.844E-04, -1.261E-03, -1.999E-03
+        ]),
+        array('d', [0 for i in range(15)]),
+        array('d', [
+            3.011E-05, 3.331E-05, 1.549E-04, 3.664E-04, 5.990E-04,
+            8.074E-04, 9.963E-04, 1.168E-03, 1.345E-03, 1.513E-03,
+            1.684E-03, 1.851E-03, 1.990E-03, 2.117E-03, 2.223E-03
+        ]))
+    
+    nlo_p['DSSV'] = ROOT.TGraphErrors(15,
+        array('d', [float(i) for i in range(1,16)]),
+        array('d', [
+            -3.800E-05, -3.658E-05,  7.296E-07,  1.634E-04,  6.061E-04,
+             1.404E-03,  2.588E-03,  4.144E-03,  5.984E-03,  8.075E-03,
+             1.031E-02,  1.271E-02,  1.528E-02,  1.779E-02,  2.039E-02
+        ]),
+        array('d', [0 for i in range(15)]),
+        array('d', [
+            1.821E-05, 8.788E-05, 3.054E-04, 6.487E-04, 1.038E-03, 
+            1.406E-03, 1.758E-03, 2.090E-03, 2.417E-03, 2.745E-03, 
+            3.080E-03, 3.430E-03, 3.750E-03, 4.090E-03, 4.390E-03
+        ]))
+
     for nlo in (nlo_m, nlo_p):
-        nlo['ZERO'].SetLineStyle(3)
+        ## line style from pi0 paper
+        # nlo['MAX'].SetLineStyle(2)
+        nlo['MIN'].SetLineStyle(3)
+        nlo['STD'].SetLineStyle(4)
+        nlo['ZERO'].SetLineStyle(8)
+        nlo['GSC'].SetLineStyle(7)
+        
         nlo['ZERO'].SetLineColor(ROOT.kBlue)
         # nlo['MAX'].SetLineStyle(4)
         # nlo['MAX'].SetLineColor(ROOT.kRed)
-        nlo['MIN'].SetLineStyle(2)
+        # nlo['MIN'].SetLineStyle(2)
         nlo['MIN'].SetLineColor(ROOT.kGreen)
-        nlo['GSC'].SetLineStyle(5)
+        # nlo['GSC'].SetLineStyle(4)
         nlo['GSC'].SetLineColor(ROOT.kMagenta)
-        [gr.SetLineWidth(3) for gr in nlo.values()]
+        nlo['DSSV'].SetFillColor(ROOT.kYellow)
+        # nlo['DSSV'].SetLineStyle(5)
+        # nlo['DSSV'].SetLineStyle(1)
+        [gr.SetLineWidth(2) for gr in nlo.values()]
+        nlo['DSSV'].SetLineWidth(3)
+        # nlo['DSSV'].SetLineWidth(2)
     
     ## graphics setup
     for h in (hm,hp):
@@ -141,7 +202,8 @@ def final_result():
         h.GetYaxis().SetNdivisions(507)
         h.GetYaxis().SetTitle('A_{LL}  ')
         h.GetYaxis().SetTitleSize(0.06)
-        h.GetYaxis().SetTitleOffset(0.9)
+        h.GetYaxis().SetTitleOffset(0.7)
+        h.GetYaxis().SetLabelOffset(0.015)
         h.GetXaxis().SetTitle('p_{T}  [GeV/c]  ')
         h.GetXaxis().SetTitleSize(0.045)
         h.GetXaxis().SetTitleOffset(1.16)
@@ -154,14 +216,18 @@ def final_result():
     line.SetLineStyle(2)
     
     # leg = ROOT.TLegend(0.17, 0.17, 0.52, 0.47)
-    leg = ROOT.TLegend(0.17, 0.17, 0.7, 0.3)
+    # leg = ROOT.TLegend(0.17, 0.17, 0.7, 0.3)
+    leg = ROOT.TLegend(0.17, 0.17, 0.85, 0.35)
     leg.SetNColumns(2)
+    leg.SetColumnSeparation(-0.2)
     leg.SetBorderSize(0)
-    leg.AddEntry(nlo_m['STD'], 'STD', 'l')
-    # leg.AddEntry(nlo_m['MAX'], 'MAX', 'l')
-    leg.AddEntry(nlo_m['MIN'], 'MIN', 'l')
+    leg.AddEntry(nlo_m['STD'], 'GRSV STD', 'l')
+    leg.AddEntry(nlo_m['DSSV'], 'DSSV', 'l')
+    leg.AddEntry(nlo_m['MIN'], 'GRSV MIN', 'l')
     leg.AddEntry(nlo_m['GSC'], 'GS Set C', 'l')
-    leg.AddEntry(nlo_m['ZERO'], 'ZERO', 'l')
+    leg.AddEntry(nlo_m['ZERO'], 'GRSV ZERO', 'l')
+    # leg.AddEntry(nlo_m['MAX'], 'MAX', 'l')
+    # leg.AddEntry(nlo_m['DSSV'], 'DSSV', 'lf')
     
     latex = ROOT.TLatex()
     latex.SetTextSize(0.24)
@@ -178,28 +244,34 @@ def final_result():
         pad.SetLeftMargin(0.12)
         pad.SetRightMargin(0.02)
         
-    c.cd(1)
+    pad1 = c.cd(1)
     hm.Draw('e1')
-    [ g.Draw('l') for g in nlo_m.values() ]
+    # nlo_m['DSSV'].Draw('3')
+    nlo_m['DSSV'].Draw('lx')
+    [ g.Draw('lx') for g in nlo_m.values() ]
     line.Draw()
     # latex.DrawLatex(2.5, 0.05, '#pi^{-}')
-    latex.DrawLatex(3.0, -0.07, '#pi^{-}')
+    latex.DrawLatex(3.0, -0.06, '#pi^{-}')
     text = '#pm 9.4% polarization scale uncertainty not shown'
     # poltext.DrawLatex(2.5, -0.125, text)
-    poltext.DrawLatex(2.5, -0.105, text)
+    poltext.DrawLatex(2.9, -0.105, text)
     syst_m.Draw('2p')
     hm.Draw('e1 same')
     
-    c.cd(2)
+    pad2 = c.cd(2)
     hp.Draw('e1')
-    [ g.Draw('l') for g in nlo_p.values() ]
+    # nlo_p['DSSV'].Draw('3')
+    nlo_p['DSSV'].Draw('lx')
+    [ g.Draw('lx') for g in nlo_p.values() ]
     line.Draw()
     leg.Draw()
     # latex.DrawLatex(2.5, 0.05, '#pi^{+}')
-    latex.DrawLatex(3.0, -0.07, '#pi^{+}')
+    latex.DrawLatex(3.0, -0.06, '#pi^{+}')
     syst_p.Draw('2p')
     hp.Draw('e1 same')
     
+    graphics.maybe_save(pad1)
+    graphics.maybe_save(pad2)
     graphics.maybe_save(c)
 
 
@@ -1652,6 +1724,8 @@ def compare_runlists_polarizations():
         g.SetMarkerColor(ROOT.kRed)
         g.SetLineColor(ROOT.kRed)
     
+    line = ROOT.TLine(2.0, 0.0, 12.84, 0.0)
+    line.SetLineStyle(2)
     
     leg = ROOT.TLegend(0.12, 0.7, 0.57, 0.89)
     leg.AddEntry(h1m, 'final', 'p')
@@ -1666,12 +1740,14 @@ def compare_runlists_polarizations():
     # h3m.Draw('e1 same')
     gprelim_m.Draw('p')
     leg.Draw()
+    line.Draw()
     
     c.cd(2)
     h1p.Draw('e1')
     h2p.Draw('e1 same')
     # h3p.Draw('e1 same')
     gprelim_p.Draw('p')
+    line.Draw()
     
     graphics.maybe_save()
 
