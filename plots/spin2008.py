@@ -947,7 +947,7 @@ def ffcomp():
     from analysis.ff import dss
     from math import sqrt
     
-    f = ROOT.TFile('pythia_ff.hist.root')
+    f = ROOT.TFile('/Users/kocolosk/data/run6/spin2008/pythia_ff.hist.root')
     ROOT.gStyle.SetOptLogy()
     ROOT.gStyle.SetErrorX()
     charge = 'minus'
