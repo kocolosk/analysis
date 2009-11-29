@@ -1,6 +1,9 @@
 from bisect import bisect
 import urllib2
 from BeautifulSoup import BeautifulSoup
+import sqlite3 as sqlite
+
+DBFILE = '/Users/kocolosk/data/analysis.db'
 
 def getRun(path):
     """searches for an integer runnumber in the supplied path.
@@ -540,3 +543,32 @@ def runlog_scraper(run, triggers=None):
         if triggers is None or trigId in triggers:
             out[trigId] = {'prescale':prescale, 'nevents':nevents}
     return out
+
+
+def sampled_luminosity(trigId, xsec=25, runlist=None):
+    db = sqlite.connect(DBFILE)
+    dbc = db.cursor()
+    counter = 0.
+    results = dbc.execute('SELECT run, prescale FROM runlog WHERE trigId=?',
+        (trigId,)).fetchall()
+    for row in results:
+        run, trig_prescale = row
+        if runlist and run not in runlist: continue
+        if run > 7000000:
+            try:
+                dsm, mb_prescale, nevents = dbc.execute('''
+                    SELECT dsm.value, runlog.prescale, runlog.nevents
+                    FROM runlog, dsm_prescales AS dsm
+                    WHERE dsm.run=? AND runlog.trigId=? AND dsm.run=runlog.run
+                ''', (run, 117001)).fetchall()[0]
+                counter += dsm * mb_prescale * nevents / trig_prescale
+            except IndexError: pass
+        else:
+            mb_prescale, nevents = dbc.execute('''
+                SELECT prescale, nevents
+                FROM runlog
+                WHERE runlog.run=? AND runlog.trigId=?
+            ''', (run, 96011)).fetchall()[0]
+            counter += mb_prescale * nevents / trig_prescale
+    db.close()
+    return counter/(xsec*1e9)
