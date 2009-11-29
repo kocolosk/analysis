@@ -1,4 +1,6 @@
 from bisect import bisect
+import urllib2
+from BeautifulSoup import BeautifulSoup
 
 def getRun(path):
     """searches for an integer runnumber in the supplied path.
@@ -74,21 +76,6 @@ def uniqify(seq, idfun=None):
         result.append(item) 
     return result
 
-def daqEventCount(run, trigId):
-    """queries RunLog Browser to get event count for this (run,trigId) pair"""
-    """basically the world's stupidest HTML parser"""
-    import urllib2
-    sock = urllib2.urlopen(
-        'http://online.star.bnl.gov/RunLogRun6/Summary.php?run=%d' % run
-    )
-    for line in sock:
-        items = line.split()
-        for row,item in enumerate(items):
-            if item.find(str(trigId)) > 0:
-                eventCount = items[row+4]
-                return int(eventCount.lstrip('align="right">').rstrip('</TD>R'))
-    
-    
 
 def lafferty_wyatt_point(lowedge, highedge, expo_slope):
     """calculates the l-w point for a bin where the true distribution is an
@@ -533,3 +520,23 @@ def calculate_binning(resolution_fun, ptmin=2.00, ptmax=10.00):
         bin_edges.append(pt+2*width)
         pt = pt+2*width
     return bin_edges
+
+
+def runlog_scraper(run, triggers=None):
+    out = {}
+    if run < 7000000:
+        url = 'http://online.star.bnl.gov/RunLogRun5/Summary.php?run=%d' % run
+    else:
+        url = 'http://online.star.bnl.gov/RunLogRun6/Summary.php?run=%d' % run        
+    soup = BeautifulSoup(urllib2.urlopen(url))
+    trigtable = soup.html.body.findAll('table', cellspacing='0')[1]
+    for tr in trigtable:
+        # skip the header row
+        if tr.td.get('class') == 'hdesc': continue
+        td = tr.findAll('td')
+        trigId = int(td[2].contents[0])
+        prescale = float(td[3].contents[0])
+        nevents = int(td[4].contents[0])
+        if triggers is None or trigId in triggers:
+            out[trigId] = {'prescale':prescale, 'nevents':nevents}
+    return out
