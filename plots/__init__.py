@@ -3,3 +3,4 @@ import graphics
 import spin2008
 import run5note
 import misc
+import thesis
