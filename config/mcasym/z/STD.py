@@ -13,7 +13,7 @@ binning = {
 }
 
 props = {
-    'SetXTitle': ('p_{T}',),
+    'SetXTitle': ('z',),
     'SetYTitle': (name,)
 }
 
@@ -57,5 +57,5 @@ def analyze(event, jet_trigger_filter, **kw):
             for track in filter(event.charge_filter, event.matchedPairs()):
                 if accept_track(track) and abs(track.DeltaPhi(jet))>2.0:
                     z = track.ptPr()/shifted(event.year, jet.Pt())
-                    yield (z, mcasym.num('MIN', event))
+                    yield (z, mcasym.num('STD', event))
 

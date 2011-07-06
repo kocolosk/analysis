@@ -549,6 +549,8 @@ def sampled_luminosity(trigId, xsec=25, runlist=None):
     db = sqlite.connect(DBFILE)
     dbc = db.cursor()
     counter = 0.
+    counter2 = 0.
+    event_count = 0
     results = dbc.execute('SELECT run, prescale FROM runlog WHERE trigId=?',
         (trigId,)).fetchall()
     for row in results:
@@ -562,6 +564,8 @@ def sampled_luminosity(trigId, xsec=25, runlist=None):
                     WHERE dsm.run=? AND runlog.trigId=? AND dsm.run=runlog.run
                 ''', (run, 117001)).fetchall()[0]
                 counter += dsm * mb_prescale * nevents / trig_prescale
+                counter2 += dsm * mb_prescale * nevents
+                event_count += nevents
             except IndexError: pass
         else:
             mb_prescale, nevents = dbc.execute('''
@@ -570,5 +574,26 @@ def sampled_luminosity(trigId, xsec=25, runlist=None):
                 WHERE runlog.run=? AND runlog.trigId=?
             ''', (run, 96011)).fetchall()[0]
             counter += mb_prescale * nevents / trig_prescale
+            counter2 += mb_prescale * nevents
+            event_count += nevents
     db.close()
-    return counter/(xsec*1e9)
+    return (counter/(xsec*1e9), counter2/(xsec*1e9), event_count)
+
+def scaler_counts(dbc, run):
+    minbin = run > 7000000 and 5 or 6
+    c = dbc.execute('''SELECT uu,ud,du,dd 
+        FROM scalers 
+        WHERE run=? AND board=5 AND timebin>? AND timebin<10 
+        ORDER BY timebin''', (run,minbin))
+    scalers = c.fetchall()
+    if len(scalers) == 0 and run > 7000000:
+        c = dbc.execute('''SELECT uu,ud,du,dd 
+            FROM scalers 
+            WHERE run=? AND board=6 AND timebin>? AND timebin<10 
+            ORDER BY timebin''', (run,minbin))
+        scalers = c.fetchall()
+    uu = scalers[0][0] + scalers[1][0] + scalers[2][0]
+    ud = scalers[0][1] + scalers[1][1] + scalers[2][1]
+    du = scalers[0][2] + scalers[1][2] + scalers[2][2]
+    dd = scalers[0][3] + scalers[1][3] + scalers[2][3]
+    return (uu,ud,du,dd)

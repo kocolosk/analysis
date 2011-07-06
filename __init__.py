@@ -72,9 +72,10 @@ import minimc
 import histos
 import tree
 import simu
-import ff
+# import ff
 import histos2
 import config
+import util
 
 ## classes
 from asym   import AsymmetryGenerator, ScalarCounts, Polarizations

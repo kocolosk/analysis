@@ -205,7 +205,8 @@ def trigger_filter(trigId):
     except ValueError:
         if trigId == 'jetpatch':
             fun = lambda ev: passed(ev,137222) or passed(ev,137221) or \
-                passed(ev,96233) or passed(ev,96221)
+                passed(ev,96233) or passed(ev,96221) or passed(ev,106221) or \
+                passed(ev,106233)
     return fun
 
 
@@ -233,6 +234,22 @@ def jet_passed(event, jet, trigId):
                     return True
         return False
     elif trigId == 96233:
+        patchPhi = (90.,30.,-30.,-90.,-150.,150.)
+        for patchId in range(6):
+            if event.jetPatchAdc(patchId) > 83:
+                dPhi = abs(math.degrees(jet.Phi()) - patchPhi[patchId])
+                if dPhi < 40 or dPhi > 320:
+                    return True
+        return False
+    elif trigId == 106221:
+        patchPhi = (90.,30.,-30.,-90.,-150.,150.)
+        for patchId in range(6):
+            if event.jetPatchAdc(patchId) > 66:
+                dPhi = abs(math.degrees(jet.Phi()) - patchPhi[patchId])
+                if dPhi < 40 or dPhi > 320:
+                    return True
+        return False
+    elif trigId == 106233:
         patchPhi = (90.,30.,-30.,-90.,-150.,150.)
         for patchId in range(6):
             if event.jetPatchAdc(patchId) > 83:
@@ -372,23 +389,24 @@ def update(modlist, triggers, tree, tfile=None):
         'eventCounter':eventCounter}
 
 
-def write_histograms(treedir, globber='*', **kw):
+def write_histograms(treedir, globber, triggers, modlist):
     from os.path import basename, join
     from glob import glob
     from analysis import config
     from types import StringType
     import sys
     
-    modlist = kw.get('modlist') or config.all_modules()
+    # modlist = kw.get('modlist') or config.all_modules()
     
     ## get the actual modules if we received only names (e.g. from Condor)
     _modlist = map(lambda mod: isinstance(mod, StringType) and sys.modules[mod]\
         or mod, modlist)
     
-    triggers = kw.get('triglist') or \
-        ('96011','96221','96233','117001','137221','137222','jetpatch')
+    # triggers = kw.get('triglist') or \
+    #     ('96011','96221','96233','117001','137221','137222','jetpatch')
     
-    histdir = kw.get('histdir') or './'
+    # histdir = kw.get('histdir') or './'
+    histdir = '/Users/kocolosk/work/2010-05-02-run6-mcasym'
     
     files = glob(treedir + '/' + globber + '.root')
     for fname in files:
@@ -497,7 +515,7 @@ def condor_simu(treedir, triglist=None, modlist=None, histdir='./'):
     
     ## build the submit.condor file
     f = open('submit.condor', 'w')
-    f.write('executable = /usr/bin/python\n')
+    f.write('executable = /usr/bin/env python\n')
     f.write('getenv = True\n')
     f.write('notification = Error\n')
     f.write('notify_user = kocolosk@rcf.rhic.bnl.gov\n')
@@ -655,3 +673,9 @@ def mcasym_reweighted(outfile, inputdir='./'):
                 h['num'].Divide(h['denom'])
                 h['num'].SetName(h['num'].GetName() + '_' + h['id'])
                 h['num'].Write()
+
+if __name__ == '__main__':
+    import analysis
+    import sys
+    write_histograms('/Users/kocolosk/data/run6-simu/tree', sys.argv[1], \
+        ('137222',), [sys.argv[2]])

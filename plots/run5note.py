@@ -1478,7 +1478,7 @@ def mcasym_true(spin = 'anyspin'):
         'P045': 7,
         'P060': 7,
         'P070': 7,
-        'GS_NLOC': ROOT.kMagenta
+        'GS_NLOC': 9
     }
     
     alldiffs = graphics.canvas2('Asymmetry Differences')
@@ -1601,9 +1601,11 @@ def mcasym_true(spin = 'anyspin'):
     allsigmas.Update()
     allsigmas.Print('mcasym_run5_sigma%(stitle)s.png' % locals())
     
-    [d.pop('MAX') for d in (diffs, sigmas)]
-    [d.pop('MIN') for d in (diffs, sigmas)]
-    pkeys = filter(lambda key: key.startswith('P'), keys)
+    # [d.pop('MAX') for d in (diffs, sigmas)]
+    # [d.pop('MIN') for d in (diffs, sigmas)]
+    # pkeys = filter(lambda key: key.startswith('P'), keys)
+    pkeys = ('MAX', 'MIN', 'P045', 'P060', 'P070', 'M105', 'M090', 'M075',
+        'M060', 'M045')
     [diffs.pop(pkey) for pkey in pkeys]
     [sigmas.pop(pkey) for pkey in pkeys]
     

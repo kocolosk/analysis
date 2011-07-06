@@ -10,7 +10,7 @@ import ROOT
 
 from analysis.asym import AsymmetryGenerator, ScalarCounts, Polarizations
 from analysis.histos import HistogramManager, shifted
-from analysis.plots import pid_calibration
+from analysis.plots.old import pid_calibration
 from analysis.runlists import long2_run6 as runlist
 from analysis.runlists import transverse_run6 as transverse_runlist
 from analysis.util import getRun, fillList, hadd_interactive

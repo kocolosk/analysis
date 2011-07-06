@@ -1,12 +1,12 @@
 import ROOT
 from uuid import uuid1 as uuid
 
-def canvas1(name=None):
+def canvas1(name=None, x=750, y=535):
     """
     creates a new TCanvas 750px wide, usual aspect ratio
     """
     title = name or str(uuid())
-    c =  ROOT.TCanvas(title, title, 750, 535)
+    c =  ROOT.TCanvas(title, title, x, y)
     return c
 
 def canvas1e(name=None):
